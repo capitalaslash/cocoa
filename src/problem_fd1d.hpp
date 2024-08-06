@@ -20,6 +20,9 @@ struct ProblemFD1D: public Problem
     std::vector<double> diagDown;
   };
 
+  ProblemFD1D() = default;
+  ~ProblemFD1D() = default;
+
   void setup(Problem::ParamList_T const & params) override;
   bool run() override;
   void advance() override;

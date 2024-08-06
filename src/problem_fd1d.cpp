@@ -100,6 +100,7 @@ void ProblemFD1D::advance()
 
 void ProblemFD1D::solve()
 {
+  fmt::print("fd1d::solve(), time = {:.6e}, dt = {:.6e}\n", time, dt_);
   uint const n = points_.size();
   double const h = 1. / (n - 1);
 

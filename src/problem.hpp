@@ -10,6 +10,9 @@ struct Problem
 {
   using ParamList_T = std::unordered_map<std::string, std::filesystem::path>;
 
+  Problem() = default;
+  virtual ~Problem() = default;
+
   virtual void setup(ParamList_T const & params) = 0;
   virtual bool run() = 0;
   virtual void advance() = 0;
