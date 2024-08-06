@@ -1,0 +1,22 @@
+name: proxpde1
+
+mesh:
+  type: STRUCTURED
+  origin: [0.0, 0.0, 0.0]
+  length: [1.0, 1.0, 0.0]
+  n: [4, 4, 0]
+  flags: [NORMALS]
+
+dt: 0.1
+final_time: 1.0
+
+diff: 1.0
+
+var_name: T
+init_value: 0.0
+
+bcs:
+  - label: 1
+    value: 1.0
+  - label: 3
+    value: 0.0

@@ -1,0 +1,12 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  # add package specs to the `specs` list
+  specs:
+  - proxpde
+  - salome-medcoupling@9.11.0+int64~mpi~static
+  view: true
+  concretizer:
+    unify: true
