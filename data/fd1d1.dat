@@ -9,4 +9,4 @@ final_time: 4.0
 dt: 0.4
 bc_start: 0.5
 bc_end: 2.0
-out_file: output_fd1d/u
+out_file: output_fd1d1/u

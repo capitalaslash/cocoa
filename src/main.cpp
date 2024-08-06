@@ -1,13 +1,7 @@
 #include <vector>
 
-#include <fmt/core.h>
-#include <fmt/std.h>
-
 #include "med_manager.hpp"
-#include "problem_fd1d.hpp"
-#include "problem_femus.hpp"
-#include "problem_oforg.hpp"
-#include "problem_proxpde.hpp"
+#include "problem_factory.hpp"
 
 int main()
 {
@@ -18,40 +12,36 @@ int main()
   // ProblemFEMUS p2;
   // manager.problems_.push_back(&p2);
 
-  ProblemProXPDE p3;
-  ProblemProXPDE p4;
+  // ProblemProXPDE p1;
+  // ProblemProXPDE p2;
 
-  ProblemFD1D p5;
+  std::unique_ptr<Problem> p1{buildProblem(PROBLEM_TYPE::FD1D)};
+  std::unique_ptr<Problem> p2{buildProblem(PROBLEM_TYPE::FD1D)};
 
-  MEDManager coupling34{&p3, &p4};
-  MEDManager coupling43{&p4, &p3};
+  MEDManager coupling12{p1.get(), p2.get()};
+  MEDManager coupling21{p2.get(), p1.get()};
 
-  // p1.setup({});
-  // p2.setup({});
+  // p1->setup({});
+  // p2->setup({});
+  // p1->setup({{"config_file", "proxpde1.yaml"}});
+  // p2->setup({{"config_file", "proxpde2.yaml"}});
+  p1->setup({{"config_file", "fd1d1.dat"}});
+  p2->setup({{"config_file", "fd1d2.dat"}});
 
-  p3.setup({{"config_file", "proxpde1.yaml"}});
-  p4.setup({{"config_file", "proxpde2.yaml"}});
-  p5.setup({{"config_file", "fd1d.dat"}});
+  p1->print();
+  p2->print();
 
-  p3.print();
-  p4.print();
-  p5.print();
-
-  while (p3.run() || p4.run() || p5.run())
+  while (p1->run() || p2->run())
   {
-    // coupling43.project("Tsys", "T");
-    p3.advance();
-    p3.solve();
-    p3.print();
+    // coupling21.project("Tsys", "T");
+    p1->advance();
+    p1->solve();
+    p1->print();
 
-    // coupling34.project("T", "Tsys");
-    p4.advance();
-    p4.solve();
-    p4.print();
-
-    p5.advance();
-    p5.solve();
-    p5.print();
+    // coupling12.project("T", "Tsys");
+    p2->advance();
+    p2->solve();
+    p2->print();
   }
 
   return 0;
