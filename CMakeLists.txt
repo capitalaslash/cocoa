@@ -17,18 +17,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 
-include(FetchContent)
-FetchContent_Declare(fmt
-  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-  GIT_TAG master
-)
-FetchContent_MakeAvailable(fmt)
-
 # list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-include(FeatureSummary)
+# external dependencies ================================================
 
-# include(CodeFormat)
+include(FeatureSummary)
+include(FetchContent)
+
+option(MEDHUB_FETCH_FMT "Get libfmt from the web" False)
+if (MEDHUB_FETCH_FMT)
+  FetchContent_Declare(fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG master
+  )
+  FetchContent_MakeAvailable(fmt)
+else()
+  find_package(fmt REQUIRED)
+endif()
 
 find_package(ProXPDE REQUIRED)
 
@@ -53,7 +58,9 @@ target_include_directories(medcoupling
 )
 add_library(medcoupling::medcoupling ALIAS medcoupling)
 
-add_library(medhub)
+# library ==============================================================
+
+add_library(medhub SHARED)
 set(LIB_FILES
   src/med_manager.hpp
   src/med_field.hpp
@@ -80,6 +87,8 @@ target_link_libraries(medhub
 )
 add_library(medhub::medhub ALIAS medhub)
 
+# executable ===========================================================
+
 add_executable(main)
 
 set(MAIN_FILES
@@ -98,6 +107,8 @@ target_link_libraries(main
 )
 
 feature_summary(WHAT ALL)
+
+# format ===============================================================
 
 find_program(CLANGFORMAT clang-format)
 if (CLANGFORMAT)
