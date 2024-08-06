@@ -108,6 +108,9 @@ if (COCOA_ENABLE_MEDCOUPLING)
   )
 endif()
 
+find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+find_package(pybind11 CONFIG REQUIRED)
+
 # library ==============================================================
 
 add_library(cocoa SHARED)
@@ -144,6 +147,22 @@ target_link_libraries(main
 
 feature_summary(WHAT ALL)
 
+# python ===============================================================
+
+set(PY_FILES
+  # src/py_problem.cpp
+  src/py_problemfd1d.cpp
+)
+
+pybind11_add_module(fd1d
+  ${PY_FILES}
+)
+target_link_libraries(fd1d
+  PRIVATE
+    medhub::medhub
+)
+install(TARGETS fd1d DESTINATION .)
+
 # format ===============================================================
 
 find_program(CLANGFORMAT clang-format)
@@ -151,6 +170,7 @@ if (CLANGFORMAT)
   set(SRC_FILES
     ${LIB_FILES}
     ${MAIN_FILES}
+    ${PY_FILES}
   )
   add_custom_target(format
     COMMAND ${CLANGFORMAT}

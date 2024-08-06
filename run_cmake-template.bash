@@ -16,3 +16,4 @@ cmake \
 
 #   -DProXPDE_FETCH=False \
 #   -DProXPDE_DIR:PATH=~/software/proxpde/lib/cmake/ProXPDE \
+#   -DPYBIND11_PYTHON_VERSION=3.11 \
