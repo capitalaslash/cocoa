@@ -7,6 +7,7 @@
 
 void ProblemFD1D::setup(Problem::ParamList_T const & params)
 {
+  // default values
   // mesh
   double start = 0.0;
   double end = 0.0;
@@ -24,6 +25,7 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   bcStart_ = 1.0;
   bcEnd_ = 0.0;
 
+  // read configuration from file
   std::filesystem::path configFile = params.at("config_file");
   std::ifstream in(configFile, std::ios::in);
   std::string buffer;
@@ -72,30 +74,72 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   {
     points_[k] = start + k * h;
   }
+  auto const dirPath = std::filesystem::path(outFile_).parent_path();
+  initMeshMED(dirPath / "mesh");
 
   // fields
   u_.resize(points_.size(), uInit);
   uOld_.resize(points_.size(), uInit);
   q_.resize(points_.size(), qValue);
+  initFieldMED(dirPath / "u");
 
   // io
-  auto const path = std::filesystem::path(outFile_).parent_path();
-  std::filesystem::create_directories(path);
+  std::filesystem::create_directories(dirPath);
 }
 
-bool ProblemFD1D::run()
+void ProblemFD1D::initMeshMED(std::filesystem::path const & fileName)
 {
-  if (time < finalTime_ - 1.e-6)
+  // coords format: x_0, y_0, z_0, x_1, ...
+  std::vector<double> coords(points_.size() * 3);
+  for (uint k = 0; k < points_.size(); k++)
   {
-    return true;
+    coords[3 * k] = points_[k];
+    coords[3 * k + 1] = 0.0;
+    coords[3 * k + 2] = 0.0;
   }
-  return false;
+
+  // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
+  auto const nElems = points_.size() - 1;
+  std::vector<mcIdType> conn(nElems * 3);
+  for (uint k = 0; k < nElems; k++)
+  {
+    conn[3 * k] = MEDCellTypeToIKCell(MED_CELL_TYPE::LINE2);
+    conn[3 * k + 1] = k;
+    conn[3 * k + 2] = k + 1;
+  }
+
+  // offsets format: sum_0^k elemk_numpts + 1,
+  std::vector<mcIdType> offsets(nElems + 1);
+  offsets[0] = 0;
+  for (uint k = 0; k < nElems; k++)
+  {
+    offsets[k + 1] = offsets[k] + 3;
+  }
+
+  meshMED_.init(fileName.string(), coords, conn, offsets);
 }
+
+void ProblemFD1D::initFieldMED(std::filesystem::path const & fileName)
+{
+  uMED_.init(fileName.filename().string(), meshMED_);
+  uMED_.setValues(u_);
+  uMED_.initIO(fileName.string() + "_med.");
+}
+
+bool ProblemFD1D::run() { return time < finalTime_; }
 
 void ProblemFD1D::advance()
 {
-  time += dt_;
-  it += 1;
+  if (time + dt_ < finalTime_ - 1.e-6)
+  {
+    time += dt_;
+  }
+  else
+  {
+    dt_ = finalTime_ - time;
+    time = finalTime_;
+  }
+  it++;
 }
 
 void ProblemFD1D::solve()
@@ -163,4 +207,7 @@ void ProblemFD1D::print()
     fmt::print(out, "{:.6e} {:.6e}\n", points_[k], u_[k]);
   }
   std::fclose(out);
+
+  uMED_.setValues(u_);
+  uMED_.printVTK(time, it);
 }

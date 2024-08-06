@@ -18,8 +18,8 @@ struct Problem
   virtual void advance() = 0;
   virtual void solve() = 0;
   virtual void print() = 0;
-  virtual MEDField get_field(std::string_view name) = 0;
-  virtual void set_field(std::string_view name, MEDField const & field) = 0;
+  virtual MEDField getField(std::string_view name) = 0;
+  virtual void setField(std::string_view name, MEDField const & field) = 0;
 
   double time = 0.0;
   int it = 0;

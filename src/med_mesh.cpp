@@ -36,4 +36,4 @@ void MEDMesh::init(
   coordsArr->decrRef();
 }
 
-void MEDMesh::printVtk() { meshPtr_->writeVTK(meshPtr_->getName(), false); }
+void MEDMesh::printVTK() { meshPtr_->writeVTK(meshPtr_->getName(), false); }

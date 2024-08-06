@@ -1,4 +1,5 @@
 #include "problem_proxpde.hpp"
+#include "med_mesh.hpp"
 
 #include <string_view>
 
@@ -60,7 +61,7 @@ void ProblemProXPDE::initMeshMED(std::string_view name)
   std::vector<mcIdType> conn(mesh_.elementList.size() * (Elem_T::numPts + 1));
   for (auto const & elem: mesh_.elementList)
   {
-    conn[(Elem_T::numPts + 1) * elem.id] = Elem_T::numPts;
+    conn[(Elem_T::numPts + 1) * elem.id] = MEDCellTypeToIKCell(MED_CELL_TYPE::QUAD4);
     for (uint p = 0; p < Elem_T::numPts; p++)
     {
       conn[(Elem_T::numPts + 1) * elem.id + p + 1] = elem.pts[p]->id;
@@ -116,7 +117,9 @@ bool ProblemProXPDE::run() { return time < finalTime_; }
 
 void ProblemProXPDE::solve()
 {
-  // updat eold values
+  fmt::print("proxpde::solve(), time = {:.6e}, dt = {:.6e}\n", time, dt_);
+
+  // update old values
   uOld_ = u_.data;
 
   // build matrix and rhs
@@ -135,12 +138,13 @@ void ProblemProXPDE::solve()
   proxpde::LUSolver solver;
   solver.compute(builder.A);
   u_.data = solver.solve(builder.b);
-
-  updateFieldMED();
 }
 
 void ProblemProXPDE::print()
 {
+  // print med before to avoid iter update
+  updateFieldMED();
   uMED_.printVTK(time, io_.iter);
+
   io_.print(std::tuple{u_}, time);
 }

@@ -21,8 +21,8 @@ struct ProblemFEMUS: Problem
   }
   bool run() override { return false; }
   void solve() override {}
-  virtual MEDField get_field(std::string_view name) override { return MEDField{}; }
-  void set_field(std::string_view name, MEDField const & field) override {}
+  virtual MEDField getField(std::string_view name) override { return MEDField{}; }
+  void setField(std::string_view name, MEDField const & field) override {}
 
   FEMUSMesh mesh_;
   std::vector<FEMUSField> fields_;

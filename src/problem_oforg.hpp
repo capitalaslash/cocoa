@@ -21,8 +21,8 @@ struct ProblemOForg: Problem
   }
   bool run() override { return false; }
   void solve() override {}
-  MEDField get_field(std::string_view name) override { return MEDField{}; }
-  void set_field(std::string_view name, MEDField const & field) override {}
+  MEDField getField(std::string_view name) override { return MEDField{}; }
+  void setField(std::string_view name, MEDField const & field) override {}
 
   OForgMesh mesh_;
   std::vector<OForgField> fields_;

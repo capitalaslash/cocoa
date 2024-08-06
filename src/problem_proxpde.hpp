@@ -32,8 +32,8 @@ struct ProblemProXPDE: Problem
   bool run() override;
   void solve() override;
   void print() override;
-  MEDField get_field(std::string_view name) override { return MEDField{}; }
-  void set_field(std::string_view name, MEDField const & field) override {}
+  MEDField getField(std::string_view name) override { return MEDField{}; }
+  void setField(std::string_view name, MEDField const & field) override {}
 
   Mesh_T mesh_;
   MEDMesh meshMED_;

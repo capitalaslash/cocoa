@@ -2,12 +2,7 @@
 #include <string_view>
 #include <vector>
 
-#define HAVE_MED 1
-
-#ifdef HAVE_MED
 #include "med_field.hpp"
-#endif
-
 #include "problem.hpp"
 
 struct ProblemFD1D: public Problem
@@ -29,14 +24,16 @@ struct ProblemFD1D: public Problem
   void solve() override;
   void print() override;
 
-#ifdef HAVE_MED
-  MEDField get_field(std::string_view name) override { return MEDField{}; }
+  void initMeshMED(std::filesystem::path const & fileName);
+  void initFieldMED(std::filesystem::path const & fileName);
 
-  void set_field(std::string_view name, MEDField const & field) override {}
-#endif
+  MEDField getField(std::string_view name) override { return MEDField{}; }
+  void setField(std::string_view name, MEDField const & field) override {}
 
   std::vector<double> points_;
+  MEDMesh meshMED_;
   std::vector<double> u_;
+  MEDField uMED_;
   std::vector<double> uOld_;
   std::vector<double> q_;
   double diff_;
