@@ -4,7 +4,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "type of build")
 endif()
 
-project(medhub
+project(cocoa
   VERSION 0.1
   LANGUAGES CXX
 )
@@ -19,13 +19,27 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 
 # list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
+set(LIB_FILES
+  src/coupling_manager.hpp
+  src/coupling_manager.cpp
+  src/problem.hpp
+  src/problem.cpp
+  src/problem_fd1d.hpp
+  src/problem_fd1d.cpp
+  src/problem_femus.hpp
+  src/problem_oforg.hpp
+)
+set(LIB_DEPENDENCIES
+  fmt::fmt
+)
+
 # external dependencies ================================================
 
 include(FeatureSummary)
 include(FetchContent)
 
-option(MEDHUB_FETCH_FMT "Get libfmt from the web" False)
-if (MEDHUB_FETCH_FMT)
+option(COCOA_FETCH_FMT "Get libfmt from the web" False)
+if (COCOA_FETCH_FMT)
   FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
     GIT_TAG master
@@ -35,57 +49,65 @@ else()
   find_package(fmt REQUIRED)
 endif()
 
-find_package(ProXPDE REQUIRED)
+option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." False)
+if (COCOA_ENABLE_PROXPDE)
+  find_package(ProXPDE REQUIRED)
+  list(APPEND LIB_FILES
+    src/problem_proxpde.hpp
+    src/problem_proxpde.cpp
+  )
+  list(APPEND LIB_DEPENDENCIES
+    ProXPDE::proxpde
+  )
+endif()
 
-find_package(MEDCoupling
-  REQUIRED
-  PATHS
-    $ENV{SPACK_ENV}/.spack-env/view/cmake_files
-)
-add_library(medcoupling INTERFACE)
-# fix missing target in medcoupling cmake
-target_link_libraries(medcoupling
-  INTERFACE
-    interpkernel
-    medcouplingcpp
-    medcouplingremapper
-    # medicoco
-    medloader
-)
-target_include_directories(medcoupling
-  INTERFACE
-    ${MEDCOUPLING_INCLUDE_DIRS}
-)
-add_library(medcoupling::medcoupling ALIAS medcoupling)
+option(COCOA_ENABLE_MEDCOUPLING "Enable MEDCoupling coupling." False)
+if (COCOA_ENABLE_MEDCOUPLING)
+  find_package(MEDCoupling
+    REQUIRED
+    PATHS
+      $ENV{SPACK_ENV}/.spack-env/view/cmake_files
+  )
+  add_library(medcoupling INTERFACE)
+  # fix missing target in medcoupling cmake
+  target_link_libraries(medcoupling
+    INTERFACE
+      interpkernel
+      medcouplingcpp
+      medcouplingremapper
+      # medicoco
+      medloader
+  )
+  target_include_directories(medcoupling
+    INTERFACE
+      ${MEDCOUPLING_INCLUDE_DIRS}
+  )
+  add_library(medcoupling::medcoupling ALIAS medcoupling)
+  list(APPEND LIB_FILES
+    src/med_manager.hpp
+    src/med_manager.cpp
+    src/med_field.hpp
+    src/med_field.cpp
+    src/med_mesh.hpp
+    src/med_mesh.cpp
+  )
+  list(APPEND LIB_DEPENDENCIES
+    medcoupling::medcoupling
+  )
+endif()
 
 # library ==============================================================
 
-add_library(medhub SHARED)
-set(LIB_FILES
-  src/med_manager.hpp
-  src/med_field.hpp
-  src/med_field.cpp
-  src/med_mesh.hpp
-  src/med_mesh.cpp
-  src/problem.hpp
-  src/problem_femus.hpp
-  src/problem_oforg.hpp
-  src/problem_proxpde.hpp
-  src/problem_proxpde.cpp
-  src/problem_fd1d.hpp
-  src/problem_fd1d.cpp
-)
-
-target_sources(medhub
+add_library(cocoa SHARED)
+target_sources(cocoa
   PRIVATE
     ${LIB_FILES}
 )
-target_link_libraries(medhub
+target_link_libraries(cocoa
   PUBLIC
-    medcoupling::medcoupling
-    ProXPDE::proxpde
+  ${LIB_DEPENDENCIES}
 )
-add_library(medhub::medhub ALIAS medhub)
+add_library(cocoa::cocoa ALIAS cocoa)
 
 # executable ===========================================================
 
@@ -96,14 +118,13 @@ set(MAIN_FILES
 )
 
 target_sources(main
-	PRIVATE
+  PRIVATE
     ${MAIN_FILES}
 	  # ${HDR_FILES}
 )
 target_link_libraries(main
   PUBLIC
-    medhub::medhub
-    fmt::fmt
+    cocoa::cocoa
 )
 
 feature_summary(WHAT ALL)

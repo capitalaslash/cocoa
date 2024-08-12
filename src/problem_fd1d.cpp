@@ -100,30 +100,30 @@ void ProblemFD1D::initMeshMED(std::filesystem::path const & fileName)
 
   // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
   auto const nElems = points_.size() - 1;
-  std::vector<mcIdType> conn(nElems * 3);
+  std::vector<uint> conn(nElems * 3);
   for (uint k = 0; k < nElems; k++)
   {
-    conn[3 * k] = MEDCellTypeToIKCell(MED_CELL_TYPE::LINE2);
+    conn[3 * k] = 2;  // MEDCellTypeToIKCell(MED_CELL_TYPE::LINE2);
     conn[3 * k + 1] = k;
     conn[3 * k + 2] = k + 1;
   }
 
   // offsets format: sum_0^k elemk_numpts + 1,
-  std::vector<mcIdType> offsets(nElems + 1);
+  std::vector<uint> offsets(nElems + 1);
   offsets[0] = 0;
   for (uint k = 0; k < nElems; k++)
   {
     offsets[k + 1] = offsets[k] + 3;
   }
 
-  meshMED_.init(fileName.string(), coords, conn, offsets);
+  // meshCoupling_.init(fileName.string(), coords, conn, offsets);
 }
 
 void ProblemFD1D::initFieldMED(std::filesystem::path const & fileName)
 {
-  uMED_.init(fileName.filename().string(), meshMED_);
-  uMED_.setValues(u_);
-  uMED_.initIO(fileName.string() + "_med.");
+  // uCoupling_.init(fileName.filename().string(), meshMED_);
+  // uCoupling_.setValues(u_);
+  // uCoupling_.initIO(fileName.string() + "_med.");
 }
 
 bool ProblemFD1D::run() { return time < finalTime_; }
@@ -208,6 +208,7 @@ void ProblemFD1D::print()
   }
   std::fclose(out);
 
-  uMED_.setValues(u_);
-  uMED_.printVTK(time, it);
+  // uCoupling_.setValues(u_);
+  // uCoupling_.printVTK(time, it);
 }
+

@@ -7,6 +7,7 @@ spack:
   specs:
   - proxpde
   - salome-medcoupling@9.11.0+int64~mpi~static
+    - fmt@10.2.1
   view: true
   concretizer:
     unify: true

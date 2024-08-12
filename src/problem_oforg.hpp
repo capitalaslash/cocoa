@@ -2,14 +2,8 @@
 
 #include <fmt/core.h>
 
-#include "med_field.hpp"
+#include "field_coupling.hpp"
 #include "problem.hpp"
-
-struct OForgMesh
-{};
-
-struct OForgField
-{};
 
 struct ProblemOForg: Problem
 {
@@ -21,9 +15,9 @@ struct ProblemOForg: Problem
   }
   bool run() override { return false; }
   void solve() override {}
-  MEDField getField(std::string_view name) override { return MEDField{}; }
-  void setField(std::string_view name, MEDField const & field) override {}
+  FieldCoupling getField(std::string_view name) override { return FieldCoupling{}; }
+  void setField(std::string_view name, FieldCoupling const & field) override {}
 
-  OForgMesh mesh_;
-  std::vector<OForgField> fields_;
+  // OForgMesh mesh_;
+  // std::vector<OForgField> fields_;
 };

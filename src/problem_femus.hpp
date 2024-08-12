@@ -2,14 +2,8 @@
 
 #include <fmt/core.h>
 
-#include "med_field.hpp"
+#include "field_coupling.hpp"
 #include "problem.hpp"
-
-struct FEMUSMesh
-{};
-
-struct FEMUSField
-{};
 
 struct ProblemFEMUS: Problem
 {
@@ -21,9 +15,10 @@ struct ProblemFEMUS: Problem
   }
   bool run() override { return false; }
   void solve() override {}
-  virtual MEDField getField(std::string_view name) override { return MEDField{}; }
-  void setField(std::string_view name, MEDField const & field) override {}
+  virtual FieldCoupling getField(std::string_view name) override { return FieldCoupling{}; }
+  void setField(std::string_view name, FieldCoupling const & field) override {}
 
-  FEMUSMesh mesh_;
-  std::vector<FEMUSField> fields_;
+  // FEMUSMesh mesh_;
+  // std::vector<FEMUSField> fields_;
 };
+

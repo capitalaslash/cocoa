@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-struct MEDField;
+struct FieldCoupling;
 
 struct Problem
 {
@@ -18,9 +18,10 @@ struct Problem
   virtual void advance() = 0;
   virtual void solve() = 0;
   virtual void print() = 0;
-  virtual MEDField getField(std::string_view name) = 0;
-  virtual void setField(std::string_view name, MEDField const & field) = 0;
+  virtual FieldCoupling getField(std::string_view name) = 0;
+  virtual void setField(std::string_view name, FieldCoupling const & field) = 0;
 
   double time = 0.0;
   int it = 0;
 };
+

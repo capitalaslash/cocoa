@@ -2,7 +2,8 @@
 #include <string_view>
 #include <vector>
 
-#include "med_field.hpp"
+#include "field_coupling.hpp"
+#include "mesh_coupling.hpp"
 #include "problem.hpp"
 
 struct ProblemFD1D: public Problem
@@ -27,13 +28,13 @@ struct ProblemFD1D: public Problem
   void initMeshMED(std::filesystem::path const & fileName);
   void initFieldMED(std::filesystem::path const & fileName);
 
-  MEDField getField(std::string_view name) override { return MEDField{}; }
-  void setField(std::string_view name, MEDField const & field) override {}
+  FieldCoupling getField(std::string_view name) override { return FieldCoupling{}; }
+  void setField(std::string_view name, FieldCoupling const & field) override {}
 
   std::vector<double> points_;
-  MEDMesh meshMED_;
+  MeshCoupling meshCoupling_;
   std::vector<double> u_;
-  MEDField uMED_;
+  FieldCoupling uCoupling_;
   std::vector<double> uOld_;
   std::vector<double> q_;
   double diff_;
@@ -43,3 +44,4 @@ struct ProblemFD1D: public Problem
   double bcEnd_;
   std::string outFile_ = "fd1d";
 };
+
