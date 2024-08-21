@@ -5,9 +5,10 @@
 spack:
   # add package specs to the `specs` list
   specs:
-  - proxpde
-  - salome-medcoupling@9.11.0+int64~mpi~static
+    - proxpde@master
+    - salome-medcoupling@9.11.0+int64~mpi~static
     - fmt@10.2.1
+    - scotch@7.0.4
   view: true
   concretizer:
     unify: true

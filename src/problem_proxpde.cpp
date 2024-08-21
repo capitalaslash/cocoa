@@ -11,7 +11,7 @@
 void ProblemProXPDE::setup(ParamList_T const & params)
 {
   // get configuration from file
-  std::string filename = params.at("config_file");
+  std::string const filename = params.at("config_file");
   proxpde::ParameterDict config = YAML::LoadFile(filename);
 
   // init mesh from configuration
@@ -76,18 +76,20 @@ void ProblemProXPDE::initMeshMED(std::string_view name)
     offsets[e + 1] = offsets[e] + (Elem_T::numPts + 1);
   }
 
-  meshMED_.init(name, coords, conn, offsets);
+  meshMED_.init(name, Elem_T::dim, coords, conn, offsets);
 }
 
 void ProblemProXPDE::initFieldMED(std::string_view name)
 {
-  uMED_.init(name, meshMED_);
-  updateFieldMED();
+  auto [kvPair, success] = fieldsMED_.emplace(u_.name, MEDField{});
+  assert(success);
+  kvPair->second.init(name, meshMED_);
+  updateFieldMED(kvPair->first);
   std::string filename = std::string{io_.filePath.value()} + "_med.";
-  uMED_.initIO(filename);
+  kvPair->second.initIO(filename);
 }
 
-void ProblemProXPDE::updateFieldMED()
+void ProblemProXPDE::updateFieldMED(std::string_view name)
 {
   std::vector<double> data(u_.data.size());
   for (auto const & e: mesh_.elementList)
@@ -97,7 +99,7 @@ void ProblemProXPDE::updateFieldMED()
       data[e.pts[k]->id] = u_.data[feSpace_.dof.getId(e.id, k)];
     }
   }
-  uMED_.setValues(data);
+  fieldsMED_.at(std::string{name}).setValues(data);
 }
 
 void ProblemProXPDE::advance()
@@ -143,8 +145,8 @@ void ProblemProXPDE::solve()
 void ProblemProXPDE::print()
 {
   // print med before to avoid iter update
-  updateFieldMED();
-  uMED_.printVTK(time, io_.iter);
+  updateFieldMED(u_.name);
+  fieldsMED_.at(u_.name).printVTK(time, io_.iter);
 
   io_.print(std::tuple{u_}, time);
 }

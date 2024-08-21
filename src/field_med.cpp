@@ -1,4 +1,4 @@
-#include "med_field.hpp"
+#include "field_med.hpp"
 
 #include <string_view>
 
@@ -6,7 +6,7 @@
 
 #include <MEDCouplingFieldDouble.hxx>
 
-MEDField::~MEDField()
+FieldMED::~FieldMED()
 {
   if (inited_)
   {
@@ -14,31 +14,41 @@ MEDField::~MEDField()
   }
 }
 
-void MEDField::init(std::string_view name, MEDMesh & mesh)
+void FieldMED::init(std::string_view name, MEDMesh & mesh)
 {
   fieldPtr_ = MEDCoupling::MEDCouplingFieldDouble::New(
       MEDCoupling::ON_NODES, MEDCoupling::ONE_TIME);
   inited_ = true;
 
+  // TODO: allow more field natures
+  fieldPtr_->setNature(MEDCoupling::IntensiveMaximum);
   fieldPtr_->setName(std::string{name});
   fieldPtr_->setTimeUnit("s");
   fieldPtr_->setTime(0.0, 0, -1);
   fieldPtr_->setMesh(mesh.meshPtr_);
 }
 
-void MEDField::initIO(std::string_view filename) { filename_ = filename; }
+void FieldMED::initIO(std::string_view filename) { filename_ = filename; }
 
-void MEDField::setValues(std::vector<double> const & data)
+void FieldMED::setValues(std::vector<double> const & data)
 {
   MEDCoupling::DataArrayDouble * array = MEDCoupling::DataArrayDouble::New();
   array->alloc(data.size(), 1);
-  // array->fillWithValue(8.);
   std::copy(data.data(), data.data() + data.size(), array->getPointer());
   fieldPtr_->setArray(array);
   array->decrRef();
 }
 
-void MEDField::printVTK(double time, uint iter)
+void FieldMED::setValues(double value, uint size)
+{
+  MEDCoupling::DataArrayDouble * array = MEDCoupling::DataArrayDouble::New();
+  array->alloc(size, 1);
+  array->fillWithValue(value);
+  fieldPtr_->setArray(array);
+  array->decrRef();
+}
+
+void FieldMED::printVTK(double time, uint iter)
 {
   auto const filename = filename_.string() + std::to_string(iter);
   frames.push_back(Frame{iter, time});
@@ -47,7 +57,7 @@ void MEDField::printVTK(double time, uint iter)
   printPVD();
 }
 
-void MEDField::printPVD()
+void FieldMED::printPVD()
 {
   std::FILE * out = std::fopen((filename_.string() + "pvd").c_str(), "w");
   fmt::print(

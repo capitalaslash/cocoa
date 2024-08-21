@@ -12,11 +12,12 @@ MEDMesh::~MEDMesh()
 
 void MEDMesh::init(
     std::string_view name,
+    uint const dim,
     std::vector<double> const & coords,
     std::vector<mcIdType> conn,
     std::vector<mcIdType> offsets)
 {
-  meshPtr_ = MEDCoupling::MEDCouplingUMesh::New(std::string{name}, 2);
+  meshPtr_ = MEDCoupling::MEDCouplingUMesh::New(std::string{name}, dim);
   inited_ = true;
 
   MEDCoupling::DataArrayIdType * nodalConn = MEDCoupling::DataArrayIdType::New();

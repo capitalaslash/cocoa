@@ -1,4 +1,4 @@
-#! /usr/bin/env python3.11
+#! /usr/bin/env python3
 
 import os
 import sys
@@ -7,7 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def main(filename):
+COLORS = ["k", "r", "b", "g "]
+
+
+def main(idx, filename, ax):
 
     dirname = os.path.dirname(filename)
 
@@ -28,7 +31,7 @@ def main(filename):
             elif tokens[0] == "dt:":
                 dt = float(tokens[1])
             elif tokens[0] == "out_file:":
-                outFile = tokens[1]
+                outFile = tokens[1][:-1]
             # elif tokens[0] == "start:":
             #     start = float(tokens[1])
             # elif tokens[0] == "end:":
@@ -45,22 +48,30 @@ def main(filename):
 
     print(f"iter: {iters}\n")
 
-    fig, ax = plt.subplots(1, 1, figsize=(7, 4))
-
     for it in iters:
         data = np.loadtxt(f"{dirname}/{outFile}.{it}.dat")
-        ax.plot(data[:, 0], data[:, 1], label=f"{it}")
+        ax.plot(
+            data[:, 0],
+            data[:, 1],
+            label=filename,
+            color=COLORS[idx],
+            # label=f"{it}",
+        )
 
     ax.legend()
     ax.grid()
 
-    plt.show()
-
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print(f"usage: {sys.argv[0]} configFile")
+    if len(sys.argv) < 2:
+        print(f"usage: {sys.argv[0]} configFile [configFile] ...")
         exit(1)
     print(f"configFile: {sys.argv[1]}")
 
-    main(sys.argv[1])
+    fig, ax = plt.subplots(1, 1, figsize=(7, 4))
+
+    for k in range(1, len(sys.argv)):
+        main(k - 1, sys.argv[k], ax)
+
+    plt.show()
+    # plt.savefig("fd1d_plot.pdf")

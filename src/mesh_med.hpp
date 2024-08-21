@@ -20,16 +20,17 @@ inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)
   return static_cast<mcIdType>(t);
 }
 
-struct MEDMesh
+struct MeshMED: public MeshCoupling
 {
-  MEDMesh() = default;
-  ~MEDMesh();
+  MeshMED() = default;
+  ~MeshMED();
 
   void init(
       std::string_view name,
+      uint const dim,
       std::vector<double> const & coords,
-      std::vector<mcIdType> conn,
-      std::vector<mcIdType> offsets);
+      std::vector<uint> conn,
+      std::vector<uint> offsets) override;
 
   void printVTK();
 

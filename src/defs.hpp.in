@@ -1,0 +1,8 @@
+// coupling interfaces
+#cmakedefine COCOA_ENABLE_MED
+#cmakedefine COCOA_ENABLE_OFM2M
+
+// problem interfaces
+#cmakedefine COCOA_ENABLE_FEMUS
+#cmakedefine COCOA_ENABLE_OFORG
+#cmakedefine COCOA_ENABLE_PROXPDE

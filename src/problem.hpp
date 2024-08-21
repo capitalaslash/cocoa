@@ -1,10 +1,13 @@
 #pragma once
 
+// std
 #include <filesystem>
 #include <string>
 #include <unordered_map>
 
-struct FieldCoupling;
+// local
+#include "field_coupling.hpp"
+#include "mesh_coupling.hpp"
 
 struct Problem
 {
@@ -23,5 +26,6 @@ struct Problem
 
   double time = 0.0;
   int it = 0;
+  MeshCoupling meshCoupling_;
+  std::unordered_map<std::string, std::unique_ptr<FieldCoupling>> fieldsCoupling_;
 };
-

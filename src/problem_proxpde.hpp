@@ -27,7 +27,7 @@ struct ProblemProXPDE: Problem
   void setup(ParamList_T const & params) override;
   void initMeshMED(std::string_view meshName);
   void initFieldMED(std::string_view fieldName);
-  void updateFieldMED();
+  void updateFieldMED(std::string_view fieldName);
   void advance() override;
   bool run() override;
   void solve() override;
@@ -36,13 +36,11 @@ struct ProblemProXPDE: Problem
   void setField(std::string_view name, MEDField const & field) override {}
 
   Mesh_T mesh_;
-  MEDMesh meshMED_;
   FESpace_T feSpace_;
   std::vector<proxpde::BCEss<FESpace_T>> bcs_;
   proxpde::IOManager<FESpace_T> io_;
   double diff_;
   proxpde::FEVar<FESpace_T> u_;
-  MEDField uMED_;
   proxpde::Vec uOld_;
   double dt_;
   double finalTime_;

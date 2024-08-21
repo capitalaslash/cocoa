@@ -17,7 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 
-# list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(LIB_FILES
   src/coupling_manager.hpp
@@ -38,7 +38,7 @@ set(LIB_DEPENDENCIES
 include(FeatureSummary)
 include(FetchContent)
 
-option(COCOA_FETCH_FMT "Get libfmt from the web" False)
+option(COCOA_FETCH_FMT "Get libfmt from the web" OFF)
 if (COCOA_FETCH_FMT)
   FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
@@ -49,7 +49,19 @@ else()
   find_package(fmt REQUIRED)
 endif()
 
-option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." False)
+option(COCOA_ENABLE_OFORG "Enable OpenFOAM (org version)." OFF)
+if (COCOA_ENABLE_OFCOM)
+  find_package(OpenFOAMorg REQUIRED)
+  list(APPEND LIB_FILES
+    src/problem_oforg.hpp
+    # src/problem_oforg.cpp
+  )
+  list(APPEND LIB_DEPENDENCIES
+    OpenFOAMorg::ALL
+  )
+endif()
+
+option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." OFF)
 if (COCOA_ENABLE_PROXPDE)
   find_package(ProXPDE REQUIRED)
   list(APPEND LIB_FILES
@@ -61,7 +73,7 @@ if (COCOA_ENABLE_PROXPDE)
   )
 endif()
 
-option(COCOA_ENABLE_MEDCOUPLING "Enable MEDCoupling coupling." False)
+option(COCOA_ENABLE_MEDCOUPLING "Enable MEDCoupling coupling." OFF)
 if (COCOA_ENABLE_MEDCOUPLING)
   find_package(MEDCoupling
     REQUIRED
@@ -108,6 +120,9 @@ target_link_libraries(cocoa
   ${LIB_DEPENDENCIES}
 )
 add_library(cocoa::cocoa ALIAS cocoa)
+
+configure_file(src/defs.hpp.in defs.hpp @ONLY)
+target_include_directories(cocoa PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 
 # executable ===========================================================
 

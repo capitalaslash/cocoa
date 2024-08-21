@@ -1,11 +1,9 @@
-#include <vector>
-
-#include "coupling_manager.hpp"
+// local
+#include "coupling_factory.hpp"
 #include "problem_factory.hpp"
 
 int main()
 {
-
   // ProblemOForg p1;
   // manager.problems_.push_back(&p1);
 
@@ -18,10 +16,7 @@ int main()
   std::unique_ptr<Problem> p1{buildProblem(PROBLEM_TYPE::FD1D)};
   std::unique_ptr<Problem> p2{buildProblem(PROBLEM_TYPE::FD1D)};
 
-  CouplingManager coupling12;
-  coupling12.setup(p1.get(), p2.get());
-  CouplingManager coupling21;
-  coupling21.setup(p2.get(), p1.get());
+  setAssemblies();
 
   // p1->setup({});
   // p2->setup({});
@@ -30,17 +25,22 @@ int main()
   p1->setup({{"config_file", "fd1d1.dat"}});
   p2->setup({{"config_file", "fd1d2.dat"}});
 
+  std::unique_ptr<CouplingManager> coupling12{buildCoupling(COUPLING_TYPE::SIMPLE)};
+  coupling12->setup(p1.get(), p2.get());
+  // MEDManager coupling21;
+  // coupling21.setup(p2.get(), p1.get());
+
   p1->print();
   p2->print();
 
   while (p1->run() || p2->run())
   {
-    // coupling21.project("Tsys", "T");
+    // coupling21.project("T", "Tsys");
     p1->advance();
     p1->solve();
     p1->print();
 
-    coupling12.project("T", "Tsys");
+    coupling12->project("u", "uExternal");
     p2->advance();
     p2->solve();
     p2->print();

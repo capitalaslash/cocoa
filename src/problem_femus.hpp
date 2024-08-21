@@ -5,7 +5,7 @@
 #include "field_coupling.hpp"
 #include "problem.hpp"
 
-struct ProblemFEMUS: Problem
+struct ProblemFEMUS: public Problem
 {
   using ParamList_T = Problem::ParamList_T;
 
@@ -15,10 +15,12 @@ struct ProblemFEMUS: Problem
   }
   bool run() override { return false; }
   void solve() override {}
-  virtual FieldCoupling getField(std::string_view name) override { return FieldCoupling{}; }
+  virtual FieldCoupling getField(std::string_view name) override
+  {
+    return FieldCoupling{};
+  }
   void setField(std::string_view name, FieldCoupling const & field) override {}
 
   // FEMUSMesh mesh_;
   // std::vector<FEMUSField> fields_;
 };
-
