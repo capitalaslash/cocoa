@@ -13,7 +13,12 @@
 #include "mesh_coupling.hpp"
 #include "problem.hpp"
 
-void setAssemblies();
+enum struct FDBCType : int8_t
+{
+  NONE = 0,
+  DIRICHLET = 1,
+  NEUMANN = 2,
+};
 
 struct ProblemFD1D: public Problem
 {
@@ -70,10 +75,14 @@ struct ProblemFD1D: public Problem
   Matrix m_;
   std::vector<double> rhs_;
   std::string assemblyName_;
-  double bcStart_;
-  double bcEnd_;
+  FDBCType bcStartType_ = FDBCType::NONE;
+  double bcStartValue_ = 0.0;
+  FDBCType bcEndType_ = FDBCType::NONE;
+  double bcEndValue_ = 0.0;
   std::string outFile_ = "./fd1d";
   std::string nameExt_ = "uExternal";
 
   static std::unordered_map<std::string, Assembly_T> assemblies_;
 };
+
+void setAssemblies();

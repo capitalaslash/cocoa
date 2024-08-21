@@ -12,6 +12,15 @@
 // local
 #include "field_coupling.hpp"
 
+FDBCType str2fdbc(std::string_view buffer)
+{
+  if (buffer == "dirichlet")
+    return FDBCType::DIRICHLET;
+  if (buffer == "neumann")
+    return FDBCType::NEUMANN;
+  std::abort();
+}
+
 void ProblemFD1D::setup(Problem::ParamList_T const & params)
 {
   // default values
@@ -28,9 +37,6 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   time = 0.0;
   finalTime_ = 1.0;
   dt_ = 0.1;
-  // bcs
-  bcStart_ = 1.0;
-  bcEnd_ = 0.0;
 
   // read configuration from file
   std::filesystem::path configFile = params.at("config_file");
@@ -38,7 +44,7 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   if (!in)
   {
     fmt::print(stderr, "configuration file {} not found!\n", configFile.string());
-    abort();
+    std::abort();
   }
   std::string buffer;
   while (std::getline(in, buffer, '\n'))
@@ -67,10 +73,20 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
         bufferStream >> dt_;
       else if (token == "assembly_name:")
         bufferStream >> assemblyName_;
-      else if (token == "bc_start:")
-        bufferStream >> bcStart_;
-      else if (token == "bc_end:")
-        bufferStream >> bcEnd_;
+      else if (token == "bc_start_type:")
+      {
+        bufferStream >> token;
+        bcStartType_ = str2fdbc(token);
+      }
+      else if (token == "bc_start_value:")
+        bufferStream >> bcStartValue_;
+      else if (token == "bc_end_type:")
+      {
+        bufferStream >> token;
+        bcEndType_ = str2fdbc(token);
+      }
+      else if (token == "bc_end_value:")
+        bufferStream >> bcEndValue_;
       else if (token == "out_file:")
         bufferStream >> outFile_;
       else
@@ -172,20 +188,59 @@ void ProblemFD1D::solve()
 {
   fmt::print("fd1d::solve(), time = {:.6e}, dt = {:.6e}\n", time, dt_);
   uint const n = n_;
+  double const h = 1. / (n - 1);
 
   // update
   for (uint k = 0; k < n; k++)
     uOld_[k] = u_[k];
 
   // bc start
-  m_.diag[0] = 1.0;
-  m_.diagUp[0] = 0.0;
-  rhs_[0] = bcStart_;
+  switch (bcStartType_)
+  {
+  case FDBCType::DIRICHLET:
+  {
+    m_.diag[0] = 1.0;
+    m_.diagUp[0] = 0.0;
+    rhs_[0] = bcStartValue_;
+    break;
+  }
+  case FDBCType::NEUMANN:
+  {
+    m_.diag[0] = 1.0;
+    m_.diagUp[0] = -1.0;
+    rhs_[0] = bcStartValue_ * h;
+    break;
+  }
+  default:
+  {
+    fmt::print(stderr, "no bc start specified!\n");
+    std::abort();
+  }
+  }
 
   // bc end
-  m_.diag[n - 1] = 1.0;
-  m_.diagDown[n - 1] = 0.0;
-  rhs_[n - 1] = bcEnd_;
+  switch (bcEndType_)
+  {
+  case FDBCType::DIRICHLET:
+  {
+    m_.diag[n - 1] = 1.0;
+    m_.diagDown[n - 1] = 0.0;
+    rhs_[n - 1] = bcEndValue_;
+    break;
+  }
+  case FDBCType::NEUMANN:
+  {
+    m_.diag[n - 1] = -1.0;
+    m_.diagDown[n - 1] = 1.0;
+    rhs_[n - 1] = bcEndValue_ * h;
+    break;
+  }
+  default:
+  {
+    fmt::print(stderr, "no bc end specified!\n");
+    std::abort();
+  }
+  }
 
   // assembly
   // std::vector<double> uExt(n);
