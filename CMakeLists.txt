@@ -149,19 +149,28 @@ feature_summary(WHAT ALL)
 
 # python ===============================================================
 
-set(PY_FILES
-  # src/py_problem.cpp
-  src/py_problemfd1d.cpp
-)
-
 pybind11_add_module(fd1d
-  ${PY_FILES}
+  src/py_problem_fd1d.cpp
 )
 target_link_libraries(fd1d
   PRIVATE
-    medhub::medhub
+    cocoa::cocoa
 )
 install(TARGETS fd1d DESTINATION .)
+
+pybind11_add_module(coupling_simple
+  src/py_coupling_simple.cpp
+)
+target_link_libraries(coupling_simple  PRIVATE
+    cocoa::cocoa
+)
+install(TARGETS coupling_simple DESTINATION .)
+
+set(PY_FILES
+  # src/py_problem.cpp
+  src/py_problem_fd1d.cpp
+  src/py_coupling_simple.cpp
+)
 
 # format ===============================================================
 
