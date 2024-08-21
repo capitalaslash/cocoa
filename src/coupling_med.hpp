@@ -3,12 +3,15 @@
 // medcoupling
 #include <MEDCouplingRemapper.hxx>
 
+// local
+#include "coupling_manager.hpp"
+
 struct Problem;
 
-struct MEDManager
+struct CouplingMED: public CouplingManager
 {
-  MEDManager() = default;
-  ~MEDManager() = default;
+  CouplingMED() = default;
+  ~CouplingMED() = default;
 
   void setup(Problem * src, Problem * tgt);
   void project(std::string_view srcName, std::string_view tgtName);

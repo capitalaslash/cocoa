@@ -8,9 +8,9 @@
 
 #include "problem.hpp"
 #include "problem_fd1d.hpp"
-// #include "problem_femus.hpp"
+#include "problem_femus.hpp"
 #include "problem_oforg.hpp"
-// #include "problem_proxpde.hpp"
+#include "problem_proxpde.hpp"
 
 enum struct PROBLEM_TYPE : char
 {
@@ -34,7 +34,7 @@ inline std::unique_ptr<Problem> buildProblem(PROBLEM_TYPE type)
 #ifdef COCOA_ENABLE_FEMUS
   case PROBLEM_TYPE::FEMUS:
   {
-    return new ProblemFEMUS{};
+    return std::unique_ptr<Problem>{new ProblemFEMUS};
     break;
   }
 #endif

@@ -96,12 +96,12 @@ if (COCOA_ENABLE_MEDCOUPLING)
   )
   add_library(medcoupling::medcoupling ALIAS medcoupling)
   list(APPEND LIB_FILES
-    src/med_manager.hpp
-    src/med_manager.cpp
-    src/med_field.hpp
-    src/med_field.cpp
-    src/med_mesh.hpp
-    src/med_mesh.cpp
+    src/coupling_med.hpp
+    src/coupling_med.cpp
+    src/field_med.hpp
+    src/field_med.cpp
+    src/mesh_med.hpp
+    src/mesh_med.cpp
   )
   list(APPEND LIB_DEPENDENCIES
     medcoupling::medcoupling

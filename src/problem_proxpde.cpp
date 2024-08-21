@@ -1,12 +1,17 @@
 #include "problem_proxpde.hpp"
-#include "med_mesh.hpp"
 
+// std
 #include <string_view>
 
+// proxpde
 #include <proxpde/assembly.hpp>
 #include <proxpde/builder.hpp>
 
+// medcoupling
 #include <MEDCouplingFieldDouble.hxx>
+
+// local
+#include "mesh_med.hpp"
 
 void ProblemProXPDE::setup(ParamList_T const & params)
 {
@@ -58,7 +63,7 @@ void ProblemProXPDE::initMeshMED(std::string_view name)
   }
 
   // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
-  std::vector<mcIdType> conn(mesh_.elementList.size() * (Elem_T::numPts + 1));
+  std::vector<uint> conn(mesh_.elementList.size() * (Elem_T::numPts + 1));
   for (auto const & elem: mesh_.elementList)
   {
     conn[(Elem_T::numPts + 1) * elem.id] = MEDCellTypeToIKCell(MED_CELL_TYPE::QUAD4);
@@ -69,24 +74,24 @@ void ProblemProXPDE::initMeshMED(std::string_view name)
   }
 
   // offsets format: sum_0^k elemk_numpts + 1,
-  std::vector<mcIdType> offsets(mesh_.elementList.size() + 1);
+  std::vector<uint> offsets(mesh_.elementList.size() + 1);
   offsets[0] = 0;
   for (uint e = 0; e < mesh_.elementList.size(); e++)
   {
     offsets[e + 1] = offsets[e] + (Elem_T::numPts + 1);
   }
 
-  meshMED_.init(name, Elem_T::dim, coords, conn, offsets);
+  meshCoupling_->init(name, Elem_T::dim, coords, conn, offsets);
 }
 
 void ProblemProXPDE::initFieldMED(std::string_view name)
 {
-  auto [kvPair, success] = fieldsMED_.emplace(u_.name, MEDField{});
+  auto [kvPair, success] = fieldsCoupling_.emplace(u_.name, new FieldCoupling{});
   assert(success);
-  kvPair->second.init(name, meshMED_);
+  kvPair->second->init(name, meshCoupling_.get());
   updateFieldMED(kvPair->first);
   std::string filename = std::string{io_.filePath.value()} + "_med.";
-  kvPair->second.initIO(filename);
+  kvPair->second->initIO(filename);
 }
 
 void ProblemProXPDE::updateFieldMED(std::string_view name)
@@ -99,7 +104,7 @@ void ProblemProXPDE::updateFieldMED(std::string_view name)
       data[e.pts[k]->id] = u_.data[feSpace_.dof.getId(e.id, k)];
     }
   }
-  fieldsMED_.at(std::string{name}).setValues(data);
+  fieldsCoupling_.at(std::string{name})->setValues(data);
 }
 
 void ProblemProXPDE::advance()
@@ -146,7 +151,8 @@ void ProblemProXPDE::print()
 {
   // print med before to avoid iter update
   updateFieldMED(u_.name);
-  fieldsMED_.at(u_.name).printVTK(time, io_.iter);
+  // fieldsCoupling_.at(u_.name)->printVTK(time, io_.iter);
+  dynamic_cast<FieldMED *>(fieldsCoupling_.at(u_.name).get())->printVTK(time, io_.iter);
 
   io_.print(std::tuple{u_}, time);
 }

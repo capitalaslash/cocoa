@@ -1,8 +1,9 @@
-#include "med_mesh.hpp"
+#include "mesh_med.hpp"
 
+// medcoupling
 #include <MEDCouplingUMesh.hxx>
 
-MEDMesh::~MEDMesh()
+MeshMED::~MeshMED()
 {
   if (inited_)
   {
@@ -10,12 +11,12 @@ MEDMesh::~MEDMesh()
   }
 }
 
-void MEDMesh::init(
+void MeshMED::init(
     std::string_view name,
     uint const dim,
     std::vector<double> const & coords,
-    std::vector<mcIdType> conn,
-    std::vector<mcIdType> offsets)
+    std::vector<uint> conn,
+    std::vector<uint> offsets)
 {
   meshPtr_ = MEDCoupling::MEDCouplingUMesh::New(std::string{name}, dim);
   inited_ = true;
@@ -37,4 +38,4 @@ void MEDMesh::init(
   coordsArr->decrRef();
 }
 
-void MEDMesh::printVTK() { meshPtr_->writeVTK(meshPtr_->getName(), false); }
+void MeshMED::printVTK() { meshPtr_->writeVTK(meshPtr_->getName(), false); }

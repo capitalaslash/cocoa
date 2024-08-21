@@ -72,7 +72,7 @@ struct ProblemFD1D: public Problem
   std::string assemblyName_;
   double bcStart_;
   double bcEnd_;
-  std::string outFile_ = "fd1d";
+  std::string outFile_ = "./fd1d";
   std::string nameExt_ = "uExternal";
 
   static std::unordered_map<std::string, Assembly_T> assemblies_;

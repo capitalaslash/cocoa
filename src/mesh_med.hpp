@@ -1,12 +1,16 @@
 #pragma once
 
+// std
 #include <string_view>
 #include <vector>
 
+// medcoupling
 #include <MCIdType.hxx>
 #include <MEDCouplingUMesh.hxx>
-// missing extension!!!
-#include <NormalizedGeometricTypes>
+#include <NormalizedGeometricTypes> // missing extension!!!
+
+// local
+#include "mesh_coupling.hpp"
 
 enum struct MED_CELL_TYPE : char
 {

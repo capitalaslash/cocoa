@@ -8,7 +8,7 @@
 
 // local
 #include "field_coupling.hpp"
-#include "med_mesh.hpp"
+#include "mesh_med.hpp"
 
 struct FieldMED: public FieldCoupling
 {
@@ -21,8 +21,9 @@ struct FieldMED: public FieldCoupling
   FieldMED() = default;
   ~FieldMED();
 
-  double * getData() override { return nullptr; }
-  void init(std::string_view name, MEDMesh & mesh) override;
+  size_t size() const noexcept override { return 0; }
+  double * dataPtr() override { return nullptr; }
+  void init(std::string_view name, MeshCoupling * mesh) override;
   void initIO(std::string_view filename) override;
   void setValues(std::vector<double> const & data) override;
   void setValues(double value, uint size) override;

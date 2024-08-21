@@ -1,10 +1,16 @@
 #include "field_med.hpp"
 
+// std
 #include <string_view>
 
+// fmt
 #include <fmt/ostream.h>
 
+// medcoupling
 #include <MEDCouplingFieldDouble.hxx>
+
+// local
+#include "mesh_med.hpp"
 
 FieldMED::~FieldMED()
 {
@@ -14,7 +20,7 @@ FieldMED::~FieldMED()
   }
 }
 
-void FieldMED::init(std::string_view name, MEDMesh & mesh)
+void FieldMED::init(std::string_view name, MeshCoupling * mesh)
 {
   fieldPtr_ = MEDCoupling::MEDCouplingFieldDouble::New(
       MEDCoupling::ON_NODES, MEDCoupling::ONE_TIME);
@@ -25,7 +31,7 @@ void FieldMED::init(std::string_view name, MEDMesh & mesh)
   fieldPtr_->setName(std::string{name});
   fieldPtr_->setTimeUnit("s");
   fieldPtr_->setTime(0.0, 0, -1);
-  fieldPtr_->setMesh(mesh.meshPtr_);
+  fieldPtr_->setMesh(dynamic_cast<MeshMED *>(mesh)->meshPtr_);
 }
 
 void FieldMED::initIO(std::string_view filename) { filename_ = filename; }

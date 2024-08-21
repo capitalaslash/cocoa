@@ -4,10 +4,10 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
+#include <unordered_map>
 
 // libfmt
 #include <fmt/core.h>
-#include <unordered_map>
 
 // local
 #include "field_coupling.hpp"
@@ -35,6 +35,11 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   // read configuration from file
   std::filesystem::path configFile = params.at("config_file");
   std::ifstream in(configFile, std::ios::in);
+  if (!in)
+  {
+    fmt::print(stderr, "configuration file {} not found!\n", configFile.string());
+    abort();
+  }
   std::string buffer;
   while (std::getline(in, buffer, '\n'))
   {
@@ -137,13 +142,13 @@ void ProblemFD1D::initFieldMED(std::filesystem::path const & fileName)
 {
   auto [kvPairU, successU] = fieldsCoupling_.emplace("u", new FieldSimple);
   assert(successU);
-  kvPairU->second->init(fileName.filename().string(), meshCoupling_);
+  kvPairU->second->init(fileName.filename().string(), &meshCoupling_);
   kvPairU->second->setValues(u_);
   kvPairU->second->initIO(fileName.string() + "_med.");
 
   auto [kvPairExt, successExt] = fieldsCoupling_.emplace(nameExt_, new FieldSimple);
   assert(successExt);
-  kvPairExt->second->init(nameExt_, meshCoupling_);
+  kvPairExt->second->init(nameExt_, &meshCoupling_);
   kvPairExt->second->setValues(0.0, u_.size());
 }
 

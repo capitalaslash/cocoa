@@ -1,7 +1,9 @@
 #pragma once
 
+// std
 #include <vector>
 
+// proxpde
 #include <proxpde/def.hpp>
 
 #include <proxpde/bc.hpp>
@@ -12,8 +14,9 @@
 #include <proxpde/mesh.hpp>
 #include <proxpde/var.hpp>
 
-#include "med_field.hpp"
-#include "med_mesh.hpp"
+// local
+#include "field_med.hpp"
+#include "mesh_med.hpp"
 #include "problem.hpp"
 
 struct ProblemProXPDE: Problem
@@ -32,8 +35,8 @@ struct ProblemProXPDE: Problem
   bool run() override;
   void solve() override;
   void print() override;
-  MEDField getField(std::string_view name) override { return MEDField{}; }
-  void setField(std::string_view name, MEDField const & field) override {}
+  FieldCoupling getField(std::string_view name) override { return FieldCoupling{}; }
+  void setField(std::string_view name, FieldCoupling const & field) override {}
 
   Mesh_T mesh_;
   FESpace_T feSpace_;

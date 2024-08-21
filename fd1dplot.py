@@ -53,13 +53,12 @@ def main(idx, filename, ax):
         ax.plot(
             data[:, 0],
             data[:, 1],
-            label=filename,
             color=COLORS[idx],
             # label=f"{it}",
         )
 
-    ax.legend()
-    ax.grid()
+    lines = ax.get_lines()
+    lines[-1].set_label(filename)
 
 
 if __name__ == "__main__":
@@ -73,5 +72,8 @@ if __name__ == "__main__":
     for k in range(1, len(sys.argv)):
         main(k - 1, sys.argv[k], ax)
 
+    ax.legend()
+    ax.grid()
+
     plt.show()
-    # plt.savefig("fd1d_plot.pdf")
+    # plt.savefig("fd1dplot.pdf")
