@@ -79,7 +79,7 @@ void ProblemProXPDE::initMeshMED(std::string_view name)
     offsets[e + 1] = offsets[e] + (Elem_T::numPts + 1);
   }
 
-  meshCoupling_->init(name, Elem_T::dim, coords, conn, offsets);
+  meshCoupling_->init(name, Elem_T::dim, 3U, coords, conn, offsets);
 }
 
 void ProblemProXPDE::initFieldMED(std::string_view name)
@@ -102,7 +102,7 @@ void ProblemProXPDE::updateFieldMED(std::string_view name)
       data[e.pts[k]->id] = u_.data[feSpace_.dof.getId(e.id, k)];
     }
   }
-  fieldsCoupling_.at(std::string{name})->setValues(data);
+  getField(name)->setValues(data);
 }
 
 void ProblemProXPDE::advance()
@@ -149,8 +149,7 @@ void ProblemProXPDE::print()
 {
   // print med before to avoid iter update
   updateFieldMED(u_.name);
-  // fieldsCoupling_.at(u_.name)->printVTK(time, io_.iter);
-  dynamic_cast<FieldMED *>(fieldsCoupling_.at(u_.name).get())->printVTK(time, io_.iter);
+  getField(u_.name)->printVTK(time, io_.iter);
 
   io_.print(std::tuple{u_}, time);
 }

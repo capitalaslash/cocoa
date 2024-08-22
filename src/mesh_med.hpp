@@ -32,6 +32,7 @@ struct MeshMED: public MeshCoupling
   void init(
       std::string_view name,
       uint const dim,
+      uint const spaceDim,
       std::vector<double> const & coords,
       std::vector<uint> conn,
       std::vector<uint> offsets) override;

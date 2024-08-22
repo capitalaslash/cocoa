@@ -1,6 +1,7 @@
 .cache/
 .vscode/
 build*/
+contrib/
 spack*/
 run_cmake.bash
 

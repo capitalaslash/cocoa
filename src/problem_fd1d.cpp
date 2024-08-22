@@ -11,6 +11,7 @@
 
 // local
 #include "field_factory.hpp"
+#include "field_med.hpp"
 #include "mesh_med.hpp"
 
 void ProblemFD1D::setup(Problem::ParamList_T const & params)
@@ -150,7 +151,7 @@ void ProblemFD1D::initMeshMED(std::filesystem::path const & fileName)
 
   // meshCoupling_.reset(buildMesh(couplingType_));
   meshCoupling_.reset(new MeshMED);
-  meshCoupling_->init(fileName.string(), 1U, coords, conn, offsets);
+  meshCoupling_->init(fileName.string(), 1U, 1U, coords, conn, offsets);
 }
 
 void ProblemFD1D::initFieldMED(std::filesystem::path const & fileName)
@@ -161,7 +162,8 @@ void ProblemFD1D::initFieldMED(std::filesystem::path const & fileName)
   kvPairU->second->setValues(u_);
   kvPairU->second->initIO(fileName.string() + "_med.");
 
-  auto [kvPairExt, successExt] = fieldsCoupling_.emplace(nameExt_, new FieldSimple);
+  auto [kvPairExt, successExt] =
+      fieldsCoupling_.emplace(nameExt_, buildField(couplingType_));
   assert(successExt);
   kvPairExt->second->init(nameExt_, meshCoupling_.get());
   kvPairExt->second->setValues(0.0, u_.size());
@@ -244,7 +246,7 @@ void ProblemFD1D::solve()
   // assembly
   // std::vector<double> uExt(n);
   // double const * dataPtr =
-  //     fieldsCoupling_.at(nameExt_).fieldPtr_->getArray()->getConstPointer();
+  //     getField(nameExt_)->fieldPtr_->getArray()->getConstPointer();
   // std::copy(dataPtr, dataPtr + n, uExt.data());
   // double const kAmpli = 0.1;
   // double const h = 1. / (n - 1);
@@ -291,8 +293,9 @@ void ProblemFD1D::print()
   }
   std::fclose(out);
 
-  fieldsCoupling_.at("u")->setValues(u_);
-  fieldsCoupling_.at("u")->printVTK(time, it);
+  auto uCoupling = getField("u");
+  uCoupling->setValues(u_);
+  uCoupling->printVTK(time, it);
 }
 
 std::unordered_map<std::string, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_;
@@ -313,11 +316,10 @@ void setFD1DAssemblies()
   ProblemFD1D::assemblies_["heatCoupled"] = [](ProblemFD1D * p)
   {
     // std::vector<double> uExt(p->n_, 2.0);
-    auto const uExt =
-        dynamic_cast<FieldSimple *>(p->fieldsCoupling_.at("uExternal").get())->data_;
-    // double const * dataPtr =
-    //     p->fieldsCoupling_.at(p->nameExt_).fieldPtr_->getArray()->getConstPointer();
-    // std::copy(dataPtr, dataPtr + n, uExt.data());
+    std::vector<double> uExt(p->n_);
+    double const * dataPtr = p->getField(p->nameExt_)->dataPtr();
+    std::copy(dataPtr, dataPtr + p->n_, uExt.data());
+
     double const kAmpli = 10.;
     for (uint k = 1U; k < p->n_ - 1; k++)
     {

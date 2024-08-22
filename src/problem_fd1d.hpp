@@ -46,18 +46,10 @@ struct ProblemFD1D: public Problem
   void initMeshMED(std::filesystem::path const & fileName);
   void initFieldMED(std::filesystem::path const & fileName);
 
-  FieldCoupling * getField(std::string_view name) override { return uCoupling_.get(); }
-  void setField(std::string_view name, FieldCoupling * field) override
-  {
-    assert(name == uCoupling_->name_);
-    *uCoupling_ = *field;
-  }
-
   double start_;
   double h_;
   uint n_;
   std::vector<double> u_;
-  std::unique_ptr<FieldCoupling> uCoupling_;
   std::vector<double> uOld_;
   std::vector<double> q_;
   double diff_;

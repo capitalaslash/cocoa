@@ -13,7 +13,7 @@ void CouplingMED::setup(Problem * src, Problem * tgt)
   problemSrc_ = src;
   problemTgt_ = tgt;
   remapper.setPrecision(1.e-12);
-  remapper.setIntersectionType(INTERP_KERNEL::Triangulation);
+  remapper.setIntersectionType(interpType_);
   auto meshSrc = dynamic_cast<MeshMED *>(problemSrc_->meshCoupling_.get());
   auto meshTgt = dynamic_cast<MeshMED *>(problemTgt_->meshCoupling_.get());
   remapper.prepare(meshSrc->meshPtr_, meshTgt->meshPtr_, "P1P1");
@@ -23,11 +23,10 @@ void CouplingMED::setup(Problem * src, Problem * tgt)
 
 void CouplingMED::project(std::string_view srcName, std::string_view tgtName)
 {
-  auto srcField = dynamic_cast<FieldMED *>(
-      problemSrc_->fieldsCoupling_.at(std::string{srcName}).get());
-  auto tgtField = dynamic_cast<FieldMED *>(
-      problemTgt_->fieldsCoupling_.at(std::string{tgtName}).get());
-  MEDCoupling::MEDCouplingFieldDouble * tmp =
-      remapper.transferField(srcField->fieldPtr_, 0.0);
-  tgtField->fieldPtr_ = tmp;
+  auto srcField = dynamic_cast<FieldMED *>(problemSrc_->getField(srcName));
+  auto tgtField = dynamic_cast<FieldMED *>(problemTgt_->getField(tgtName));
+  // MEDCoupling::MEDCouplingFieldDouble * tmp =
+  //     remapper.transferField(srcField->fieldPtr_, 0.0);
+  // tgtField->fieldPtr_ = tmp;
+  tgtField->fieldPtr_ = remapper.transferField(srcField->fieldPtr_, 0.0);
 }

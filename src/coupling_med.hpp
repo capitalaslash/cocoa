@@ -23,6 +23,8 @@ struct CouplingMED: public CouplingManager
   Problem * problemSrc_;
   Problem * problemTgt_;
   MEDCoupling::MEDCouplingRemapper remapper;
+  // INTERP_KERNEL::IntersectionType interpType_ = INTERP_KERNEL::Geometric2D;
+  INTERP_KERNEL::IntersectionType interpType_ = INTERP_KERNEL::Triangulation;
 };
 
 #endif

@@ -22,7 +22,8 @@ struct FieldMED: public FieldCoupling
   ~FieldMED();
 
   size_t size() const noexcept override { return fieldPtr_->getNumberOfValues(); }
-  double * dataPtr() override { return nullptr; }
+  double const * dataPtr() override { return fieldPtr_->getArray()->getConstPointer(); }
+  // std::vector<double> getData() override;
   void init(std::string_view name, MeshCoupling * mesh) override;
   void initIO(std::string_view filename) override;
   void setValues(std::vector<double> const & data) override;

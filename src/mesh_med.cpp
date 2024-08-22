@@ -14,6 +14,7 @@ MeshMED::~MeshMED()
 void MeshMED::init(
     std::string_view name,
     uint const dim,
+    uint const spaceDim,
     std::vector<double> const & coords,
     std::vector<uint> conn,
     std::vector<uint> offsets)
@@ -36,6 +37,7 @@ void MeshMED::init(
   std::copy(coords.data(), coords.data() + coords.size(), coordsArr->getPointer());
   meshPtr_->setCoords(coordsArr);
   coordsArr->decrRef();
+  meshPtr_->changeSpaceDimension(spaceDim);
 }
 
 void MeshMED::printVTK() { meshPtr_->writeVTK(meshPtr_->getName(), false); }

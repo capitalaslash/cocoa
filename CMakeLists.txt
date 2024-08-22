@@ -43,6 +43,7 @@ set(LIB_DEPENDENCIES
 include(FeatureSummary)
 include(FetchContent)
 
+# fmt ---
 option(COCOA_FETCH_FMT "Get libfmt from the web" OFF)
 if (COCOA_FETCH_FMT)
   FetchContent_Declare(fmt
@@ -54,6 +55,7 @@ else()
   find_package(fmt REQUIRED)
 endif()
 
+# openfoam.org ---
 option(COCOA_ENABLE_OFORG "Enable OpenFOAM (org version)." OFF)
 if (COCOA_ENABLE_OFCOM)
   find_package(OpenFOAMorg REQUIRED)
@@ -66,6 +68,7 @@ if (COCOA_ENABLE_OFCOM)
   )
 endif()
 
+# proxpde ---
 option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." OFF)
 if (COCOA_ENABLE_PROXPDE)
   find_package(ProXPDE REQUIRED)
@@ -78,11 +81,13 @@ if (COCOA_ENABLE_PROXPDE)
   )
 endif()
 
+# medcoupling ---
 option(COCOA_ENABLE_MEDCOUPLING "Enable MEDCoupling coupling." OFF)
 if (COCOA_ENABLE_MEDCOUPLING)
   find_package(MEDCoupling
     REQUIRED
     PATHS
+      ${CMAKE_SOURCE_DIR}/contrib/medcoupling/cmake_files
       $ENV{SPACK_ENV}/.spack-env/view/cmake_files
   )
   add_library(medcoupling INTERFACE)
@@ -95,7 +100,7 @@ if (COCOA_ENABLE_MEDCOUPLING)
       # medicoco
       medloader
   )
-  target_include_directories(medcoupling
+  target_include_directories(medcoupling SYSTEM
     INTERFACE
       ${MEDCOUPLING_INCLUDE_DIRS}
   )
@@ -113,6 +118,7 @@ if (COCOA_ENABLE_MEDCOUPLING)
   )
 endif()
 
+# pybind11 ---
 find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 

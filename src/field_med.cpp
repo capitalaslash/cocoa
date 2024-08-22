@@ -20,6 +20,8 @@ FieldMED::~FieldMED()
   }
 }
 
+// std::vector<double> FieldMED::getData() override { return data_; }
+
 void FieldMED::init(std::string_view name, MeshCoupling * mesh)
 {
   fieldPtr_ = MEDCoupling::MEDCouplingFieldDouble::New(

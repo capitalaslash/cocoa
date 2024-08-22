@@ -19,7 +19,8 @@ struct FieldCoupling
   virtual ~FieldCoupling() = default;
 
   virtual size_t size() const noexcept = 0;
-  virtual double * dataPtr() = 0;
+  virtual double const * dataPtr() = 0;
+  // virtual std::vector<double> getData() = 0;
   virtual void init(std::string_view name, MeshCoupling * mesh) = 0;
   virtual void initIO(std::string_view filename) = 0;
   virtual void setValues(std::vector<double> const & data) = 0;
@@ -37,7 +38,8 @@ struct FieldSimple: public FieldCoupling
   ~FieldSimple() = default;
 
   size_t size() const noexcept override { return data_.size(); }
-  double * dataPtr() override { return data_.data(); }
+  double const * dataPtr() override { return data_.data(); }
+  // std::vector<double> getData() override { return data_; }
   virtual void init(std::string_view name, MeshCoupling * mesh) override {}
   virtual void initIO(std::string_view filename) override {}
   virtual void setValues(std::vector<double> const & data) override { data_ = data; }
