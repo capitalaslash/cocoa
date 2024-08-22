@@ -4,7 +4,7 @@
 #include <memory>
 
 // local
-#include "defs.hpp"
+#include "plugins.hpp"
 
 #include "problem.hpp"
 #include "problem_fd1d.hpp"
@@ -58,3 +58,4 @@ inline std::unique_ptr<Problem> buildProblem(PROBLEM_TYPE type)
   }
   }
 }
+

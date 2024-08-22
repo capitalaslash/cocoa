@@ -1,11 +1,11 @@
 #pragma once
 
-#include "defs.hpp"
-
 // std
 #include <memory>
 
 // local
+#include "plugins.hpp"
+
 #include "coupling_manager.hpp"
 #include "coupling_med.hpp"
 #include "coupling_simple.hpp"
@@ -14,7 +14,7 @@ enum struct COUPLING_TYPE : char
 {
   NONE = 0,
   SIMPLE = 1,
-  MED = 2,
+  MEDCOUPLING = 2,
   OFM2M = 3,
 };
 
@@ -27,8 +27,8 @@ inline std::unique_ptr<CouplingManager> buildCoupling(COUPLING_TYPE type)
     return std::unique_ptr<CouplingManager>{new CouplingSimple};
     break;
   }
-#ifdef COCOA_ENABLE_MED
-  case COUPLING_TYPE::MED:
+#ifdef COCOA_ENABLE_MEDCOUPLING
+  case COUPLING_TYPE::MEDCOUPLING:
   {
     return std::unique_ptr<CouplingManager>{new CouplingMED};
     break;
@@ -47,3 +47,4 @@ inline std::unique_ptr<CouplingManager> buildCoupling(COUPLING_TYPE type)
   }
   }
 }
+

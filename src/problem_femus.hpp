@@ -1,7 +1,13 @@
 #pragma once
 
+#include "plugins.hpp"
+
+#ifdef COCOA_ENABLE_FEMUS
+
+// fmt
 #include <fmt/core.h>
 
+// local
 #include "field_coupling.hpp"
 #include "problem.hpp"
 
@@ -24,3 +30,6 @@ struct ProblemFEMUS: public Problem
   // FEMUSMesh mesh_;
   // std::vector<FEMUSField> fields_;
 };
+
+#endif
+

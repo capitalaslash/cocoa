@@ -1,6 +1,6 @@
 #pragma once
 
-#include "defs.hpp"
+#include "plugins.hpp"
 
 #ifdef COCOA_ENABLE_OFORG
 
@@ -31,3 +31,4 @@ struct ProblemOForg: public Problem
 };
 
 #endif
+

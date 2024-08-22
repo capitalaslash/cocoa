@@ -1,5 +1,9 @@
 #pragma once
 
+#include "plugins.hpp"
+
+#ifdef COCOA_ENABLE_PROXPDE
+
 // std
 #include <vector>
 
@@ -48,3 +52,6 @@ struct ProblemProXPDE: Problem
   double dt_;
   double finalTime_;
 };
+
+#endif
+

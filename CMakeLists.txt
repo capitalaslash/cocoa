@@ -124,7 +124,7 @@ target_link_libraries(cocoa
 )
 add_library(cocoa::cocoa ALIAS cocoa)
 
-configure_file(src/defs.hpp.in defs.hpp @ONLY)
+configure_file(src/plugins.hpp.in plugins.hpp @ONLY)
 target_include_directories(cocoa PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
 
 # executable ===========================================================

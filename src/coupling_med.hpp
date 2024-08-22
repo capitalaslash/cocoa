@@ -1,5 +1,9 @@
 #pragma once
 
+#include "plugins.hpp"
+
+#ifdef COCOA_ENABLE_MEDCOUPLING
+
 // medcoupling
 #include <MEDCouplingRemapper.hxx>
 
@@ -20,3 +24,6 @@ struct CouplingMED: public CouplingManager
   Problem * problemTgt_;
   MEDCoupling::MEDCouplingRemapper remapper;
 };
+
+#endif
+

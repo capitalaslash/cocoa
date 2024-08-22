@@ -1,5 +1,5 @@
 // coupling interfaces
-#cmakedefine COCOA_ENABLE_MED
+#cmakedefine COCOA_ENABLE_MEDCOUPLING
 #cmakedefine COCOA_ENABLE_OFM2M
 
 // problem interfaces
