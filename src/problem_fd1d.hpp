@@ -10,15 +10,7 @@
 
 // local
 #include "field_coupling.hpp"
-#include "mesh_coupling.hpp"
 #include "problem.hpp"
-
-enum struct FDBCType : int8_t
-{
-  NONE = 0,
-  DIRICHLET = 1,
-  NEUMANN = 2,
-};
 
 struct ProblemFD1D: public Problem
 {
@@ -42,7 +34,7 @@ struct ProblemFD1D: public Problem
     std::vector<double> diagDown;
   };
 
-  ProblemFD1D() = default;
+  ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D} {}
   ~ProblemFD1D() = default;
 
   void setup(Problem::ParamList_T const & params) override;
@@ -54,19 +46,18 @@ struct ProblemFD1D: public Problem
   void initMeshMED(std::filesystem::path const & fileName);
   void initFieldMED(std::filesystem::path const & fileName);
 
-  FieldCoupling getField(std::string_view name) override { return uCoupling_; }
-  void setField(std::string_view name, FieldCoupling const & field) override
+  FieldCoupling * getField(std::string_view name) override { return uCoupling_.get(); }
+  void setField(std::string_view name, FieldCoupling * field) override
   {
-    assert(name == uCoupling_.name_);
-    uCoupling_ = field;
+    assert(name == uCoupling_->name_);
+    *uCoupling_ = *field;
   }
 
   double start_;
   double h_;
   uint n_;
-  MeshCoupling meshCoupling_;
   std::vector<double> u_;
-  FieldCoupling uCoupling_;
+  std::unique_ptr<FieldCoupling> uCoupling_;
   std::vector<double> uOld_;
   std::vector<double> q_;
   double diff_;
@@ -75,9 +66,9 @@ struct ProblemFD1D: public Problem
   Matrix m_;
   std::vector<double> rhs_;
   std::string assemblyName_;
-  FDBCType bcStartType_ = FDBCType::NONE;
+  FDBC_TYPE bcStartType_ = FDBC_TYPE::NONE;
   double bcStartValue_ = 0.0;
-  FDBCType bcEndType_ = FDBCType::NONE;
+  FDBC_TYPE bcEndType_ = FDBC_TYPE::NONE;
   double bcEndValue_ = 0.0;
   std::string outFile_ = "./fd1d";
   std::string nameExt_ = "uExternal";
@@ -85,4 +76,4 @@ struct ProblemFD1D: public Problem
   static std::unordered_map<std::string, Assembly_T> assemblies_;
 };
 
-void setAssemblies();
+void setFD1DAssemblies();

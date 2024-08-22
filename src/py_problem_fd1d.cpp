@@ -20,5 +20,5 @@ PYBIND11_MODULE(fd1d, m)
       .def("getField", &ProblemFD1D::getField)
       .def("setField", &ProblemFD1D::setField);
 
-  m.def("setAssemblies", &setAssemblies, "Initializa FD1D assenbly routines.");
+  m.def("setFD1DAssemblies", &setFD1DAssemblies, "Initializa FD1D assenbly routines.");
 }

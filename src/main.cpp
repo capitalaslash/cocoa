@@ -13,10 +13,11 @@ int main()
   // ProblemProXPDE p1;
   // ProblemProXPDE p2;
 
-  std::unique_ptr<Problem> p1{buildProblem(PROBLEM_TYPE::FD1D)};
-  std::unique_ptr<Problem> p2{buildProblem(PROBLEM_TYPE::FD1D)};
+  // prepare assemgly routines for FD1D
+  setFD1DAssemblies();
 
-  setAssemblies();
+  std::unique_ptr<Problem> p1{buildProblem(PROBLEM_TYPE::FD1D)};
+  std::unique_ptr<Problem> p2{buildProblem("fd1d")};
 
   // p1->setup({});
   // p2->setup({});
@@ -25,8 +26,12 @@ int main()
   p1->setup({{"config_file", "fd1d1.dat"}});
   p2->setup({{"config_file", "fd1d2.dat"}});
 
-  std::unique_ptr<CouplingManager> coupling12{buildCoupling(COUPLING_TYPE::SIMPLE)};
+  // check that both problems have been set to use the same coupling type
+  assert(p1->couplingType_ == p2->couplingType_);
+
+  std::unique_ptr<CouplingManager> coupling12{buildCoupling(p1->couplingType_)};
   coupling12->setup(p1.get(), p2.get());
+
   // MEDManager coupling21;
   // coupling21.setup(p2.get(), p1.get());
 

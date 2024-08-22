@@ -1,6 +1,7 @@
 start: -1.0
 end: 2.0
 n_elems: 20
+coupling_type: medcoupling
 u_init: 0.0
 q: 0.0
 diff: 0.01

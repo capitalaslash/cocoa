@@ -13,6 +13,9 @@
 
 struct ProblemFEMUS: public Problem
 {
+  ProblemFEMUS: Problem{PROBLEM_TYPE::FEMUS} {}
+  ~ProblemFEMUS() = default;
+
   using ParamList_T = Problem::ParamList_T;
 
   void setup(ParamList_T const & params) override
@@ -21,15 +24,9 @@ struct ProblemFEMUS: public Problem
   }
   bool run() override { return false; }
   void solve() override {}
-  virtual FieldCoupling getField(std::string_view name) override
-  {
-    return FieldCoupling{};
-  }
-  void setField(std::string_view name, FieldCoupling const & field) override {}
 
   // FEMUSMesh mesh_;
   // std::vector<FEMUSField> fields_;
 };
 
 #endif
-

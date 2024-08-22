@@ -14,7 +14,7 @@ struct Problem;
 
 struct CouplingMED: public CouplingManager
 {
-  CouplingMED() = default;
+  CouplingMED(): CouplingManager(COUPLING_TYPE::MEDCOUPLING) {}
   ~CouplingMED() = default;
 
   void setup(Problem * src, Problem * tgt);
@@ -26,4 +26,3 @@ struct CouplingMED: public CouplingManager
 };
 
 #endif
-

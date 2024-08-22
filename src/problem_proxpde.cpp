@@ -7,10 +7,8 @@
 #include <proxpde/assembly.hpp>
 #include <proxpde/builder.hpp>
 
-// medcoupling
-#include <MEDCouplingFieldDouble.hxx>
-
 // local
+#include "field_med.hpp"
 #include "mesh_med.hpp"
 
 void ProblemProXPDE::setup(ParamList_T const & params)
@@ -86,7 +84,7 @@ void ProblemProXPDE::initMeshMED(std::string_view name)
 
 void ProblemProXPDE::initFieldMED(std::string_view name)
 {
-  auto [kvPair, success] = fieldsCoupling_.emplace(u_.name, new FieldCoupling{});
+  auto [kvPair, success] = fieldsCoupling_.emplace(u_.name, new FieldMED);
   assert(success);
   kvPair->second->init(name, meshCoupling_.get());
   updateFieldMED(kvPair->first);

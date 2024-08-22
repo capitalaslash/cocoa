@@ -63,7 +63,7 @@ void FieldMED::printVTK(double time, uint iter)
   printPVD();
 }
 
-void FieldMED::printPVD()
+void FieldMED::printPVD() const
 {
   std::FILE * out = std::fopen((filename_.string() + "pvd").c_str(), "w");
   fmt::print(

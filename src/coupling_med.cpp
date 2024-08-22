@@ -14,10 +14,9 @@ void CouplingMED::setup(Problem * src, Problem * tgt)
   problemTgt_ = tgt;
   remapper.setPrecision(1.e-12);
   remapper.setIntersectionType(INTERP_KERNEL::Triangulation);
-  remapper.prepare(
-      dynamic_cast<MeshMED *>(problemSrc_->meshCoupling_.get())->meshPtr_,
-      dynamic_cast<MeshMED *>(problemTgt_->meshCoupling_.get())->meshPtr_,
-      "P1P1");
+  auto meshSrc = dynamic_cast<MeshMED *>(problemSrc_->meshCoupling_.get());
+  auto meshTgt = dynamic_cast<MeshMED *>(problemTgt_->meshCoupling_.get());
+  remapper.prepare(meshSrc->meshPtr_, meshTgt->meshPtr_, "P1P1");
   auto const matrix = remapper.getCrudeMatrix();
   fmt::print("remapper matrix:\n{}\n", matrix);
 }

@@ -20,8 +20,13 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(LIB_FILES
+  src/coupling_factory.hpp
   src/coupling_manager.hpp
-  src/coupling_manager.cpp
+  src/coupling_simple.hpp
+  src/coupling_simple.cpp
+  src/field_factory.hpp
+  src/field_coupling.hpp
+  src/problem_factory.hpp
   src/problem.hpp
   src/problem.cpp
   src/problem_fd1d.hpp

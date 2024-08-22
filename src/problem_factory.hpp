@@ -12,16 +12,6 @@
 #include "problem_oforg.hpp"
 #include "problem_proxpde.hpp"
 
-enum struct PROBLEM_TYPE : char
-{
-  NONE = 0,
-  FD1D = 1,
-  FEMUS = 2,
-  PROXPDE = 3,
-  OFCOM = 4,
-  OFORG = 5,
-};
-
 inline std::unique_ptr<Problem> buildProblem(PROBLEM_TYPE type)
 {
   switch (type)
@@ -59,3 +49,7 @@ inline std::unique_ptr<Problem> buildProblem(PROBLEM_TYPE type)
   }
 }
 
+inline std::unique_ptr<Problem> buildProblem(std::string_view problemType)
+{
+  return buildProblem(str2problem(problemType));
+}

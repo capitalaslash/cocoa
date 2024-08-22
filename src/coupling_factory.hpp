@@ -9,14 +9,7 @@
 #include "coupling_manager.hpp"
 #include "coupling_med.hpp"
 #include "coupling_simple.hpp"
-
-enum struct COUPLING_TYPE : char
-{
-  NONE = 0,
-  SIMPLE = 1,
-  MEDCOUPLING = 2,
-  OFM2M = 3,
-};
+#include "enums.hpp"
 
 inline std::unique_ptr<CouplingManager> buildCoupling(COUPLING_TYPE type)
 {
@@ -48,3 +41,7 @@ inline std::unique_ptr<CouplingManager> buildCoupling(COUPLING_TYPE type)
   }
 }
 
+inline std::unique_ptr<CouplingManager> buildCoupling(std::string_view couplingType)
+{
+  return buildCoupling(str2coupling(couplingType));
+}

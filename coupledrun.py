@@ -1,7 +1,7 @@
 import fd1d
 import coupling_simple as cs
 
-fd1d.setAssemblies()
+fd1d.setFD1DAssemblies()
 
 p1 = fd1d.ProblemFD1D()
 p1.setup({"config_file": "fd1d1.dat"})
@@ -23,4 +23,3 @@ while p1.run() or p2.run():
     p2.advance()
     p2.solve()
     p2.print()
-

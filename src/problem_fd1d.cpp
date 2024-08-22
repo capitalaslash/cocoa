@@ -10,16 +10,8 @@
 #include <fmt/core.h>
 
 // local
-#include "field_coupling.hpp"
-
-FDBCType str2fdbc(std::string_view buffer)
-{
-  if (buffer == "dirichlet")
-    return FDBCType::DIRICHLET;
-  if (buffer == "neumann")
-    return FDBCType::NEUMANN;
-  std::abort();
-}
+#include "field_factory.hpp"
+#include "mesh_med.hpp"
 
 void ProblemFD1D::setup(Problem::ParamList_T const & params)
 {
@@ -59,6 +51,11 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
         bufferStream >> end;
       else if (token == "n_elems:")
         bufferStream >> nElems;
+      else if (token == "coupling_type:")
+      {
+        bufferStream >> token;
+        couplingType_ = str2coupling(token);
+      }
       else if (token == "u_init:")
         bufferStream >> uInit;
       else if (token == "q:")
@@ -151,20 +148,22 @@ void ProblemFD1D::initMeshMED(std::filesystem::path const & fileName)
     offsets[k + 1] = offsets[k] + 3;
   }
 
-  meshCoupling_.init(fileName.string(), 1U, coords, conn, offsets);
+  // meshCoupling_.reset(buildMesh(couplingType_));
+  meshCoupling_.reset(new MeshMED);
+  meshCoupling_->init(fileName.string(), 1U, coords, conn, offsets);
 }
 
 void ProblemFD1D::initFieldMED(std::filesystem::path const & fileName)
 {
-  auto [kvPairU, successU] = fieldsCoupling_.emplace("u", new FieldSimple);
+  auto [kvPairU, successU] = fieldsCoupling_.emplace("u", buildField(couplingType_));
   assert(successU);
-  kvPairU->second->init(fileName.filename().string(), &meshCoupling_);
+  kvPairU->second->init(fileName.filename().string(), meshCoupling_.get());
   kvPairU->second->setValues(u_);
   kvPairU->second->initIO(fileName.string() + "_med.");
 
   auto [kvPairExt, successExt] = fieldsCoupling_.emplace(nameExt_, new FieldSimple);
   assert(successExt);
-  kvPairExt->second->init(nameExt_, &meshCoupling_);
+  kvPairExt->second->init(nameExt_, meshCoupling_.get());
   kvPairExt->second->setValues(0.0, u_.size());
 }
 
@@ -197,14 +196,14 @@ void ProblemFD1D::solve()
   // bc start
   switch (bcStartType_)
   {
-  case FDBCType::DIRICHLET:
+  case FDBC_TYPE::DIRICHLET:
   {
     m_.diag[0] = 1.0;
     m_.diagUp[0] = 0.0;
     rhs_[0] = bcStartValue_;
     break;
   }
-  case FDBCType::NEUMANN:
+  case FDBC_TYPE::NEUMANN:
   {
     m_.diag[0] = 1.0;
     m_.diagUp[0] = -1.0;
@@ -221,14 +220,14 @@ void ProblemFD1D::solve()
   // bc end
   switch (bcEndType_)
   {
-  case FDBCType::DIRICHLET:
+  case FDBC_TYPE::DIRICHLET:
   {
     m_.diag[n - 1] = 1.0;
     m_.diagDown[n - 1] = 0.0;
     rhs_[n - 1] = bcEndValue_;
     break;
   }
-  case FDBCType::NEUMANN:
+  case FDBC_TYPE::NEUMANN:
   {
     m_.diag[n - 1] = -1.0;
     m_.diagDown[n - 1] = 1.0;
@@ -293,12 +292,12 @@ void ProblemFD1D::print()
   std::fclose(out);
 
   fieldsCoupling_.at("u")->setValues(u_);
-  // fieldsCoupling_.at("u")->printVTK(time, it);
+  fieldsCoupling_.at("u")->printVTK(time, it);
 }
 
 std::unordered_map<std::string, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_;
 
-void setAssemblies()
+void setFD1DAssemblies()
 {
   ProblemFD1D::assemblies_["heat"] = [](ProblemFD1D * p)
   {

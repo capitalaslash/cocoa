@@ -7,8 +7,8 @@
 #include "MEDCouplingFieldDouble.hxx"
 
 // local
+#include "enums.hpp"
 #include "field_coupling.hpp"
-#include "mesh_med.hpp"
 
 struct FieldMED: public FieldCoupling
 {
@@ -18,18 +18,18 @@ struct FieldMED: public FieldCoupling
     double time;
   };
 
-  FieldMED() = default;
+  FieldMED(): FieldCoupling{COUPLING_TYPE::MEDCOUPLING} {}
   ~FieldMED();
 
-  size_t size() const noexcept override { return 0; }
+  size_t size() const noexcept override { return fieldPtr_->getNumberOfValues(); }
   double * dataPtr() override { return nullptr; }
   void init(std::string_view name, MeshCoupling * mesh) override;
   void initIO(std::string_view filename) override;
   void setValues(std::vector<double> const & data) override;
   void setValues(double value, uint size) override;
 
-  void printVTK(double time, uint iter);
-  void printPVD();
+  void printVTK(double time, uint iter) override;
+  void printPVD() const;
 
   MEDCoupling::MEDCouplingFieldDouble * fieldPtr_;
   bool inited_ = false;
