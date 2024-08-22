@@ -149,28 +149,31 @@ feature_summary(WHAT ALL)
 
 # python ===============================================================
 
-pybind11_add_module(fd1d
-  src/py_problem_fd1d.cpp
-)
-target_link_libraries(fd1d
-  PRIVATE
-    cocoa::cocoa
-)
-install(TARGETS fd1d DESTINATION .)
+option(COCOA_ENABLE_PYTHON "Enable python bindings." OFF)
+if (COCOA_ENABLE_PYTHON)
+  pybind11_add_module(fd1d
+    src/py_problem_fd1d.cpp
+  )
+  target_link_libraries(fd1d
+    PRIVATE
+      cocoa::cocoa
+  )
+  install(TARGETS fd1d DESTINATION .)
 
-pybind11_add_module(coupling_simple
-  src/py_coupling_simple.cpp
-)
-target_link_libraries(coupling_simple  PRIVATE
-    cocoa::cocoa
-)
-install(TARGETS coupling_simple DESTINATION .)
+  pybind11_add_module(coupling_simple
+    src/py_coupling_simple.cpp
+  )
+  target_link_libraries(coupling_simple  PRIVATE
+      cocoa::cocoa
+  )
+  install(TARGETS coupling_simple DESTINATION .)
 
-set(PY_FILES
-  # src/py_problem.cpp
-  src/py_problem_fd1d.cpp
-  src/py_coupling_simple.cpp
-)
+  set(PY_FILES
+    # src/py_problem.cpp
+    src/py_problem_fd1d.cpp
+    src/py_coupling_simple.cpp
+  )
+endif()
 
 # format ===============================================================
 
