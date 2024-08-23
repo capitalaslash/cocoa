@@ -1,10 +1,8 @@
 import pycocoa
 
-pycocoa.setFD1DAssemblies()
+p1 = pycocoa.ProblemProXPDE()
 
-p1 = pycocoa.ProblemFD1D()
-
-p1.setup(config_file="fd1d1.dat")
+p1.setup(config_file="proxpde1.yaml")
 p1.print()
 
 while p1.run():

@@ -8,6 +8,7 @@
 #include <proxpde/builder.hpp>
 
 // local
+#include "enums.hpp"
 #include "field_med.hpp"
 #include "mesh_med.hpp"
 
@@ -21,6 +22,10 @@ void ProblemProXPDE::setup(ParamList_T const & params)
   proxpde::readMesh(mesh_, config["mesh"]);
   auto const name = config["name"].as<std::string>();
   initMeshMED(name);
+
+  // init coupling
+  // TODO: set from file when more coupling strategies are available
+  couplingType_ = COUPLING_TYPE::MEDCOUPLING;
 
   // init time related members
   time = 0.0;
@@ -79,12 +84,13 @@ void ProblemProXPDE::initMeshMED(std::string_view name)
     offsets[e + 1] = offsets[e] + (Elem_T::numPts + 1);
   }
 
+  meshCoupling_.reset(new MeshMED);
   meshCoupling_->init(name, Elem_T::dim, 3U, coords, conn, offsets);
 }
 
 void ProblemProXPDE::initFieldMED(std::string_view name)
 {
-  auto [kvPair, success] = fieldsCoupling_.emplace(u_.name, new FieldMED);
+  auto [kvPair, success] = fieldsCoupling_.emplace(name, new FieldMED);
   assert(success);
   kvPair->second->init(name, meshCoupling_.get());
   updateFieldMED(kvPair->first);

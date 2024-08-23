@@ -121,8 +121,8 @@ endif()
 # pybind11 ---
 option(COCOA_ENABLE_PYTHON "Enable python bindings." OFF)
 if (COCOA_ENABLE_PYTHON)
-find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
-find_package(pybind11 CONFIG REQUIRED)
+  find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+  find_package(pybind11 CONFIG REQUIRED)
 endif()
 
 # library ==============================================================
@@ -139,27 +139,41 @@ target_link_libraries(cocoa
 add_library(cocoa::cocoa ALIAS cocoa)
 
 configure_file(src/plugins.hpp.in plugins.hpp @ONLY)
-target_include_directories(cocoa PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
-
-# executable ===========================================================
-
-add_executable(main)
-
-set(MAIN_FILES
-  src/main.cpp
+target_include_directories(cocoa 
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+feature_summary(WHAT ALL)
+
+# application ==========================================================
+
+set(APP_FILES "")
+
+add_executable(main)
+list(APPEND APP_FILES src/main.cpp)
 target_sources(main
   PRIVATE
-    ${MAIN_FILES}
-	  # ${HDR_FILES}
+    src/main.cpp
 )
 target_link_libraries(main
   PUBLIC
     cocoa::cocoa
 )
 
-feature_summary(WHAT ALL)
+if (COCOA_ENABLE_PROXPDE)
+  add_executable(app_proxpde)
+  list(APPEND APP_FILES app/app_proxpde.cpp)
+  target_sources(app_proxpde
+    PRIVATE
+      app/app_proxpde.cpp
+  )
+  target_link_libraries(app_proxpde
+    PUBLIC
+      cocoa::cocoa
+  )
+endif()
 
 # python ===============================================================
 
@@ -180,7 +194,7 @@ find_program(CLANGFORMAT clang-format)
 if (CLANGFORMAT)
   set(SRC_FILES
     ${LIB_FILES}
-    ${MAIN_FILES}
+    ${APP_FILES}
     src/python_bindings.cpp
   )
   add_custom_target(format
