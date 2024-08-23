@@ -119,8 +119,11 @@ if (COCOA_ENABLE_MEDCOUPLING)
 endif()
 
 # pybind11 ---
+option(COCOA_ENABLE_PYTHON "Enable python bindings." OFF)
+if (COCOA_ENABLE_PYTHON)
 find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
+endif()
 
 # library ==============================================================
 
@@ -160,30 +163,15 @@ feature_summary(WHAT ALL)
 
 # python ===============================================================
 
-option(COCOA_ENABLE_PYTHON "Enable python bindings." OFF)
 if (COCOA_ENABLE_PYTHON)
-  pybind11_add_module(fd1d
-    src/py_problem_fd1d.cpp
+  pybind11_add_module(pycocoa
+    src/python_bindings.cpp
   )
-  target_link_libraries(fd1d
+  target_link_libraries(pycocoa
     PRIVATE
       cocoa::cocoa
   )
-  install(TARGETS fd1d DESTINATION .)
-
-  pybind11_add_module(coupling_simple
-    src/py_coupling_simple.cpp
-  )
-  target_link_libraries(coupling_simple  PRIVATE
-      cocoa::cocoa
-  )
-  install(TARGETS coupling_simple DESTINATION .)
-
-  set(PY_FILES
-    # src/py_problem.cpp
-    src/py_problem_fd1d.cpp
-    src/py_coupling_simple.cpp
-  )
+  install(TARGETS pycocoa DESTINATION .)
 endif()
 
 # format ===============================================================
@@ -193,7 +181,7 @@ if (CLANGFORMAT)
   set(SRC_FILES
     ${LIB_FILES}
     ${MAIN_FILES}
-    ${PY_FILES}
+    src/python_bindings.cpp
   )
   add_custom_target(format
     COMMAND ${CLANGFORMAT}
