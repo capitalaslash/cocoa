@@ -17,6 +17,7 @@
 void ProblemFD1D::setup(Problem::ParamList_T const & params)
 {
   // default values
+  name_ = "empty";
   // mesh
   double start = 0.0;
   double end = 0.0;
@@ -46,7 +47,9 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
     std::string token;
     while (std::getline(bufferStream, token, ' '))
     {
-      if (token == "start:")
+      if (token == "name:")
+        bufferStream >> name_;
+      else if (token == "start:")
         bufferStream >> start;
       else if (token == "end:")
         bufferStream >> end;
@@ -187,7 +190,7 @@ void ProblemFD1D::advance()
 
 void ProblemFD1D::solve()
 {
-  fmt::print("fd1d::solve(), time = {:.6e}, dt = {:.6e}\n", time, dt_);
+  fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
   uint const n = n_;
   double const h = 1. / (n - 1);
 
@@ -257,7 +260,7 @@ void ProblemFD1D::solve()
   //   m.diagDown[k] = -diff_ / (h * h);
   //   rhs[k] = uOld_[k] / dt_ + q_[k] + couple_ * kAmpli * (uOld_[k] - uExt[k]);
   // }
-  assemblies_[assemblyName_](this);
+  assemblies_.at(assemblyName_)(this);
 
   // solve
   std::vector<double> upPrime(n);
@@ -302,40 +305,44 @@ std::unordered_map<std::string, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies
 
 void setFD1DAssemblies()
 {
-  ProblemFD1D::assemblies_["heat"] = [](ProblemFD1D * p)
-  {
-    for (uint k = 1U; k < p->n_ - 1; k++)
-    {
-      p->m_.diag[k] = 1. / p->dt_ + p->diff_ * 2. / (p->h_ * p->h_);
-      p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);
-      p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_);
-      p->rhs_[k] = p->uOld_[k] / p->dt_ + p->q_[k];
-    }
-  };
+  ProblemFD1D::assemblies_.emplace(
+      "heat",
+      [](ProblemFD1D * p)
+      {
+        for (uint k = 1U; k < p->n_ - 1; k++)
+        {
+          p->m_.diag[k] = 1. / p->dt_ + p->diff_ * 2. / (p->h_ * p->h_);
+          p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);
+          p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_);
+          p->rhs_[k] = p->uOld_[k] / p->dt_ + p->q_[k];
+        }
+      });
 
-  ProblemFD1D::assemblies_["heatCoupled"] = [](ProblemFD1D * p)
-  {
-    // std::vector<double> uExt(p->n_, 2.0);
-    std::vector<double> uExt(p->n_);
-    double const * dataPtr = p->getField(p->nameExt_)->dataPtr();
-    std::copy(dataPtr, dataPtr + p->n_, uExt.data());
+  ProblemFD1D::assemblies_.emplace(
+      "heatCoupled",
+      [](ProblemFD1D * p)
+      {
+        // std::vector<double> uExt(p->n_, 2.0);
+        std::vector<double> uExt(p->n_);
+        double const * dataPtr = p->getField(p->nameExt_)->dataPtr();
+        std::copy(dataPtr, dataPtr + p->n_, uExt.data());
 
-    double const kAmpli = 10.;
-    for (uint k = 1U; k < p->n_ - 1; k++)
-    {
-      // matrix
-      p->m_.diag[k] = 1. / p->dt_                       // time
-                      + p->diff_ * 2. / (p->h_ * p->h_) // diffusion
-                      + kAmpli                          // feedback control
-          ;
-      p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);   // diffusion
-      p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_); // diffusion
+        double const kAmpli = 10.;
+        for (uint k = 1U; k < p->n_ - 1; k++)
+        {
+          // matrix
+          p->m_.diag[k] = 1. / p->dt_                       // time
+                          + p->diff_ * 2. / (p->h_ * p->h_) // diffusion
+                          + kAmpli                          // feedback control
+              ;
+          p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);   // diffusion
+          p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_); // diffusion
 
-      // rhs
-      p->rhs_[k] = p->uOld_[k] / p->dt_ // time
-                   + p->q_[k]           // source
-                   + kAmpli * uExt[k]   // feedback control
-          ;
-    }
-  };
+          // rhs
+          p->rhs_[k] = p->uOld_[k] / p->dt_ // time
+                       + p->q_[k]           // source
+                       + kAmpli * uExt[k]   // feedback control
+              ;
+        }
+      });
 }

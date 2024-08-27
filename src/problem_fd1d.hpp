@@ -46,6 +46,7 @@ struct ProblemFD1D: public Problem
   void initMeshMED(std::filesystem::path const & fileName);
   void initFieldMED(std::filesystem::path const & fileName);
 
+  std::string name_;
   double start_;
   double h_;
   uint n_;
