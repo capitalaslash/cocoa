@@ -42,6 +42,7 @@ struct ProblemProXPDE: public Problem
   void solve() override;
   void print() override;
 
+std::string name_;
   Mesh_T mesh_;
   FESpace_T feSpace_;
   std::vector<proxpde::BCEss<FESpace_T>> bcs_;

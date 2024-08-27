@@ -20,8 +20,8 @@ void ProblemProXPDE::setup(ParamList_T const & params)
 
   // init mesh from configuration
   proxpde::readMesh(mesh_, config["mesh"]);
-  auto const name = config["name"].as<std::string>();
-  initMeshMED(name);
+  name_ = config["name"].as<std::string>();
+  initMeshMED(name_);
 
   // init coupling
   // TODO: set from file when more coupling strategies are available
@@ -50,7 +50,7 @@ void ProblemProXPDE::setup(ParamList_T const & params)
   }
 
   // init io
-  io_.init(feSpace_, "output_" + name + "/u");
+  io_.init(feSpace_, "output_" + name_ + "/u");
   initFieldMED(varName);
 }
 
@@ -128,7 +128,7 @@ bool ProblemProXPDE::run() { return time < finalTime_; }
 
 void ProblemProXPDE::solve()
 {
-  fmt::print("proxpde::solve(), time = {:.6e}, dt = {:.6e}\n", time, dt_);
+  fmt::print("{} - time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
 
   // update old values
   uOld_ = u_.data;
