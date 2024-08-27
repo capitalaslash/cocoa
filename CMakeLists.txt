@@ -188,6 +188,27 @@ if (COCOA_ENABLE_PYTHON)
   install(TARGETS pycocoa DESTINATION .)
 endif()
 
+# test =================================================================
+
+option(COCOA_ENABLE_TESTS "Enable tests." ON)
+if (COCOA_ENABLE_TESTS)
+  include(CTest)
+
+  if (COCOA_ENABLE_PYTHON)
+    add_test(NAME python::fd1d COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/fd1drun.py)
+    set_property(TEST python::fd1d PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+
+    add_test(NAME python::proxpde COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/proxpderun.py)
+    set_property(TEST python::proxpde PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+
+    add_test(NAME python::couplingsimple COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/couplingsimplerun.py)
+    set_property(TEST python::couplingsimple PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+
+    add_test(NAME python::couplingmed COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/couplingmedrun.py)
+    set_property(TEST python::couplingmed PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+  endif()
+endif()
+
 # format ===============================================================
 
 find_program(CLANGFORMAT clang-format)
