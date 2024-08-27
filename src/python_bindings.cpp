@@ -1,6 +1,7 @@
 // pybind11
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl/filesystem.h>
 
 // local
 #include "coupling_med.hpp"
@@ -14,9 +15,6 @@ using namespace pybind11::literals;
 
 PYBIND11_MODULE(pycocoa, m)
 {
-  pybind11::class_<std::filesystem::path>(m, "Path").def(pybind11::init<std::string>());
-  pybind11::implicitly_convertible<std::string, std::filesystem::path>();
-
   pybind11::enum_<COUPLING_TYPE>(m, "COUPLING_TYPE")
       .value("none", COUPLING_TYPE::NONE)
       .value("medcoupling", COUPLING_TYPE::MEDCOUPLING)
