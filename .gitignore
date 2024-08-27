@@ -3,5 +3,5 @@
 build*/
 contrib/
 spack*/
+CMakeLists.txt.*
 run_cmake.bash
-

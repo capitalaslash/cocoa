@@ -14,7 +14,7 @@ struct ProblemOForg: public Problem
 {
   using ParamList_T = Problem::ParamList_T;
 
-  ProblemOForg(): Problem{PROBLEM_TYPE::OFORG} {}
+  ProblemOForg(): Problem{PROBLEM_TYPE::OFORG, COUPLING_TYPE::NONE} {}
   ~ProblemOForg() = default;
 
   void setup(ParamList_T const & params) override

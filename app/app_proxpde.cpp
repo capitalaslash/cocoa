@@ -25,7 +25,7 @@ int main()
     p1->solve();
     p1->print();
 
-    coupling12->project("T", "Tsys");
+    coupling12->project("T", "Tcfd");
     p2->advance();
     p2->solve();
     p2->print();

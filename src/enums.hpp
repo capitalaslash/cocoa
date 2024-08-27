@@ -2,6 +2,7 @@
 
 // std
 #include <cstdlib>
+#include <string>
 #include <string_view>
 
 // coupling enum =======================================================
@@ -56,12 +57,52 @@ enum struct FDBC_TYPE : int8_t
   NEUMANN = 2,
 };
 
-inline FDBC_TYPE str2fdbc(std::string_view buffer)
+inline FDBC_TYPE str2fdbc(std::string_view name)
 {
-  if (buffer == "dirichlet")
+  if (name == "dirichlet")
     return FDBC_TYPE::DIRICHLET;
-  if (buffer == "neumann")
+  if (name == "neumann")
     return FDBC_TYPE::NEUMANN;
   std::abort();
   return FDBC_TYPE::NONE;
+}
+
+// proxpde equation enum ===============================================
+enum struct PROXPDEEQN_TYPE : int8_t
+{
+  NONE = 0,
+  HEAT = 1,
+  HEAT_COUPLED = 2,
+};
+
+inline PROXPDEEQN_TYPE str2proxpdeeqn(std::string_view name)
+{
+  if (name == "heat")
+    return PROXPDEEQN_TYPE::HEAT;
+  else if (name == "heatCoupled")
+    return PROXPDEEQN_TYPE::HEAT_COUPLED;
+  abort();
+  return PROXPDEEQN_TYPE::NONE;
+}
+
+inline std::string proxpdeeqn2str(PROXPDEEQN_TYPE type)
+{
+  switch (type)
+  {
+  case PROXPDEEQN_TYPE::NONE:
+  {
+    return "none";
+  }
+  case PROXPDEEQN_TYPE::HEAT:
+  {
+    return "heat";
+  }
+  case PROXPDEEQN_TYPE::HEAT_COUPLED:
+  {
+    return "heatCoupled";
+  }
+  default:
+    abort();
+    return "";
+  }
 }

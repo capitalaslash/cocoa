@@ -11,7 +11,6 @@
 
 // local
 #include "field_factory.hpp"
-#include "field_med.hpp"
 #include "mesh_med.hpp"
 
 void ProblemFD1D::setup(Problem::ParamList_T const & params)

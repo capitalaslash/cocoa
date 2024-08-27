@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 // local
+#include "enums.hpp"
 #include "field_coupling.hpp"
 #include "mesh_coupling.hpp"
 
@@ -14,7 +15,10 @@ struct Problem
   using ParamList_T = std::unordered_map<std::string, std::filesystem::path>;
 
   Problem() = default;
-  explicit Problem(PROBLEM_TYPE type): type_{type} {}
+  Problem(PROBLEM_TYPE type, COUPLING_TYPE couplingType):
+      type_{type},
+      couplingType_{couplingType}
+  {}
   virtual ~Problem() = default;
 
   virtual void setup(ParamList_T const & params) = 0;

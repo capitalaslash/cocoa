@@ -27,6 +27,9 @@ void ProblemProXPDE::setup(ParamList_T const & params)
   // TODO: set from file when more coupling strategies are available
   couplingType_ = COUPLING_TYPE::MEDCOUPLING;
 
+  // init equation
+  equationType_ = str2proxpdeeqn(config["equation_type"].as<std::string>());
+
   // init time related members
   time = 0.0;
   dt_ = config["dt"].as<double>();
@@ -34,11 +37,15 @@ void ProblemProXPDE::setup(ParamList_T const & params)
 
   // init fe related members
   feSpace_.init(mesh_);
-  diff_ = config["diff"].as<double>();
   auto const varName = config["var_name"].as<std::string>();
   u_.init(varName, feSpace_);
   double const initValue = config["init_value"].as<double>();
   u_.data = proxpde::Vec::Constant(feSpace_.dof.size, initValue);
+
+  // init physical constants and source
+  diff_ = config["diff"].as<double>();
+  q_.init("source", feSpace_);
+  q_.data = proxpde::Vec::Constant(feSpace_.dof.size, config["q"].as<double>());
 
   // init bcs
   for (auto const & bc: config["bcs"])
@@ -93,22 +100,36 @@ void ProblemProXPDE::initFieldMED(std::string_view name)
   auto [kvPair, success] = fieldsCoupling_.emplace(name, new FieldMED);
   assert(success);
   kvPair->second->init(name, meshCoupling_.get());
-  updateFieldMED(kvPair->first);
+  setDataMED(u_.data, kvPair->first);
   std::string filename = std::string{io_.filePath.value()} + "_med.";
   kvPair->second->initIO(filename);
 }
 
-void ProblemProXPDE::updateFieldMED(std::string_view name)
+void ProblemProXPDE::setDataMED(proxpde::Vec const & u, std::string_view name)
 {
-  std::vector<double> data(u_.data.size());
+  std::vector<double> data(u.size());
   for (auto const & e: mesh_.elementList)
   {
     for (uint k = 0; k < FESpace_T::RefFE_T::numDOFs; ++k)
     {
-      data[e.pts[k]->id] = u_.data[feSpace_.dof.getId(e.id, k)];
+      data[e.pts[k]->id] = u[feSpace_.dof.getId(e.id, k)];
     }
   }
   getField(name)->setValues(data);
+}
+
+void ProblemProXPDE::getDataMED(proxpde::Vec & u, std::string_view name)
+{
+  FieldCoupling * f = getField(name);
+  u.resize(f->size());
+
+  for (auto const & e: mesh_.elementList)
+  {
+    for (uint k = 0; k < FESpace_T::RefFE_T::numDOFs; ++k)
+    {
+      u[feSpace_.dof.getId(e.id, k)] = *(f->dataPtr() + e.pts[k]->id);
+    }
+  }
 }
 
 void ProblemProXPDE::advance()
@@ -135,15 +156,16 @@ void ProblemProXPDE::solve()
 
   // build matrix and rhs
   proxpde::Builder<> builder{feSpace_.dof.size};
-  builder.buildLhs(
-      std::tuple{
-          proxpde::AssemblyMass{1. / dt_, feSpace_},
-          proxpde::AssemblyStiffness{diff_, feSpace_},
-      },
-      bcs_);
-  builder.closeMatrix();
-  builder.buildRhs(
-      std::tuple{proxpde::AssemblyProjection{1. / dt_, uOld_, feSpace_}}, bcs_);
+  ProblemProXPDE::equationMap.at(equationType_)(this, builder);
+  // builder.buildLhs(
+  //     std::tuple{
+  //         proxpde::AssemblyMass{1. / dt_, feSpace_},
+  //         proxpde::AssemblyStiffness{diff_, feSpace_},
+  //     },
+  //     bcs_);
+  // builder.closeMatrix();
+  // builder.buildRhs(
+  //     std::tuple{proxpde::AssemblyProjection{1. / dt_, uOld_, feSpace_}}, bcs_);
 
   // solve
   proxpde::LUSolver solver;
@@ -153,9 +175,56 @@ void ProblemProXPDE::solve()
 
 void ProblemProXPDE::print()
 {
-  // print med before to avoid iter update
-  updateFieldMED(u_.name);
+  // print med first to avoid iter update
+  setDataMED(u_.data, u_.name);
   getField(u_.name)->printVTK(time, io_.iter);
 
-  io_.print(std::tuple{u_}, time);
+  io_.print(std::tuple{u_, q_}, time);
 }
+
+std::unordered_map<
+    PROXPDEEQN_TYPE,
+    std::function<void(ProblemProXPDE *, proxpde::Builder<> &)>>
+    ProblemProXPDE::equationMap = {
+        {PROXPDEEQN_TYPE::HEAT,
+         [](ProblemProXPDE * p, proxpde::Builder<> & b)
+         {
+           b.buildLhs(
+               std::tuple{
+                   proxpde::AssemblyMass{1. / p->dt_, p->feSpace_},
+                   proxpde::AssemblyStiffness{p->diff_, p->feSpace_},
+               },
+               p->bcs_);
+           b.closeMatrix();
+           b.buildRhs(
+               std::tuple{
+                   proxpde::AssemblyProjection{1. / p->dt_, p->uOld_, p->feSpace_},
+                   proxpde::AssemblyProjection{1., p->q_.data, p->feSpace_}},
+               p->bcs_);
+         }},
+        {PROXPDEEQN_TYPE::HEAT_COUPLED,
+         [](ProblemProXPDE * p, proxpde::Builder<> & b)
+         {
+           auto timeDer = proxpde::AssemblyMass{1. / p->dt_, p->feSpace_};
+           auto diffusion = proxpde::AssemblyStiffness{p->diff_, p->feSpace_};
+           auto const kAmpli = 20.;
+
+           proxpde::Vec mask(p->feSpace_.dof.size);
+           p->getDataMED(mask, "mask");
+           proxpde::FEVar kAmpliVec("kAmpli", p->feSpace_);
+           kAmpliVec.data = kAmpli * mask;
+           auto feedbackLhs = proxpde::AssemblyMassFE{1.0, kAmpliVec, p->feSpace_};
+
+           auto timeDerOld =
+               proxpde::AssemblyProjection{1. / p->dt_, p->uOld_, p->feSpace_};
+           auto source = proxpde::AssemblyProjection{1., p->q_.data, p->feSpace_};
+           proxpde::Vec uExt(p->feSpace_.dof.size);
+           p->getDataMED(uExt, "Tcfd");
+           uExt.array() *= mask.array();
+           auto feedbackRhs = proxpde::AssemblyProjection{kAmpli, uExt, p->feSpace_};
+
+           b.buildLhs(std::tuple{timeDer, diffusion, feedbackLhs}, p->bcs_);
+           b.closeMatrix();
+           b.buildRhs(std::tuple{timeDerOld, source, feedbackRhs}, p->bcs_);
+         }},
+};
