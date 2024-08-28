@@ -46,6 +46,7 @@ struct ProblemProXPDE: public Problem
   std::string name_;
   Mesh_T mesh_;
   PROXPDEEQN_TYPE equationType_;
+  std::string couplingName_ = "null";
   FESpace_T feSpace_;
   std::vector<proxpde::BCEss<FESpace_T>> bcs_;
   proxpde::IOManager<FESpace_T> io_;

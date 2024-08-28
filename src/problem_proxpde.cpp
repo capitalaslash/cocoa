@@ -58,7 +58,24 @@ void ProblemProXPDE::setup(ParamList_T const & params)
 
   // init io
   io_.init(feSpace_, "output_" + name_ + "/u");
-  initFieldMED(varName);
+
+  // coupling
+  switch (equationType_)
+  {
+  case PROXPDEEQN_TYPE::HEAT:
+  {
+    couplingName_ = "T";
+    break;
+  }
+  case PROXPDEEQN_TYPE::HEAT_COUPLED:
+  {
+    couplingName_ = "Tcfd";
+    break;
+  }
+  default:
+    abort();
+  }
+  initFieldMED(couplingName_);
 }
 
 void ProblemProXPDE::initMeshMED(std::string_view name)
@@ -176,8 +193,8 @@ void ProblemProXPDE::solve()
 void ProblemProXPDE::print()
 {
   // print med first to avoid iter update
-  setDataMED(u_.data, u_.name);
-  getField(u_.name)->printVTK(time, io_.iter);
+  setDataMED(u_.data, couplingName_);
+  getField(couplingName_)->printVTK(time, io_.iter);
 
   io_.print(std::tuple{u_, q_}, time);
 }

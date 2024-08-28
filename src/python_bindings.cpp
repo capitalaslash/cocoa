@@ -1,4 +1,6 @@
 // pybind11
+#include <pybind11/eigen.h>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
@@ -49,7 +51,12 @@ PYBIND11_MODULE(pycocoa, m)
   pybind11::class_<ProblemFD1D, Problem>(m, "ProblemFD1D").def(pybind11::init<>());
 
   pybind11::class_<ProblemProXPDE, Problem>(m, "ProblemProXPDE")
-      .def(pybind11::init<>());
+      .def(pybind11::init<>())
+      .def(
+          "set_source",
+          [](ProblemProXPDE * p,
+             std::function<double(proxpde::Vec3 const &)> const & source)
+          { p->q_ << source; });
 
   pybind11::class_<CouplingManager>(m, "CouplingManager")
       .def("setup", &CouplingManager::setup, "problem_src"_a, "problem_tgt"_a)

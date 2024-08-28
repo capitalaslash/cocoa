@@ -6,6 +6,8 @@ int main()
 {
   std::unique_ptr<Problem> p1{buildProblem(PROBLEM_TYPE::PROXPDE)};
   p1->setup({{"config_file", "proxpde1.yaml"}});
+  dynamic_cast<ProblemProXPDE *>(p1.get())->q_
+      << [](proxpde::Vec3 const & p) { return std::sin(M_PI * p[1]); };
 
   std::unique_ptr<Problem> p2{buildProblem("proxpde")};
   p2->setup({{"config_file", "proxpde2.yaml"}});

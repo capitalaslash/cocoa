@@ -12,8 +12,8 @@ equation_type: heat
 var_name: T
 init_value: 0.0
 
-dt: 0.1
-final_time: 1.0
+dt: 0.5
+final_time: 20.0
 
 diff: 1.0
 q: 1.
