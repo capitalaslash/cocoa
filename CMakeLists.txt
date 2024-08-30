@@ -43,6 +43,7 @@ set(LIB_DEPENDENCIES
 
 # options ==============================================================
 
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(COCOA_ENABLE_OFORG "Enable OpenFOAM (org version)." OFF)
 option(COCOA_ENABLE_MEDCOUPLING "Enable MEDCoupling coupling." OFF)
 option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." OFF)
@@ -134,7 +135,7 @@ endif()
 
 # library ==============================================================
 
-add_library(cocoa SHARED)
+add_library(cocoa)
 target_sources(cocoa
   PRIVATE
     ${LIB_FILES}
