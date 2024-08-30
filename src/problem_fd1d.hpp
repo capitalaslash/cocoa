@@ -43,8 +43,8 @@ struct ProblemFD1D: public Problem
   void solve() override;
   void print() override;
 
-  void initMeshMED(std::filesystem::path const & fileName);
-  void initFieldMED(std::filesystem::path const & fileName);
+  void initMeshCoupling(std::filesystem::path const & fileName);
+  void initFieldCoupling(std::filesystem::path const & fileName);
 
   std::string name_;
   double start_;

@@ -20,19 +20,22 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(LIB_FILES
-  src/coupling_factory.cpp
   src/coupling_manager.hpp
   src/coupling_simple.hpp
   src/coupling_simple.cpp
+  src/coupling_factory.cpp
   src/enums.hpp
-  src/field_factory.hpp
   src/field_coupling.hpp
-  src/problem_factory.cpp
+  src/field_factory.cpp
+  src/mesh_coupling.hpp
+  src/mesh_factory.cpp
   src/problem.hpp
   src/problem_fd1d.hpp
   src/problem_fd1d.cpp
   src/problem_femus.hpp
   src/problem_oforg.hpp
+  src/problem_factory.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
 )
 set(LIB_DEPENDENCIES
   fmt::fmt

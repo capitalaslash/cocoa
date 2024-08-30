@@ -11,8 +11,8 @@
 
 // local
 #include "enums.hpp"
-#include "field_factory.hpp"
-#include "mesh_med.hpp"
+#include "field_coupling.hpp"
+#include "mesh_coupling.hpp"
 
 void ProblemFD1D::setup(Problem::ParamList_T const & params)
 {
@@ -107,13 +107,13 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   h_ = (end - start) / nElems;
   n_ = nElems + 1;
   auto const dirPath = std::filesystem::path(outFile_).parent_path();
-  initMeshMED(dirPath / "mesh");
+  initMeshCoupling(dirPath / "mesh");
 
   // fields
   u_.resize(n_, uInit);
   uOld_.resize(n_, uInit);
   q_.resize(n_, qValue);
-  initFieldMED(dirPath / "u");
+  initFieldCoupling(dirPath / "u");
 
   // linear algebra
   m_.init(n_);
@@ -123,7 +123,7 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   std::filesystem::create_directories(dirPath);
 }
 
-void ProblemFD1D::initMeshMED(std::filesystem::path const & fileName)
+void ProblemFD1D::initMeshCoupling(std::filesystem::path const & fileName)
 {
   // coords format: x_0, y_0, z_0, x_1, ...
   std::vector<double> coords(n_ * 3);
@@ -152,21 +152,21 @@ void ProblemFD1D::initMeshMED(std::filesystem::path const & fileName)
     offsets[k + 1] = offsets[k] + 3;
   }
 
-  // meshCoupling_.reset(buildMesh(couplingType_));
-  meshCoupling_.reset(new MeshMED);
+  meshCoupling_ = MeshCoupling::build(couplingType_);
   meshCoupling_->init(fileName.string(), 1U, 1U, coords, conn, offsets);
 }
 
-void ProblemFD1D::initFieldMED(std::filesystem::path const & fileName)
+void ProblemFD1D::initFieldCoupling(std::filesystem::path const & fileName)
 {
-  auto [kvPairU, successU] = fieldsCoupling_.emplace("u", buildField(couplingType_));
+  auto [kvPairU, successU] =
+      fieldsCoupling_.emplace("u", FieldCoupling::build(couplingType_));
   assert(successU);
   kvPairU->second->init(fileName.filename().string(), meshCoupling_.get());
   kvPairU->second->setValues(u_);
   kvPairU->second->initIO(fileName.string() + "_med.");
 
   auto [kvPairExt, successExt] =
-      fieldsCoupling_.emplace(nameExt_, buildField(couplingType_));
+      fieldsCoupling_.emplace(nameExt_, FieldCoupling::build(couplingType_));
   assert(successExt);
   kvPairExt->second->init(nameExt_, meshCoupling_.get());
   kvPairExt->second->setValues(0.0, u_.size());
@@ -284,6 +284,8 @@ void ProblemFD1D::solve()
   {
     u_[k] = rhsPrime[k] - upPrime[k] * u_[k + 1];
   }
+
+  getField("u")->setValues(u_);
 }
 
 void ProblemFD1D::print()
@@ -296,9 +298,7 @@ void ProblemFD1D::print()
   }
   std::fclose(out);
 
-  auto uCoupling = getField("u");
-  uCoupling->setValues(u_);
-  uCoupling->printVTK(time, it);
+  getField("u")->printVTK(time, it);
 }
 
 std::unordered_map<EQN_TYPE, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_ = {

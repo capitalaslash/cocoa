@@ -1,6 +1,7 @@
 #pragma once
 
 // std
+#include <memory>
 #include <string_view>
 #include <vector>
 
@@ -20,6 +21,9 @@ struct MeshCoupling
       std::vector<double> const & coords,
       std::vector<uint> conn,
       std::vector<uint> offsets) = 0;
+
+  static std::unique_ptr<MeshCoupling> build(COUPLING_TYPE type);
+  static std::unique_ptr<MeshCoupling> build(std::string_view type);
 
   COUPLING_TYPE type_ = COUPLING_TYPE::NONE;
 };

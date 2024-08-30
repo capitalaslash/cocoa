@@ -1,5 +1,9 @@
 #pragma once
 
+#include "plugins.hpp"
+
+#ifdef COCOA_ENABLE_MEDCOUPLING
+
 // std
 #include <string_view>
 #include <vector>
@@ -42,3 +46,5 @@ struct MeshMED: public MeshCoupling
   MEDCoupling::MEDCouplingUMesh * meshPtr_;
   bool inited_ = false;
 };
+
+#endif

@@ -2,6 +2,7 @@
 
 // std
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,9 @@ struct FieldCoupling
   virtual void setValues(std::vector<double> const & data, uint const dim = 1U) = 0;
   virtual void setValues(double value, uint size, uint const dim = 1U) = 0;
   virtual void printVTK(double time, uint iter) = 0;
+
+  static std::unique_ptr<FieldCoupling> build(COUPLING_TYPE type);
+  static std::unique_ptr<FieldCoupling> build(std::string_view type);
 
   COUPLING_TYPE type_ = COUPLING_TYPE::NONE;
   std::string name_ = "";

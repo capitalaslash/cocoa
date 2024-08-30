@@ -1,5 +1,3 @@
-#pragma once
-
 // std
 #include <memory>
 
@@ -10,7 +8,7 @@
 #include "field_coupling.hpp"
 #include "field_med.hpp"
 
-inline std::unique_ptr<FieldCoupling> buildField(COUPLING_TYPE type)
+std::unique_ptr<FieldCoupling> FieldCoupling::build(COUPLING_TYPE type)
 {
   switch (type)
   {
@@ -40,7 +38,7 @@ inline std::unique_ptr<FieldCoupling> buildField(COUPLING_TYPE type)
   }
 }
 
-inline std::unique_ptr<FieldCoupling> buildField(std::string_view couplingType)
+std::unique_ptr<FieldCoupling> FieldCoupling::build(std::string_view couplingType)
 {
-  return buildField(str2coupling(couplingType));
+  return FieldCoupling::build(str2coupling(couplingType));
 }

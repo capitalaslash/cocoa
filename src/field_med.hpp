@@ -1,5 +1,9 @@
 #pragma once
 
+#include "plugins.hpp"
+
+#ifdef COCOA_ENABLE_MEDCOUPLING
+
 // std
 #include <string_view>
 
@@ -36,3 +40,5 @@ struct FieldMED: public FieldCoupling
   bool inited_ = false;
   std::vector<Frame> frames;
 };
+
+#endif
