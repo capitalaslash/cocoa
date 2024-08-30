@@ -20,15 +20,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(LIB_FILES
-  src/coupling_factory.hpp
+  src/coupling_factory.cpp
   src/coupling_manager.hpp
   src/coupling_simple.hpp
   src/coupling_simple.cpp
+  src/enums.hpp
   src/field_factory.hpp
   src/field_coupling.hpp
-  src/problem_factory.hpp
+  src/problem_factory.cpp
   src/problem.hpp
-  src/problem.cpp
   src/problem_fd1d.hpp
   src/problem_fd1d.cpp
   src/problem_femus.hpp
@@ -38,13 +38,21 @@ set(LIB_DEPENDENCIES
   fmt::fmt
 )
 
+# options ==============================================================
+
+option(COCOA_ENABLE_OFORG "Enable OpenFOAM (org version)." OFF)
+option(COCOA_ENABLE_MEDCOUPLING "Enable MEDCoupling coupling." OFF)
+option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." OFF)
+option(COCOA_ENABLE_PYTHON "Enable python bindings." OFF)
+option(COCOA_ENABLE_TESTS "Enable tests." ON)
+option(COCOA_FETCH_FMT "Get libfmt from the web" OFF)
+
 # external dependencies ================================================
 
 include(FeatureSummary)
 include(FetchContent)
 
 # fmt ---
-option(COCOA_FETCH_FMT "Get libfmt from the web" OFF)
 if (COCOA_FETCH_FMT)
   FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
@@ -56,7 +64,6 @@ else()
 endif()
 
 # openfoam.org ---
-option(COCOA_ENABLE_OFORG "Enable OpenFOAM (org version)." OFF)
 if (COCOA_ENABLE_OFCOM)
   find_package(OpenFOAMorg REQUIRED)
   list(APPEND LIB_FILES
@@ -69,7 +76,6 @@ if (COCOA_ENABLE_OFCOM)
 endif()
 
 # proxpde ---
-option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." OFF)
 if (COCOA_ENABLE_PROXPDE)
   find_package(ProXPDE REQUIRED)
   list(APPEND LIB_FILES
@@ -82,7 +88,6 @@ if (COCOA_ENABLE_PROXPDE)
 endif()
 
 # medcoupling ---
-option(COCOA_ENABLE_MEDCOUPLING "Enable MEDCoupling coupling." OFF)
 if (COCOA_ENABLE_MEDCOUPLING)
   find_package(MEDCoupling
     REQUIRED
@@ -119,7 +124,6 @@ if (COCOA_ENABLE_MEDCOUPLING)
 endif()
 
 # pybind11 ---
-option(COCOA_ENABLE_PYTHON "Enable python bindings." OFF)
 if (COCOA_ENABLE_PYTHON)
   find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
   find_package(pybind11 CONFIG REQUIRED)
@@ -147,34 +151,6 @@ target_include_directories(cocoa
 
 feature_summary(WHAT ALL)
 
-# application ==========================================================
-
-set(APP_FILES "")
-
-add_executable(main)
-list(APPEND APP_FILES src/main.cpp)
-target_sources(main
-  PRIVATE
-    src/main.cpp
-)
-target_link_libraries(main
-  PUBLIC
-    cocoa::cocoa
-)
-
-if (COCOA_ENABLE_PROXPDE)
-  add_executable(app_proxpde)
-  list(APPEND APP_FILES app/app_proxpde.cpp)
-  target_sources(app_proxpde
-    PRIVATE
-      app/app_proxpde.cpp
-  )
-  target_link_libraries(app_proxpde
-    PUBLIC
-      cocoa::cocoa
-  )
-endif()
-
 # python ===============================================================
 
 if (COCOA_ENABLE_PYTHON)
@@ -190,24 +166,64 @@ endif()
 
 # test =================================================================
 
-option(COCOA_ENABLE_TESTS "Enable tests." ON)
 if (COCOA_ENABLE_TESTS)
   include(CTest)
 
   if (COCOA_ENABLE_PYTHON)
-    add_test(NAME python::fd1d COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/fd1drun.py)
-    set_property(TEST python::fd1d PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+    macro(cocoa_add_test_python name)
+      add_test(NAME cocoa::python::${name} COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${name}run.py)
+      set_property(TEST cocoa::python::${name} PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+    endmacro()
 
-    add_test(NAME python::proxpde COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/proxpderun.py)
-    set_property(TEST python::proxpde PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+    cocoa_add_test_python(fd1d)
+    cocoa_add_test_python(couplingsimple)
+    cocoa_add_test_python(proxpde)
+    cocoa_add_test_python(couplingmed)
+    cocoa_add_test_python(buoyant)
 
-    add_test(NAME python::couplingsimple COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/couplingsimplerun.py)
-    set_property(TEST python::couplingsimple PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
-
-    add_test(NAME python::couplingmed COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/couplingmedrun.py)
-    set_property(TEST python::couplingmed PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
   endif()
 endif()
+
+# application ==========================================================
+
+set(APP_FILES "")
+
+macro(cocoa_add_app name)
+  message(STATUS "adding app ${name}")
+  add_executable(app_${name})
+  list(APPEND APP_FILES app/app_${name}.cpp)
+  target_sources(app_${name}
+    PRIVATE
+      app/app_${name}.cpp
+  )
+  target_link_libraries(app_${name}
+    PUBLIC
+      cocoa::cocoa
+  )
+
+  if (COCOA_ENABLE_TESTS)
+    add_test(NAME cocoa::app::${name} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/app_${name})
+  endif()
+endmacro()
+
+add_executable(main)
+list(APPEND APP_FILES src/main.cpp)
+target_sources(main
+  PRIVATE
+    src/main.cpp
+)
+target_link_libraries(main
+  PUBLIC
+    cocoa::cocoa
+)
+
+if (COCOA_ENABLE_PROXPDE)
+  cocoa_add_app(proxpde)
+endif()
+
+cocoa_add_app(ns)
+cocoa_add_app(buoyant)
+
 
 # format ===============================================================
 

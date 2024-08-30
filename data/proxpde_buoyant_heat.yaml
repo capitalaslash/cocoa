@@ -1,0 +1,27 @@
+name: buoyant_heat
+
+mesh:
+  type: STRUCTURED
+  origin: [0.0, 0.0, 0.0]
+  length: [1.0, 1.0, 0.0]
+  n: [10, 10, 0]
+  flags: [NORMALS]
+
+equation_type: heatBuoyant
+
+init_value: 0.0
+
+dt: 0.2
+final_time: 2.0
+
+alpha: 0.5
+q: 0.0
+vel: [0.0, 0.0]
+import_names: [vel]
+
+bcs:
+  - label: 2
+    value: 0.0
+  - label: 4
+    value: 1.0
+

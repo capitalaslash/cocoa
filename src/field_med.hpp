@@ -26,8 +26,8 @@ struct FieldMED: public FieldCoupling
   // std::vector<double> getData() override;
   void init(std::string_view name, MeshCoupling * mesh) override;
   void initIO(std::string_view filename) override;
-  void setValues(std::vector<double> const & data) override;
-  void setValues(double value, uint size) override;
+  void setValues(std::vector<double> const & data, uint dim = 1U) override;
+  void setValues(double value, uint size, uint dim = 1U) override;
 
   void printVTK(double time, uint iter) override;
   void printPVD() const;

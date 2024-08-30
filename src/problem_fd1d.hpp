@@ -58,7 +58,7 @@ struct ProblemFD1D: public Problem
   double dt_;
   Matrix m_;
   std::vector<double> rhs_;
-  std::string assemblyName_;
+  EQN_TYPE eqnType_;
   FDBC_TYPE bcStartType_ = FDBC_TYPE::NONE;
   double bcStartValue_ = 0.0;
   FDBC_TYPE bcEndType_ = FDBC_TYPE::NONE;
@@ -66,7 +66,5 @@ struct ProblemFD1D: public Problem
   std::string outFile_ = "./fd1d";
   std::string nameExt_ = "uExternal";
 
-  static std::unordered_map<std::string, Assembly_T> assemblies_;
+  static std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
 };
-
-void setFD1DAssemblies();

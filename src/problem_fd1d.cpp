@@ -10,6 +10,7 @@
 #include <fmt/core.h>
 
 // local
+#include "enums.hpp"
 #include "field_factory.hpp"
 #include "mesh_med.hpp"
 
@@ -72,7 +73,10 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
       else if (token == "dt:")
         bufferStream >> dt_;
       else if (token == "assembly_name:")
-        bufferStream >> assemblyName_;
+      {
+        bufferStream >> token;
+        eqnType_ = str2eqn(token);
+      }
       else if (token == "bc_start_type:")
       {
         bufferStream >> token;
@@ -95,10 +99,7 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
         bufferStream >> token;
       }
     }
-    if (assemblyName_ != "")
-    {
-      assert(assemblies_.contains(assemblyName_));
-    }
+    assert(eqnType_ == EQN_TYPE::NONE || assemblies_.contains(eqnType_));
   }
 
   // mesh
@@ -259,7 +260,7 @@ void ProblemFD1D::solve()
   //   m.diagDown[k] = -diff_ / (h * h);
   //   rhs[k] = uOld_[k] / dt_ + q_[k] + couple_ * kAmpli * (uOld_[k] - uExt[k]);
   // }
-  assemblies_.at(assemblyName_)(this);
+  assemblies_.at(eqnType_)(this);
 
   // solve
   std::vector<double> upPrime(n);
@@ -300,48 +301,42 @@ void ProblemFD1D::print()
   uCoupling->printVTK(time, it);
 }
 
-std::unordered_map<std::string, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_;
+std::unordered_map<EQN_TYPE, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_ = {
+    {EQN_TYPE::HEAT,
+     [](ProblemFD1D * p)
+     {
+       for (uint k = 1U; k < p->n_ - 1; k++)
+       {
+         p->m_.diag[k] = 1. / p->dt_ + p->diff_ * 2. / (p->h_ * p->h_);
+         p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);
+         p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_);
+         p->rhs_[k] = p->uOld_[k] / p->dt_ + p->q_[k];
+       }
+     }},
+    {EQN_TYPE::HEAT_COUPLED,
+     [](ProblemFD1D * p)
+     {
+       // std::vector<double> uExt(p->n_, 2.0);
+       std::vector<double> uExt(p->n_);
+       double const * dataPtr = p->getField(p->nameExt_)->dataPtr();
+       std::copy(dataPtr, dataPtr + p->n_, uExt.data());
 
-void setFD1DAssemblies()
-{
-  ProblemFD1D::assemblies_.emplace(
-      "heat",
-      [](ProblemFD1D * p)
-      {
-        for (uint k = 1U; k < p->n_ - 1; k++)
-        {
-          p->m_.diag[k] = 1. / p->dt_ + p->diff_ * 2. / (p->h_ * p->h_);
-          p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);
-          p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_);
-          p->rhs_[k] = p->uOld_[k] / p->dt_ + p->q_[k];
-        }
-      });
+       double const kAmpli = 10.;
+       for (uint k = 1U; k < p->n_ - 1; k++)
+       {
+         // matrix
+         p->m_.diag[k] = 1. / p->dt_                       // time
+                         + p->diff_ * 2. / (p->h_ * p->h_) // diffusion
+                         + kAmpli                          // feedback control
+             ;
+         p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);   // diffusion
+         p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_); // diffusion
 
-  ProblemFD1D::assemblies_.emplace(
-      "heatCoupled",
-      [](ProblemFD1D * p)
-      {
-        // std::vector<double> uExt(p->n_, 2.0);
-        std::vector<double> uExt(p->n_);
-        double const * dataPtr = p->getField(p->nameExt_)->dataPtr();
-        std::copy(dataPtr, dataPtr + p->n_, uExt.data());
-
-        double const kAmpli = 10.;
-        for (uint k = 1U; k < p->n_ - 1; k++)
-        {
-          // matrix
-          p->m_.diag[k] = 1. / p->dt_                       // time
-                          + p->diff_ * 2. / (p->h_ * p->h_) // diffusion
-                          + kAmpli                          // feedback control
-              ;
-          p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);   // diffusion
-          p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_); // diffusion
-
-          // rhs
-          p->rhs_[k] = p->uOld_[k] / p->dt_ // time
-                       + p->q_[k]           // source
-                       + kAmpli * uExt[k]   // feedback control
-              ;
-        }
-      });
-}
+         // rhs
+         p->rhs_[k] = p->uOld_[k] / p->dt_ // time
+                      + p->q_[k]           // source
+                      + kAmpli * uExt[k]   // feedback control
+             ;
+       }
+     }},
+};

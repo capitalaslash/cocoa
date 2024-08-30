@@ -2,6 +2,7 @@
 
 // std
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -38,6 +39,10 @@ struct Problem
   }
 
   MeshCoupling * getMesh() { return meshCoupling_.get(); }
+
+  static std::unique_ptr<Problem> build(PROBLEM_TYPE problemType, EQN_TYPE eqnType);
+  static std::unique_ptr<Problem>
+  build(std::string_view problemType, std::string_view eqnType);
 
   PROBLEM_TYPE type_ = PROBLEM_TYPE::NONE;
   COUPLING_TYPE couplingType_ = COUPLING_TYPE::NONE;

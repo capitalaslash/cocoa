@@ -25,42 +25,119 @@
 struct ProblemProXPDE: public Problem
 {
   using ParamList_T = Problem::ParamList_T;
-  using Elem_T = proxpde::Quad;
-  using Mesh_T = proxpde::Mesh<Elem_T>;
-  using FE_T = proxpde::LagrangeFE<Elem_T, 1U>;
-  using FESpace_T = proxpde::FESpace<Mesh_T, FE_T::RefFE_T, FE_T::RecommendedQR>;
 
   ProblemProXPDE(): Problem{PROBLEM_TYPE::PROXPDE, COUPLING_TYPE::MEDCOUPLING} {}
-  ~ProblemProXPDE() = default;
+  virtual ~ProblemProXPDE() = default;
 
-  void setup(ParamList_T const & params) override;
-  void initMeshMED(std::string_view meshName);
-  void initFieldMED(std::string_view fieldName);
-  void setDataMED(proxpde::Vec const & u, std::string_view fieldName);
-  void getDataMED(proxpde::Vec & u, std::string_view fieldName);
-  void advance() override;
-  bool run() override;
-  void solve() override;
-  void print() override;
+  virtual void setup(ParamList_T const & params) override = 0;
+  void advance() override final;
+  bool run() override final;
+  virtual void solve() override;
+  virtual void print() override = 0;
+
+  virtual uint size() const = 0;
+
+  template <typename Mesh>
+  void initMeshMED(std::string_view meshName, Mesh const & mesh);
+
+  void initFieldMED(std::string_view fieldName, std::string_view path);
+
+  template <typename FESpace>
+  void setDataMED(
+      std::string_view fieldName, proxpde::Vec const & u, FESpace const & feSpace);
+
+  template <typename FESpace>
+  void
+  getDataMED(std::string_view fieldName, proxpde::Vec & u, FESpace const & feSpace);
 
   std::string name_;
-  Mesh_T mesh_;
-  PROXPDEEQN_TYPE equationType_;
-  std::string couplingName_ = "null";
-  FESpace_T feSpace_;
-  std::vector<proxpde::BCEss<FESpace_T>> bcs_;
-  proxpde::IOManager<FESpace_T> io_;
-  double diff_;
-  proxpde::FEVar<FESpace_T> u_;
+  EQN_TYPE equationType_;
+  std::vector<std::string> couplingExport_;
+  std::vector<std::string> couplingImport_;
+  proxpde::Vec u_;
   proxpde::Vec uOld_;
-  proxpde::FEVar<FESpace_T> q_;
   double dt_;
   double finalTime_;
 
   static std::unordered_map<
-      PROXPDEEQN_TYPE,
+      EQN_TYPE,
       std::function<void(ProblemProXPDE *, proxpde::Builder<> & b)>>
-      equationMap;
+      equationMap_;
+
+  static std::unique_ptr<Problem> build(EQN_TYPE const type);
+};
+
+// =====================================================================
+
+struct ProblemProXPDEHeat: public ProblemProXPDE
+{
+  using ParamList_T = ProblemProXPDE::ParamList_T;
+  using Elem_T = proxpde::Quad;
+  using Mesh_T = proxpde::Mesh<Elem_T>;
+  using FE_T = proxpde::LagrangeFE<Elem_T, 1U>;
+  using FESpace_T = proxpde::FESpace<Mesh_T, FE_T::RefFE_T, FE_T::RecommendedQR>;
+  using FESpaceVel_T = proxpde::FESpace<Mesh_T, FE_T::RefFE_T, FE_T::RecommendedQR, 2U>;
+
+  ProblemProXPDEHeat() = default;
+  ~ProblemProXPDEHeat() = default;
+
+  void setup(ParamList_T const & params) override;
+  void solve() override;
+  void print() override;
+
+  virtual uint size() const override { return feSpace_.dof.size; }
+
+  Mesh_T mesh_;
+  FESpace_T feSpace_;
+  proxpde::FEVar<FESpace_T> T_;
+  proxpde::FEVar<FESpace_T> q_;
+  double alpha_;
+  FESpaceVel_T feSpaceVel_;
+  proxpde::FEVar<FESpaceVel_T> vel_;
+  std::vector<proxpde::BCEss<FESpace_T>> bcs_;
+  proxpde::IOManager<FESpace_T> io_;
+};
+
+// =====================================================================
+
+struct ProblemProXPDENS: public ProblemProXPDE
+{
+  using ParamList_T = ProblemProXPDE::ParamList_T;
+  using Elem_T = proxpde::Quad;
+  using Mesh_T = proxpde::Mesh<Elem_T>;
+  using FE1_T = proxpde::LagrangeFE<Elem_T, 1U>;
+  using FE2_T = proxpde::LagrangeFE<Elem_T, 2U>;
+  using FESpaceP_T = proxpde::FESpace<Mesh_T, FE1_T::RefFE_T, FE2_T::RecommendedQR>;
+  using FESpaceVel_T =
+      proxpde::FESpace<Mesh_T, FE2_T::RefFE_T, FE2_T::RecommendedQR, 2U>;
+  using FESpaceVelQ1_T =
+      proxpde::FESpace<Mesh_T, FE1_T::RefFE_T, FE2_T::RecommendedQR, 2U>;
+
+  ProblemProXPDENS() = default;
+  ~ProblemProXPDENS() = default;
+
+  void setup(ParamList_T const & params) override;
+  void solve() override;
+  void print() override;
+
+  virtual uint size() const override
+  {
+    return 2U * feSpaceVel_.dof.size + feSpaceP_.dof.size;
+  }
+
+  Mesh_T mesh_;
+  FESpaceVel_T feSpaceVel_;
+  proxpde::FEVar<FESpaceVel_T> vel_;
+  FESpaceP_T feSpaceP_;
+  proxpde::FEVar<FESpaceP_T> p_;
+  FESpaceVelQ1_T feSpaceVelQ1_;
+  proxpde::FEVar<FESpaceVelQ1_T> velQ1_;
+  proxpde::L2Projector<FESpaceVelQ1_T, FESpaceVel_T> projectorQ2Q1_;
+  double viscosity_;
+  std::vector<proxpde::BCEss<FESpaceP_T>> bcsP_;
+  std::vector<proxpde::BCEss<FESpaceVel_T>> bcsVel_;
+  proxpde::IOManager<FESpaceVel_T> ioVel_;
+  proxpde::IOManager<FESpaceP_T> ioP_;
 };
 
 #endif

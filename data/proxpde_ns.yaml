@@ -1,0 +1,27 @@
+name: ns
+
+mesh:
+  type: STRUCTURED
+  origin: [0.0, 0.0, 0.0]
+  length: [1.0, 1.0, 0.0]
+  n: [4, 4, 0]
+  flags: [NORMALS]
+
+equation_type: ns
+
+vel_init_value: [0.0, 1.0]
+p_init_value: 0.0
+
+dt: 0.1
+final_time: 1.0
+
+viscosity: 0.1
+
+bcs:
+  - label: 1
+    value: [0.0, 1.0]
+  - label: 2
+    value: [0.0, 0.0]
+  - label: 4
+    value: [0.0, 0.0]
+

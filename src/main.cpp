@@ -1,35 +1,22 @@
+// std
+#include <cassert>
+
 // local
-#include "coupling_factory.hpp"
-#include "problem_factory.hpp"
+#include "coupling_manager.hpp"
+#include "problem.hpp"
 
 int main()
 {
-  // ProblemOForg p1;
-  // manager.problems_.push_back(&p1);
+  auto p1 = Problem::build(PROBLEM_TYPE::FD1D, EQN_TYPE::NONE);
+  auto p2 = Problem::build("fd1d", "none");
 
-  // ProblemFEMUS p2;
-  // manager.problems_.push_back(&p2);
-
-  // ProblemProXPDE p1;
-  // ProblemProXPDE p2;
-
-  // prepare assemgly routines for FD1D
-  setFD1DAssemblies();
-
-  std::unique_ptr<Problem> p1{buildProblem(PROBLEM_TYPE::FD1D)};
-  std::unique_ptr<Problem> p2{buildProblem("fd1d")};
-
-  // p1->setup({});
-  // p2->setup({});
-  // p1->setup({{"config_file", "proxpde1.yaml"}});
-  // p2->setup({{"config_file", "proxpde2.yaml"}});
   p1->setup({{"config_file", "fd1d1.dat"}});
   p2->setup({{"config_file", "fd1d2.dat"}});
 
   // check that both problems have been set to use the same coupling type
   assert(p1->couplingType_ == p2->couplingType_);
 
-  std::unique_ptr<CouplingManager> coupling12{buildCoupling(p1->couplingType_)};
+  auto coupling12 = CouplingManager::build(p1->couplingType_);
   coupling12->setup(p1.get(), p2.get());
 
   // MEDManager coupling21;

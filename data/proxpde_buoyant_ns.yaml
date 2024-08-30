@@ -1,0 +1,29 @@
+name: buoyant_ns
+
+mesh:
+  type: STRUCTURED
+  origin: [0.0, 0.0, 0.0]
+  length: [1.0, 1.0, 0.0]
+  n: [10, 10, 0]
+  flags: [NORMALS]
+
+equation_type: nsBoussinesq
+
+vel_init_value: [0.0, 0.0]
+p_init_value: 0.0
+
+dt: 0.2
+final_time: 2.0
+
+viscosity: 0.1
+
+bcs:
+  - label: 1
+    value: [0.0, 0.0]
+  - label: 2
+    value: [0.0, 0.0]
+  - label: 3
+    value: [0.0, 0.0]
+  - label: 4
+    value: [0.0, 0.0]
+

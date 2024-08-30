@@ -67,40 +67,51 @@ inline FDBC_TYPE str2fdbc(std::string_view name)
   return FDBC_TYPE::NONE;
 }
 
-// proxpde equation enum ===============================================
-enum struct PROXPDEEQN_TYPE : int8_t
+// equation type enum ===============================================
+enum struct EQN_TYPE : int8_t
 {
   NONE = 0,
-  HEAT = 1,
-  HEAT_COUPLED = 2,
+  HEAT,
+  HEAT_COUPLED,
+  HEAT_BUOYANT,
+  NS,
+  NS_BOUSSINESQ,
 };
 
-inline PROXPDEEQN_TYPE str2proxpdeeqn(std::string_view name)
+inline EQN_TYPE str2eqn(std::string_view name)
 {
   if (name == "heat")
-    return PROXPDEEQN_TYPE::HEAT;
+    return EQN_TYPE::HEAT;
   else if (name == "heatCoupled")
-    return PROXPDEEQN_TYPE::HEAT_COUPLED;
+    return EQN_TYPE::HEAT_COUPLED;
+  else if (name == "heatBuoyant")
+    return EQN_TYPE::HEAT_BUOYANT;
+  else if (name == "ns")
+    return EQN_TYPE::NS;
+  else if (name == "nsBoussinesq")
+    return EQN_TYPE::NS_BOUSSINESQ;
+  else if (name == "none")
+    return EQN_TYPE::NONE;
   abort();
-  return PROXPDEEQN_TYPE::NONE;
+  return EQN_TYPE::NONE;
 }
 
-inline std::string proxpdeeqn2str(PROXPDEEQN_TYPE type)
+inline std::string eqn2str(EQN_TYPE type)
 {
   switch (type)
   {
-  case PROXPDEEQN_TYPE::NONE:
-  {
+  case EQN_TYPE::NONE:
     return "none";
-  }
-  case PROXPDEEQN_TYPE::HEAT:
-  {
+  case EQN_TYPE::HEAT:
     return "heat";
-  }
-  case PROXPDEEQN_TYPE::HEAT_COUPLED:
-  {
+  case EQN_TYPE::HEAT_COUPLED:
     return "heatCoupled";
-  }
+  case EQN_TYPE::HEAT_BUOYANT:
+    return "heatBuoyant";
+  case EQN_TYPE::NS:
+    return "ns";
+  case EQN_TYPE::NS_BOUSSINESQ:
+    return "nsBoussinesq";
   default:
     abort();
     return "";

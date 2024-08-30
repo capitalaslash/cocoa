@@ -1,5 +1,3 @@
-#pragma once
-
 // std
 #include <memory>
 
@@ -11,7 +9,7 @@
 #include "coupling_simple.hpp"
 #include "enums.hpp"
 
-inline std::unique_ptr<CouplingManager> buildCoupling(COUPLING_TYPE type)
+std::unique_ptr<CouplingManager> CouplingManager::build(COUPLING_TYPE type)
 {
   switch (type)
   {
@@ -41,7 +39,8 @@ inline std::unique_ptr<CouplingManager> buildCoupling(COUPLING_TYPE type)
   }
 }
 
-inline std::unique_ptr<CouplingManager> buildCoupling(std::string_view couplingType)
+inline std::unique_ptr<CouplingManager>
+CouplingManager::build(std::string_view couplingType)
 {
-  return buildCoupling(str2coupling(couplingType));
+  return CouplingManager::build(str2coupling(couplingType));
 }

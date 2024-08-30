@@ -4,6 +4,16 @@ CoCoA - Collaborative Coupling Applications
 
 ## how to install
 
+### spack installation
+
+Currently, `ProXPDE` and `FEMuS` are not yet available in mainstream `spack`, clone our fork
+
+```
+git clone https://github.com/capitalaslash/spack.git -b 0.22_femus
+```
+
+### setup `spack` environment
+
 * copy `spack-env/spack-template.yaml` in `spack/spack.yaml`, edit packages and install them
 
 ```bash
@@ -14,11 +24,13 @@ spack concretize -f
 spack install
 ```
 
-* setup OpenFOAM (optional)
+### setup `OpenFOAM` (optional)
 
 ```bash
 source <FOAM_DIR>/etc/bashrc
 ```
+
+### setup `cocoa`
 
 * copy `run_cmake-template.bash` in `run_cmake.bash` edit options and run it
 
