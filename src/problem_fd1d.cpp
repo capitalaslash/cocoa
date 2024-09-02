@@ -99,8 +99,9 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
         bufferStream >> token;
       }
     }
-    assert(eqnType_ == EQN_TYPE::NONE || assemblies_.contains(eqnType_));
   }
+  fmt::print("{} - equation type: {}\n", name_, eqn2str(eqnType_));
+  assert(eqnType_ == EQN_TYPE::NONE || assemblies_.contains(eqnType_));
 
   // mesh
   start_ = start;
