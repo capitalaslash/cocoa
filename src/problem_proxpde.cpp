@@ -10,6 +10,7 @@
 // local
 #include "enums.hpp"
 #include "field_med.hpp"
+#include "mesh_coupling.hpp"
 #include "mesh_med.hpp"
 
 std::unique_ptr<Problem> ProblemProXPDE::build(EQN_TYPE const type)
@@ -61,7 +62,7 @@ void ProblemProXPDE::initMeshMED(std::string_view name, Mesh const & mesh)
     offsets[e + 1] = offsets[e] + (Elem_T::numPts + 1);
   }
 
-  meshCoupling_.reset(new MeshMED);
+  meshCoupling_ = MeshCoupling::build(couplingType_);
   meshCoupling_->init(name, Elem_T::dim, 3U, coords, conn, offsets);
 }
 
