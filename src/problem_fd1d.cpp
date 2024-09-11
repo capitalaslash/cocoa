@@ -2,6 +2,7 @@
 
 // std
 #include <cassert>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <unordered_map>
@@ -192,11 +193,10 @@ void ProblemFD1D::advance()
 void ProblemFD1D::solve()
 {
   fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
-  uint const n = n_;
-  double const h = 1. / (n - 1);
+  double const h = 1. / (n_ - 1);
 
   // update
-  for (uint k = 0; k < n; k++)
+  for (uint k = 0; k < n_; k++)
     uOld_[k] = u_[k];
 
   // bc start
@@ -228,16 +228,16 @@ void ProblemFD1D::solve()
   {
   case FDBC_TYPE::DIRICHLET:
   {
-    m_.diag[n - 1] = 1.0;
-    m_.diagDown[n - 1] = 0.0;
-    rhs_[n - 1] = bcEndValue_;
+    m_.diag[n_ - 1] = 1.0;
+    m_.diagDown[n_ - 1] = 0.0;
+    rhs_[n_ - 1] = bcEndValue_;
     break;
   }
   case FDBC_TYPE::NEUMANN:
   {
-    m_.diag[n - 1] = -1.0;
-    m_.diagDown[n - 1] = 1.0;
-    rhs_[n - 1] = bcEndValue_ * h;
+    m_.diag[n_ - 1] = -1.0;
+    m_.diagDown[n_ - 1] = 1.0;
+    rhs_[n_ - 1] = bcEndValue_ * h;
     break;
   }
   default:
@@ -264,29 +264,51 @@ void ProblemFD1D::solve()
   assemblies_.at(eqnType_)(this);
 
   // solve
-  std::vector<double> upPrime(n);
-  std::vector<double> rhsPrime(n);
+  solveTriDiag();
+
+  // residual
+  std::vector<double> res(n_);
+  res[0] = rhs_[0] - (m_.diag[0] * u_[0] + m_.diagUp[0] * u_[1]);
+  for (uint k = 1; k < n_ - 1; k++)
+  {
+    double const prod =
+        m_.diagDown[k] * u_[k - 1] + m_.diag[k] * u_[k] + m_.diagUp[k] * u_[k + 1];
+    res[k] = rhs_[k] - prod;
+  }
+  res[n_ - 1] =
+      rhs_[n_ - 1] - (m_.diagDown[n_ - 1] * u_[n_ - 2] + m_.diag[n_ - 1] * u_[n_ - 1]);
+
+  double resNorm = 0.0;
+  for (uint k = 0; k < n_; k++)
+    resNorm += res[k] * res[k];
+  fmt::print("residual norm: {:.6e}\n", std::sqrt(resNorm));
+
+  getField("u")->setValues(u_);
+}
+
+void ProblemFD1D::solveTriDiag()
+{
+  std::vector<double> upPrime(n_);
+  std::vector<double> rhsPrime(n_);
 
   upPrime[0] = m_.diagUp[0] / m_.diag[0];
-  for (uint k = 1U; k < n - 1; k++)
+  for (uint k = 1U; k < n_ - 1; k++)
   {
     upPrime[k] = m_.diagUp[k] / (m_.diag[k] - m_.diagDown[k] * upPrime[k - 1]);
   }
 
   rhsPrime[0] = rhs_[0] / m_.diag[0];
-  for (uint k = 1U; k < n; k++)
+  for (uint k = 1U; k < n_; k++)
   {
     rhsPrime[k] = (rhs_[k] - m_.diagDown[k] * rhsPrime[k - 1]) /
                   (m_.diag[k] - m_.diagDown[k] * upPrime[k - 1]);
   }
 
-  u_[n - 1] = rhsPrime[n - 1];
-  for (int k = n - 2; k >= 0; k--)
+  u_[n_ - 1] = rhsPrime[n_ - 1];
+  for (int k = n_ - 2; k >= 0; k--)
   {
     u_[k] = rhsPrime[k] - upPrime[k] * u_[k + 1];
   }
-
-  getField("u")->setValues(u_);
 }
 
 void ProblemFD1D::print()

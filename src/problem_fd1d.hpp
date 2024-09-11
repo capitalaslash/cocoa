@@ -9,6 +9,7 @@
 #include <vector>
 
 // local
+#include "enums.hpp"
 #include "field_coupling.hpp"
 #include "problem.hpp"
 
@@ -45,6 +46,7 @@ struct ProblemFD1D: public Problem
 
   void initMeshCoupling(std::filesystem::path const & fileName);
   void initFieldCoupling(std::filesystem::path const & fileName);
+  void solveTriDiag();
 
   std::string name_;
   double start_;
@@ -58,7 +60,7 @@ struct ProblemFD1D: public Problem
   double dt_;
   Matrix m_;
   std::vector<double> rhs_;
-  EQN_TYPE eqnType_;
+  EQN_TYPE eqnType_ = EQN_TYPE::NONE;
   FDBC_TYPE bcStartType_ = FDBC_TYPE::NONE;
   double bcStartValue_ = 0.0;
   FDBC_TYPE bcEndType_ = FDBC_TYPE::NONE;
