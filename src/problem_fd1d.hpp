@@ -17,11 +17,11 @@ struct ProblemFD1D: public Problem
 {
   using Assembly_T = std::function<void(ProblemFD1D *)>;
 
-  struct Matrix
+  struct MatrixTriDiag
   {
-    Matrix() = default;
-    explicit Matrix(uint n): diag(n), diagUp(n), diagDown(n) {}
-    ~Matrix() = default;
+    MatrixTriDiag() = default;
+    explicit MatrixTriDiag(uint n): diag(n), diagUp(n), diagDown(n) {}
+    ~MatrixTriDiag() = default;
 
     void init(uint n)
     {
@@ -58,7 +58,7 @@ struct ProblemFD1D: public Problem
   double diff_;
   double finalTime_;
   double dt_;
-  Matrix m_;
+  MatrixTriDiag m_;
   std::vector<double> rhs_;
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
   FDBC_TYPE bcStartType_ = FDBC_TYPE::NONE;
