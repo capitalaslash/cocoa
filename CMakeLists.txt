@@ -27,6 +27,8 @@ set(LIB_FILES
   src/enums.hpp
   src/field_coupling.hpp
   src/field_factory.cpp
+  src/fdutils.hpp
+  src/fdutils.cpp
   src/mesh_coupling.hpp
   src/mesh_factory.cpp
   src/problem.hpp
@@ -220,6 +222,8 @@ target_link_libraries(main
   PUBLIC
     cocoa::cocoa
 )
+
+cocoa_add_app(fd1d)
 
 if (COCOA_ENABLE_PROXPDE)
   cocoa_add_app(proxpde)

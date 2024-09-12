@@ -9,9 +9,9 @@
 enum struct COUPLING_TYPE : int8_t
 {
   NONE = 0,
-  SIMPLE = 1,
-  MEDCOUPLING = 2,
-  OFM2M = 3,
+  SIMPLE,
+  MEDCOUPLING,
+  OFM2M,
 };
 
 inline COUPLING_TYPE str2coupling(std::string_view name)
@@ -28,11 +28,11 @@ inline COUPLING_TYPE str2coupling(std::string_view name)
 enum struct PROBLEM_TYPE : int8_t
 {
   NONE = 0,
-  FD1D = 1,
-  FEMUS = 2,
-  PROXPDE = 3,
-  OFCOM = 4,
-  OFORG = 5,
+  FD1D,
+  FEMUS,
+  PROXPDE,
+  OFCOM,
+  OFORG,
 };
 
 inline PROBLEM_TYPE str2problem(std::string_view name)
@@ -47,24 +47,6 @@ inline PROBLEM_TYPE str2problem(std::string_view name)
     return PROBLEM_TYPE::OFORG;
   std::abort();
   return PROBLEM_TYPE::NONE;
-}
-
-// fdbc enum ===========================================================
-enum struct FDBC_TYPE : int8_t
-{
-  NONE = 0,
-  DIRICHLET = 1,
-  NEUMANN = 2,
-};
-
-inline FDBC_TYPE str2fdbc(std::string_view name)
-{
-  if (name == "dirichlet")
-    return FDBC_TYPE::DIRICHLET;
-  if (name == "neumann")
-    return FDBC_TYPE::NEUMANN;
-  std::abort();
-  return FDBC_TYPE::NONE;
 }
 
 // equation type enum ===============================================

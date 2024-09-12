@@ -27,7 +27,7 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   double uInit = 0.0;
   double qValue = 1.0;
   // physical constants
-  diff_ = 0.2;
+  alpha_ = 0.2;
   // time
   time = 0.0;
   finalTime_ = 1.0;
@@ -65,8 +65,8 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
         bufferStream >> uInit;
       else if (token == "q:")
         bufferStream >> qValue;
-      else if (token == "diff:")
-        bufferStream >> diff_;
+      else if (token == "alpha:")
+        bufferStream >> alpha_;
       else if (token == "start_time:")
         bufferStream >> time;
       else if (token == "final_time:")
@@ -77,6 +77,11 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
       {
         bufferStream >> token;
         eqnType_ = str2eqn(token);
+      }
+      else if (token == "solver_type:")
+      {
+        bufferStream >> token;
+        solverType_ = str2fdsolver(token);
       }
       else if (token == "bc_start_type:")
       {
@@ -202,14 +207,14 @@ void ProblemFD1D::solve()
   // bc start
   switch (bcStartType_)
   {
-  case FDBC_TYPE::DIRICHLET:
+  case FD_BC_TYPE::DIRICHLET:
   {
     m_.diag[0] = 1.0;
     m_.diagUp[0] = 0.0;
     rhs_[0] = bcStartValue_;
     break;
   }
-  case FDBC_TYPE::NEUMANN:
+  case FD_BC_TYPE::NEUMANN:
   {
     m_.diag[0] = 1.0;
     m_.diagUp[0] = -1.0;
@@ -226,14 +231,14 @@ void ProblemFD1D::solve()
   // bc end
   switch (bcEndType_)
   {
-  case FDBC_TYPE::DIRICHLET:
+  case FD_BC_TYPE::DIRICHLET:
   {
     m_.diag[n_ - 1] = 1.0;
     m_.diagDown[n_ - 1] = 0.0;
     rhs_[n_ - 1] = bcEndValue_;
     break;
   }
-  case FDBC_TYPE::NEUMANN:
+  case FD_BC_TYPE::NEUMANN:
   {
     m_.diag[n_ - 1] = -1.0;
     m_.diagDown[n_ - 1] = 1.0;
@@ -248,23 +253,10 @@ void ProblemFD1D::solve()
   }
 
   // assembly
-  // std::vector<double> uExt(n);
-  // double const * dataPtr =
-  //     getField(nameExt_)->fieldPtr_->getArray()->getConstPointer();
-  // std::copy(dataPtr, dataPtr + n, uExt.data());
-  // double const kAmpli = 0.1;
-  // double const h = 1. / (n - 1);
-  // for (uint k = 1U; k < n - 1; k++)
-  // {
-  //   m.diag[k] = 1. / dt_ + diff_ * 2. / (h * h);
-  //   m.diagUp[k] = -diff_ / (h * h);
-  //   m.diagDown[k] = -diff_ / (h * h);
-  //   rhs[k] = uOld_[k] / dt_ + q_[k] + couple_ * kAmpli * (uOld_[k] - uExt[k]);
-  // }
   assemblies_.at(eqnType_)(this);
 
   // solve
-  solveTriDiag();
+  solvers_.at(solverType_)(this);
 
   // residual
   std::vector<double> res(n_);
@@ -284,6 +276,43 @@ void ProblemFD1D::solve()
   fmt::print("residual norm: {:.6e}\n", std::sqrt(resNorm));
 
   getField("u")->setValues(u_);
+}
+
+void ProblemFD1D::assemblyHeat()
+{
+  for (uint k = 1U; k < n_ - 1; k++)
+  {
+    m_.diag[k] = 1. / dt_ + alpha_ * 2. / (h_ * h_);
+    m_.diagUp[k] = -alpha_ / (h_ * h_);
+    m_.diagDown[k] = -alpha_ / (h_ * h_);
+    rhs_[k] = uOld_[k] / dt_ + q_[k];
+  }
+}
+
+void ProblemFD1D::assemblyHeatCoupled()
+{
+  // std::vector<double> uExt(n_, 2.0);
+  std::vector<double> uExt(n_);
+  double const * dataPtr = getField(nameExt_)->dataPtr();
+  std::copy(dataPtr, dataPtr + n_, uExt.data());
+
+  double const kAmpli = 10.;
+  for (uint k = 1U; k < n_ - 1; k++)
+  {
+    // matrix
+    m_.diag[k] = 1. / dt_                  // time
+                 + alpha_ * 2. / (h_ * h_) // diffusion
+                 + kAmpli                  // feedback control
+        ;
+    m_.diagUp[k] = -alpha_ / (h_ * h_);   // diffusion
+    m_.diagDown[k] = -alpha_ / (h_ * h_); // diffusion
+
+    // rhs
+    rhs_[k] = uOld_[k] / dt_     // time
+              + q_[k]            // source
+              + kAmpli * uExt[k] // feedback control
+        ;
+  }
 }
 
 void ProblemFD1D::solveTriDiag()
@@ -311,6 +340,28 @@ void ProblemFD1D::solveTriDiag()
   }
 }
 
+void ProblemFD1D::solveVanka()
+{
+  for (uint n = 0U; n < 20U; n++)
+  {
+    // for (uint k = 0U; k < n_; k++)
+    //   uOld_[k] = u_[k];
+
+    for (uint k = 1U; k < n_ - 1; k += 2U)
+    {
+      u_[k] = (rhs_[k] - m_.diagDown[k] * u_[k - 1] - m_.diagUp[k] * u_[k + 1]) /
+              m_.diag[k];
+    }
+    for (uint k = 2U; k < n_ - 1; k += 2U)
+    {
+      u_[k] = (rhs_[k] - m_.diagDown[k] * u_[k - 1] - m_.diagUp[k] * u_[k + 1]) /
+              m_.diag[k];
+    }
+    u_[0] = (rhs_[0] - m_.diagUp[0] * u_[1]) / m_.diag[0];
+    u_[n_ - 1] = (rhs_[n_ - 1] - m_.diagDown[n_ - 1] * u_[n_ - 2]) / m_.diag[n_ - 1];
+  }
+}
+
 void ProblemFD1D::print()
 {
   std::FILE * out =
@@ -325,41 +376,11 @@ void ProblemFD1D::print()
 }
 
 std::unordered_map<EQN_TYPE, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_ = {
-    {EQN_TYPE::HEAT,
-     [](ProblemFD1D * p)
-     {
-       for (uint k = 1U; k < p->n_ - 1; k++)
-       {
-         p->m_.diag[k] = 1. / p->dt_ + p->diff_ * 2. / (p->h_ * p->h_);
-         p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);
-         p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_);
-         p->rhs_[k] = p->uOld_[k] / p->dt_ + p->q_[k];
-       }
-     }},
-    {EQN_TYPE::HEAT_COUPLED,
-     [](ProblemFD1D * p)
-     {
-       // std::vector<double> uExt(p->n_, 2.0);
-       std::vector<double> uExt(p->n_);
-       double const * dataPtr = p->getField(p->nameExt_)->dataPtr();
-       std::copy(dataPtr, dataPtr + p->n_, uExt.data());
+    {EQN_TYPE::HEAT, [](ProblemFD1D * p) { p->assemblyHeat(); }},
+    {EQN_TYPE::HEAT_COUPLED, [](ProblemFD1D * p) { p->assemblyHeatCoupled(); }},
+};
 
-       double const kAmpli = 10.;
-       for (uint k = 1U; k < p->n_ - 1; k++)
-       {
-         // matrix
-         p->m_.diag[k] = 1. / p->dt_                       // time
-                         + p->diff_ * 2. / (p->h_ * p->h_) // diffusion
-                         + kAmpli                          // feedback control
-             ;
-         p->m_.diagUp[k] = -p->diff_ / (p->h_ * p->h_);   // diffusion
-         p->m_.diagDown[k] = -p->diff_ / (p->h_ * p->h_); // diffusion
-
-         // rhs
-         p->rhs_[k] = p->uOld_[k] / p->dt_ // time
-                      + p->q_[k]           // source
-                      + kAmpli * uExt[k]   // feedback control
-             ;
-       }
-     }},
+std::unordered_map<FD_SOLVER_TYPE, ProblemFD1D::Solver_T> ProblemFD1D::solvers_ = {
+    {FD_SOLVER_TYPE::TRIDIAG, [](ProblemFD1D * p) { p->solveTriDiag(); }},
+    {FD_SOLVER_TYPE::VANKA, [](ProblemFD1D * p) { p->solveVanka(); }},
 };

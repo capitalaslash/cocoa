@@ -1,5 +1,8 @@
 #include "coupling_simple.hpp"
 
+// std
+#include <cassert>
+
 // fmt
 #include <fmt/ranges.h>
 
