@@ -145,6 +145,100 @@ void ProblemProXPDE::solve()
   u_ = solver.solve(builder.b);
 }
 
+void ProblemProXPDEHeat::assemblyHeat(proxpde::Builder<> & b)
+{
+  // update coupling
+  // getDataMED("vel", vel_.data, *vel_.feSpace);
+
+  // assembly lhs
+  b.buildLhs(
+      std::tuple{
+          proxpde::AssemblyMass{1. / dt_, feSpace_},
+          proxpde::AssemblyStiffness{alpha_, feSpace_},
+          proxpde::AssemblyAdvection{vel_, feSpace_},
+      },
+      bcs_);
+  b.closeMatrix();
+
+  // assembly rhs
+  b.buildRhs(
+      std::tuple{
+          proxpde::AssemblyProjection{1. / dt_, uOld_, feSpace_},
+          proxpde::AssemblyProjection{1., q_.data, feSpace_}},
+      bcs_);
+}
+
+void ProblemProXPDEHeat::assemblyHeatCoupled(proxpde::Builder<> & b)
+{
+  // update coupling
+  getDataMED("vel", vel_.data, *vel_.feSpace);
+
+  // lhs terms
+  auto timeDer = proxpde::AssemblyMass{1. / dt_, feSpace_};
+  auto diffusion = proxpde::AssemblyStiffness{alpha_, feSpace_};
+  auto advection = proxpde::AssemblyAdvection{vel_, feSpace_};
+
+  proxpde::Vec mask(feSpace_.dof.size);
+  getDataMED("mask", mask, feSpace_);
+  auto const kAmpli = 20.;
+  proxpde::FEVar kAmpliVec("kAmpli", feSpace_);
+  kAmpliVec.data = kAmpli * mask;
+  auto feedbackLhs = proxpde::AssemblyMassFE{1.0, kAmpliVec, feSpace_};
+
+  // rhs terms
+  auto timeDerOld = proxpde::AssemblyProjection{1. / dt_, uOld_, feSpace_};
+  auto source = proxpde::AssemblyProjection{1., q_.data, feSpace_};
+
+  proxpde::Vec Tcfd(feSpace_.dof.size);
+  getDataMED("T", Tcfd, feSpace_);
+  Tcfd.array() *= mask.array();
+  auto feedbackRhs = proxpde::AssemblyProjection{kAmpli, Tcfd, feSpace_};
+
+  // assembly
+  b.buildLhs(std::tuple{timeDer, diffusion, advection, feedbackLhs}, bcs_);
+  b.closeMatrix();
+  b.buildRhs(std::tuple{timeDerOld, source, feedbackRhs}, bcs_);
+}
+
+void ProblemProXPDEHeat::assemblyHeatBuoyant(proxpde::Builder<> & b)
+{
+  // update coupling
+  getDataMED("vel", vel_.data, *vel_.feSpace);
+  // vel_ << [](proxpde::Vec3 const & pt) {
+  //   return proxpde::Vec2{pt[1] - 0.5, 0.5 - pt[0]};
+  // };
+  // vel_ << [](proxpde::Vec3 const & pt)
+  // {
+  //   return proxpde::Vec2{
+  //       -2.0 * std::sin(M_PI * pt[0]) * std::sin(M_PI * pt[0]) *
+  //           std::sin(M_PI * pt[1]) * std::cos(M_PI * pt[1]),
+  //       2.0 * std::sin(M_PI * pt[0]) * std::cos(M_PI * pt[0]) *
+  //           std::sin(M_PI * pt[1]) * std::sin(M_PI * pt[1]),
+  //   };
+  // };
+
+  // lhs terms
+  auto timeDer = proxpde::AssemblyMass{1. / dt_, feSpace_};
+  auto diffusion = proxpde::AssemblyStiffness{alpha_, feSpace_};
+  auto advection = proxpde::AssemblyAdvection{vel_, feSpace_};
+
+  // rhs terms
+  auto timeDerOld = proxpde::AssemblyProjection{1. / dt_, uOld_, feSpace_};
+  // auto source = proxpde::AssemblyProjection{1., q_.data, feSpace_};
+
+  // assembly lhs
+  b.buildLhs(std::tuple{timeDer, diffusion, advection}, bcs_);
+  b.closeMatrix();
+
+  // assembly rhs
+  b.buildRhs(
+      std::tuple{
+          timeDerOld,
+          // source,
+      },
+      bcs_);
+}
+
 // =====================================================================
 
 void ProblemProXPDEHeat::setup(ParamList_T const & params)
@@ -371,183 +465,82 @@ void ProblemProXPDENS::print()
   ioP_.print(std::tuple{p_}, time);
 }
 
+void ProblemProXPDENS::assemblyNS(proxpde::Builder<> & b)
+{
+  // assembly lhs
+  b.buildLhs(
+      std::tuple{
+          proxpde::AssemblyMass{1. / dt_, feSpaceVel_},
+          proxpde::AssemblyTensorStiffness{viscosity_, feSpaceVel_},
+          proxpde::AssemblyAdvection{vel_, feSpaceVel_},
+      },
+      bcsVel_);
+  b.buildCoupling(proxpde::AssemblyGrad{-1.0, feSpaceVel_, feSpaceP_}, bcsVel_, bcsP_);
+  b.buildCoupling(proxpde::AssemblyDiv{-1.0, feSpaceP_, feSpaceVel_}, bcsP_, bcsVel_);
+  b.closeMatrix();
+
+  // assembly rhs
+  b.buildRhs(
+      std::tuple{proxpde::AssemblyProjection{1. / dt_, vel_.data, feSpaceVel_}},
+      bcsVel_);
+}
+
+void ProblemProXPDENS::assemblyNSBuoyant(proxpde::Builder<> & b)
+{
+  // update coupling
+  proxpde::Vec T{feSpaceP_.dof.size};
+  getDataMED("T", T, feSpaceP_);
+
+  // lhs terms
+  auto const timeDer = proxpde::AssemblyMass{1. / dt_, feSpaceVel_};
+  auto const advection = proxpde::AssemblyAdvection{vel_, feSpaceVel_};
+  auto const diffusion = proxpde::AssemblyTensorStiffness{viscosity_, feSpaceVel_};
+  auto const grad = proxpde::AssemblyGrad{-1.0, feSpaceVel_, feSpaceP_};
+  auto const div = proxpde::AssemblyDiv{-1.0, feSpaceP_, feSpaceVel_};
+
+  // rhs terms
+  auto const timeDerOld = proxpde::AssemblyProjection{1. / dt_, vel_.data, feSpaceVel_};
+
+  auto const beta = 1e+3;
+  // auto const g = proxpde::Vec2{0.0, -1.0};
+  auto const Tref = 0.0;
+  using FESpaceBsq_T = proxpde::Vector_T<ProblemProXPDENS::FESpaceP_T, 2U>;
+  auto feSpaceBsq = FESpaceBsq_T{mesh_};
+  proxpde::Vec bsq = beta * (T.array() - Tref);
+  // auto tmp2 = tmp * g.transpose();
+  proxpde::Vec bsqVec = proxpde::Vec::Zero(bsq.size() * 2U);
+  proxpde::setComponent(bsqVec, feSpaceBsq, bsq, feSpaceP_, 1U);
+  auto const boussinesq =
+      proxpde::AssemblyProjection{-1.0, bsqVec, feSpaceBsq, feSpaceVel_};
+
+  // assembly lhs
+  b.buildLhs(std::tuple{timeDer, advection, diffusion}, bcsVel_);
+  b.buildCoupling(grad, bcsVel_, bcsP_);
+  b.buildCoupling(div, bcsP_, bcsVel_);
+  b.closeMatrix();
+
+  // assembly rhs
+  b.buildRhs(std::tuple{timeDerOld, boussinesq}, bcsVel_);
+}
+
 // =====================================================================
 
-std::unordered_map<
-    EQN_TYPE,
-    std::function<void(ProblemProXPDE *, proxpde::Builder<> &)>>
-    ProblemProXPDE::equationMap_ = {
-        {EQN_TYPE::HEAT,
-         [](ProblemProXPDE * problem, proxpde::Builder<> & b)
-         {
-           auto p = dynamic_cast<ProblemProXPDEHeat *>(problem);
-
-           // update coupling
-           // p->getDataMED("vel", p->vel_.data, *p->vel_.feSpace);
-
-           // assembly lhs
-           b.buildLhs(
-               std::tuple{
-                   proxpde::AssemblyMass{1. / p->dt_, p->feSpace_},
-                   proxpde::AssemblyStiffness{p->alpha_, p->feSpace_},
-                   proxpde::AssemblyAdvection{p->vel_, p->feSpace_},
-               },
-               p->bcs_);
-           b.closeMatrix();
-
-           // assembly rhs
-           b.buildRhs(
-               std::tuple{
-                   proxpde::AssemblyProjection{1. / p->dt_, p->uOld_, p->feSpace_},
-                   proxpde::AssemblyProjection{1., p->q_.data, p->feSpace_}},
-               p->bcs_);
-         }},
-        {EQN_TYPE::HEAT_COUPLED,
-         [](ProblemProXPDE * problem, proxpde::Builder<> & b)
-         {
-           auto p = dynamic_cast<ProblemProXPDEHeat *>(problem);
-
-           // update coupling
-           p->getDataMED("vel", p->vel_.data, *p->vel_.feSpace);
-
-           // lhs terms
-           auto timeDer = proxpde::AssemblyMass{1. / p->dt_, p->feSpace_};
-           auto diffusion = proxpde::AssemblyStiffness{p->alpha_, p->feSpace_};
-           auto advection = proxpde::AssemblyAdvection{p->vel_, p->feSpace_};
-
-           proxpde::Vec mask(p->feSpace_.dof.size);
-           p->getDataMED("mask", mask, p->feSpace_);
-           auto const kAmpli = 20.;
-           proxpde::FEVar kAmpliVec("kAmpli", p->feSpace_);
-           kAmpliVec.data = kAmpli * mask;
-           auto feedbackLhs = proxpde::AssemblyMassFE{1.0, kAmpliVec, p->feSpace_};
-
-           // rhs terms
-           auto timeDerOld =
-               proxpde::AssemblyProjection{1. / p->dt_, p->uOld_, p->feSpace_};
-           auto source = proxpde::AssemblyProjection{1., p->q_.data, p->feSpace_};
-
-           proxpde::Vec Tcfd(p->feSpace_.dof.size);
-           p->getDataMED("T", Tcfd, p->feSpace_);
-           Tcfd.array() *= mask.array();
-           auto feedbackRhs = proxpde::AssemblyProjection{kAmpli, Tcfd, p->feSpace_};
-
-           // assembly
-           b.buildLhs(std::tuple{timeDer, diffusion, advection, feedbackLhs}, p->bcs_);
-           b.closeMatrix();
-           b.buildRhs(std::tuple{timeDerOld, source, feedbackRhs}, p->bcs_);
-         }},
-        {EQN_TYPE::HEAT_BUOYANT,
-         [](ProblemProXPDE * problem, proxpde::Builder<> & b)
-         {
-           auto p = dynamic_cast<ProblemProXPDEHeat *>(problem);
-
-           // update coupling
-           p->getDataMED("vel", p->vel_.data, *p->vel_.feSpace);
-           // p->vel_ << [](proxpde::Vec3 const & pt) {
-           //   return proxpde::Vec2{pt[1] - 0.5, 0.5 - pt[0]};
-           // };
-           // p->vel_ << [](proxpde::Vec3 const & pt)
-           // {
-           //   return proxpde::Vec2{
-           //       -2.0 * std::sin(M_PI * pt[0]) * std::sin(M_PI * pt[0]) *
-           //           std::sin(M_PI * pt[1]) * std::cos(M_PI * pt[1]),
-           //       2.0 * std::sin(M_PI * pt[0]) * std::cos(M_PI * pt[0]) *
-           //           std::sin(M_PI * pt[1]) * std::sin(M_PI * pt[1]),
-           //   };
-           // };
-
-           // lhs terms
-           auto timeDer = proxpde::AssemblyMass{1. / p->dt_, p->feSpace_};
-           auto diffusion = proxpde::AssemblyStiffness{p->alpha_, p->feSpace_};
-           auto advection = proxpde::AssemblyAdvection{p->vel_, p->feSpace_};
-
-           // rhs terms
-           auto timeDerOld =
-               proxpde::AssemblyProjection{1. / p->dt_, p->uOld_, p->feSpace_};
-           // auto source = proxpde::AssemblyProjection{1., p->q_.data, p->feSpace_};
-
-           // assembly lhs
-           b.buildLhs(std::tuple{timeDer, diffusion, advection}, p->bcs_);
-           b.closeMatrix();
-
-           // assembly rhs
-           b.buildRhs(
-               std::tuple{
-                   timeDerOld,
-                   // source,
-               },
-               p->bcs_);
-         }},
-        {EQN_TYPE::NS,
-         [](ProblemProXPDE * problem, proxpde::Builder<> & b)
-         {
-           auto p = dynamic_cast<ProblemProXPDENS *>(problem);
-
-           // assembly lhs
-           b.buildLhs(
-               std::tuple{
-                   proxpde::AssemblyMass{1. / p->dt_, p->feSpaceVel_},
-                   proxpde::AssemblyTensorStiffness{p->viscosity_, p->feSpaceVel_},
-                   proxpde::AssemblyAdvection{p->vel_, p->feSpaceVel_},
-               },
-               p->bcsVel_);
-           b.buildCoupling(
-               proxpde::AssemblyGrad{-1.0, p->feSpaceVel_, p->feSpaceP_},
-               p->bcsVel_,
-               p->bcsP_);
-           b.buildCoupling(
-               proxpde::AssemblyDiv{-1.0, p->feSpaceP_, p->feSpaceVel_},
-               p->bcsP_,
-               p->bcsVel_);
-           b.closeMatrix();
-
-           // assembly rhs
-           b.buildRhs(
-               std::tuple{proxpde::AssemblyProjection{
-                   1. / p->dt_, p->vel_.data, p->feSpaceVel_}},
-               p->bcsVel_);
-         }},
-        {EQN_TYPE::NS_BOUSSINESQ,
-         [](ProblemProXPDE * problem, proxpde::Builder<> & b)
-         {
-           auto p = dynamic_cast<ProblemProXPDENS *>(problem);
-
-           // update coupling
-           proxpde::Vec T{p->feSpaceP_.dof.size};
-           p->getDataMED("T", T, p->feSpaceP_);
-
-           // lhs terms
-           auto const timeDer = proxpde::AssemblyMass{1. / p->dt_, p->feSpaceVel_};
-           auto const advection = proxpde::AssemblyAdvection{p->vel_, p->feSpaceVel_};
-           auto const diffusion =
-               proxpde::AssemblyTensorStiffness{p->viscosity_, p->feSpaceVel_};
-           auto const grad = proxpde::AssemblyGrad{-1.0, p->feSpaceVel_, p->feSpaceP_};
-           auto const div = proxpde::AssemblyDiv{-1.0, p->feSpaceP_, p->feSpaceVel_};
-
-           // rhs terms
-           auto const timeDerOld =
-               proxpde::AssemblyProjection{1. / p->dt_, p->vel_.data, p->feSpaceVel_};
-
-           auto const beta = 1e+3;
-           // auto const g = proxpde::Vec2{0.0, -1.0};
-           auto const Tref = 0.0;
-           using FESpaceBsq_T = proxpde::Vector_T<ProblemProXPDENS::FESpaceP_T, 2U>;
-           auto feSpaceBsq = FESpaceBsq_T{p->mesh_};
-           proxpde::Vec bsq = beta * (T.array() - Tref);
-           // auto tmp2 = tmp * g.transpose();
-           proxpde::Vec bsqVec = proxpde::Vec::Zero(bsq.size() * 2U);
-           proxpde::setComponent(bsqVec, feSpaceBsq, bsq, p->feSpaceP_, 1U);
-           auto const boussinesq =
-               proxpde::AssemblyProjection{-1.0, bsqVec, feSpaceBsq, p->feSpaceVel_};
-
-           // assembly lhs
-           b.buildLhs(std::tuple{timeDer, advection, diffusion}, p->bcsVel_);
-           b.buildCoupling(grad, p->bcsVel_, p->bcsP_);
-           b.buildCoupling(div, p->bcsP_, p->bcsVel_);
-           b.closeMatrix();
-
-           // assembly rhs
-           b.buildRhs(std::tuple{timeDerOld, boussinesq}, p->bcsVel_);
-         }},
+std::
+    unordered_map<EQN_TYPE, std::function<void(ProblemProXPDE *, proxpde::Builder<> &)>>
+        ProblemProXPDE::equationMap_ = {
+            {EQN_TYPE::HEAT,
+             [](ProblemProXPDE * p, proxpde::Builder<> & b)
+             { dynamic_cast<ProblemProXPDEHeat *>(p)->assemblyHeat(b); }},
+            {EQN_TYPE::HEAT_COUPLED,
+             [](ProblemProXPDE * p, proxpde::Builder<> & b)
+             { dynamic_cast<ProblemProXPDEHeat *>(p)->assemblyHeatCoupled(b); }},
+            {EQN_TYPE::HEAT_BUOYANT,
+             [](ProblemProXPDE * p, proxpde::Builder<> & b)
+             { dynamic_cast<ProblemProXPDEHeat *>(p)->assemblyHeatBuoyant(b); }},
+            {EQN_TYPE::NS,
+             [](ProblemProXPDE * p, proxpde::Builder<> & b)
+             { dynamic_cast<ProblemProXPDENS *>(p)->assemblyNS(b); }},
+            {EQN_TYPE::NS_BOUSSINESQ,
+             [](ProblemProXPDE * p, proxpde::Builder<> & b)
+             { dynamic_cast<ProblemProXPDENS *>(p)->assemblyNSBuoyant(b); }},
 };

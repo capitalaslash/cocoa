@@ -87,6 +87,10 @@ struct ProblemProXPDEHeat: public ProblemProXPDE
 
   virtual uint size() const override { return feSpace_.dof.size; }
 
+  void assemblyHeat(proxpde::Builder<> & b);
+  void assemblyHeatCoupled(proxpde::Builder<> & b);
+  void assemblyHeatBuoyant(proxpde::Builder<> & b);
+
   Mesh_T mesh_;
   FESpace_T feSpace_;
   proxpde::FEVar<FESpace_T> T_;
@@ -124,6 +128,9 @@ struct ProblemProXPDENS: public ProblemProXPDE
   {
     return 2U * feSpaceVel_.dof.size + feSpaceP_.dof.size;
   }
+
+  void assemblyNS(proxpde::Builder<> & b);
+  void assemblyNSBuoyant(proxpde::Builder<> & b);
 
   Mesh_T mesh_;
   FESpaceVel_T feSpaceVel_;

@@ -1,6 +1,9 @@
 // std
 #include <memory>
 
+// fmt
+#include <fmt/core.h>
+
 // local
 #include "plugins.hpp"
 
@@ -33,6 +36,7 @@ std::unique_ptr<MeshCoupling> MeshCoupling::build(COUPLING_TYPE type)
 #endif
   default:
   {
+    fmt::print(stderr, "coupling type has not been set.\n");
     std::abort();
   }
   }
