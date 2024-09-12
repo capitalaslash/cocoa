@@ -212,18 +212,8 @@ macro(cocoa_add_app name)
   endif()
 endmacro()
 
-add_executable(main)
-list(APPEND APP_FILES src/main.cpp)
-target_sources(main
-  PRIVATE
-    src/main.cpp
-)
-target_link_libraries(main
-  PUBLIC
-    cocoa::cocoa
-)
-
 cocoa_add_app(fd1d)
+cocoa_add_app(simple)
 
 if (COCOA_ENABLE_PROXPDE)
   cocoa_add_app(proxpde)
