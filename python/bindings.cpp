@@ -11,6 +11,7 @@
 #include "enums.hpp"
 #include "problem.hpp"
 #include "problem_fd1d.hpp"
+#include "problem_oforg.hpp"
 #include "problem_proxpde.hpp"
 
 namespace py = pybind11;
@@ -51,6 +52,8 @@ PYBIND11_MODULE(pycocoa, m)
       .def("setField", &Problem::setField, "name"_a, "field"_a);
 
   py::class_<ProblemFD1D, Problem>(m, "ProblemFD1D").def(py::init<>());
+
+  py::class_<ProblemOForg, Problem>(m, "ProblemOForg").def(py::init<>());
 
   py::class_<ProblemProXPDEHeat, Problem>(m, "ProblemProXPDEHeat")
       .def(py::init<>())

@@ -189,6 +189,7 @@ if (COCOA_ENABLE_TESTS)
 
     cocoa_add_test_python(fd1d)
     cocoa_add_test_python(couplingsimple)
+    cocoa_add_test_python(oforg)
     cocoa_add_test_python(proxpde)
     cocoa_add_test_python(couplingmed)
     cocoa_add_test_python(buoyant)
