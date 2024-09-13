@@ -97,8 +97,8 @@ template <typename FESpace>
 void ProblemProXPDE::getDataMED(
     std::string_view fieldName, proxpde::Vec & u, FESpace const & feSpace)
 {
-  FieldCoupling * f = getField(fieldName);
-  u.resize(f->size());
+  FieldCoupling const & field = *getField(fieldName);
+  u.resize(field.size());
 
   for (auto const & e: feSpace.mesh->elementList)
   {
@@ -106,8 +106,7 @@ void ProblemProXPDE::getDataMED(
     {
       for (uint d = 0; d < FESpace::dim; d++)
       {
-        u[feSpace.dof.getId(e.id, k, d)] =
-            *(f->dataPtr() + FESpace::dim * e.pts[k]->id + d);
+        u[feSpace.dof.getId(e.id, k, d)] = field[FESpace::dim * e.pts[k]->id + d];
       }
     }
   }

@@ -40,7 +40,12 @@ struct FieldMED: public FieldCoupling
   ~FieldMED();
 
   size_t size() const noexcept override { return fieldPtr_->getNumberOfValues(); }
-  double const * dataPtr() override { return fieldPtr_->getArray()->getConstPointer(); }
+  double const * dataPtr() const override
+  {
+    return fieldPtr_->getArray()->getConstPointer();
+  }
+  double operator[](size_t k) const override { return *(this->dataPtr() + k); }
+
   // std::vector<double> getData() override;
   void
   init(std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support) override;

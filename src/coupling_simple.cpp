@@ -68,28 +68,28 @@ void CouplingSimple::project(
   auto derTgt = dynamic_cast<ProblemFD1D *>(pTgt_);
 
   // interpolate P1P1
-  FieldCoupling * p1Src = derSrc->getField(fieldNameSrc);
-  FieldCoupling * p1Tgt = derTgt->getField(fieldNameTgt);
-  std::vector<double> dataTgt(p1Tgt->size());
-  for (uint i = 0; i < p1Tgt->size(); i++)
+  FieldCoupling const & p1Src = *derSrc->getField(fieldNameSrc);
+  FieldCoupling & p1Tgt = *derTgt->getField(fieldNameTgt);
+  std::vector<double> dataTgt(p1Tgt.size());
+  for (uint i = 0; i < p1Tgt.size(); i++)
   {
-    for (uint j = 0; j < p1Src->size(); j++)
+    for (uint j = 0; j < p1Src.size(); j++)
     {
-      dataTgt[i] += m_(i, j) * *(p1Src->dataPtr() + j);
+      dataTgt[i] += m_(i, j) * p1Src[j];
     }
   }
-  p1Tgt->setValues(dataTgt);
+  p1Tgt.setValues(dataTgt);
 
   // // convert P1 to P0
-  // FieldCoupling * p1Src = derSrc->getField(fieldNameSrc);
-  // std::vector<double> p0Src(p1Src->size() - 1);
+  // FieldCoupling const & p1Src = *derSrc->getField(fieldNameSrc);
+  // std::vector<double> p0Src(p1Src.size() - 1);
   // for (uint k = 0; k < p0Src.size(); k++)
   // {
-  //   p0Src[k] = 0.5 * (*(p1Src->dataPtr() + k) + *(p1Src->dataPtr() + k + 1));
+  //   p0Src[k] = 0.5 * (p1Src[k] + p1Src[k + 1]);
   // }
 
   // // interpolate P0P0
-  // FieldCoupling * p1Tgt = derTgt->getField(fieldNameTgt);
+  // FieldCoupling & p1Tgt = *derTgt->getField(fieldNameTgt);
   // std::vector<double> p0Tgt(p1Tgt->size() - 1);
   // for (uint i = 0; i < p0Tgt.size(); i++)
   // {
@@ -103,9 +103,9 @@ void CouplingSimple::project(
   // std::vector<double> p1TgtData(p1Tgt->size());
   // p1TgtData[0] = p0Tgt[0];
   // p1TgtData[p1Tgt->size() - 1] = p0Tgt[p0Tgt.size() - 1];
-  // for (uint k = 1; k < p1Tgt->size() - 1; k++)
+  // for (uint k = 1; k < p1Tgt.size() - 1; k++)
   // {
   //   p1TgtData[k] = 0.5 * (p0Tgt[k - 1] + p0Tgt[k]);
   // }
-  // p1Tgt->setValues(p1TgtData);
+  // p1Tgt.setValues(p1TgtData);
 }
