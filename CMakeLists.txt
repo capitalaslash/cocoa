@@ -162,7 +162,7 @@ feature_summary(WHAT ALL)
 
 if (COCOA_ENABLE_PYTHON)
   pybind11_add_module(pycocoa
-    src/python_bindings.cpp
+    python/bindings.cpp
   )
   target_link_libraries(pycocoa
     PRIVATE
@@ -178,8 +178,13 @@ if (COCOA_ENABLE_TESTS)
 
   if (COCOA_ENABLE_PYTHON)
     macro(cocoa_add_test_python name)
-      add_test(NAME cocoa::python::${name} COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${name}run.py)
-      set_property(TEST cocoa::python::${name} PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR})
+      add_test(
+        NAME cocoa::python::${name}
+        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/python/app/${name}run.py
+      )
+      set_property(TEST cocoa::python::${name}
+        PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
+      )
     endmacro()
 
     cocoa_add_test_python(fd1d)
