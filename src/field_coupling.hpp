@@ -13,6 +13,13 @@
 #include "enums.hpp"
 #include "mesh_coupling.hpp"
 
+enum struct SUPPORT_TYPE : uint8_t
+{
+  NONE = 0,
+  ON_NODES,
+  ON_CELLS,
+};
+
 struct FieldCoupling
 {
   FieldCoupling() = default;
@@ -22,7 +29,8 @@ struct FieldCoupling
   virtual size_t size() const noexcept = 0;
   virtual double const * dataPtr() = 0;
   // virtual std::vector<double> getData() = 0;
-  virtual void init(std::string_view name, MeshCoupling * mesh) = 0;
+  virtual void
+  init(std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support) = 0;
   virtual void initIO(std::string_view filename) = 0;
   virtual void setValues(std::vector<double> const & data, uint const dim = 1U) = 0;
   virtual void setValues(double value, uint size, uint const dim = 1U) = 0;
@@ -46,7 +54,9 @@ struct FieldSimple: public FieldCoupling
   size_t size() const noexcept override { return data_.size(); }
   double const * dataPtr() override { return data_.data(); }
   // std::vector<double> getData() override { return data_; }
-  virtual void init(std::string_view name, MeshCoupling * mesh) override {}
+  virtual void
+  init(std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support) override
+  {}
   virtual void initIO(std::string_view filename) override {}
   virtual void setValues(std::vector<double> const & data, uint const dim = 1U) override
   {

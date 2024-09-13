@@ -168,14 +168,15 @@ void ProblemFD1D::initFieldCoupling(std::filesystem::path const & fileName)
   auto [kvPairU, successU] =
       fieldsCoupling_.emplace("u", FieldCoupling::build(couplingType_));
   assert(successU);
-  kvPairU->second->init(fileName.filename().string(), meshCoupling_.get());
+  kvPairU->second->init(
+      fileName.filename().string(), meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
   kvPairU->second->setValues(u_);
   kvPairU->second->initIO(fileName.string() + "_med.");
 
   auto [kvPairExt, successExt] =
       fieldsCoupling_.emplace(nameExt_, FieldCoupling::build(couplingType_));
   assert(successExt);
-  kvPairExt->second->init(nameExt_, meshCoupling_.get());
+  kvPairExt->second->init(nameExt_, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
   kvPairExt->second->setValues(0.0, u_.size());
 }
 

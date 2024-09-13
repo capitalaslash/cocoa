@@ -49,5 +49,6 @@ struct Problem
   double time = 0.0;
   int it = 0;
   std::unique_ptr<MeshCoupling> meshCoupling_;
+  std::unordered_map<std::string, std::unique_ptr<MeshCoupling>> bcMeshCoupling_;
   std::unordered_map<std::string, std::unique_ptr<FieldCoupling>> fieldsCoupling_;
 };

@@ -70,7 +70,7 @@ void ProblemProXPDE::initFieldMED(std::string_view fieldName, std::string_view p
 {
   auto [kvPair, success] = fieldsCoupling_.emplace(fieldName, new FieldMED);
   assert(success);
-  kvPair->second->init(fieldName, meshCoupling_.get());
+  kvPair->second->init(fieldName, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
   std::string filename = std::string{path} + "_med.";
   kvPair->second->initIO(filename);
 }

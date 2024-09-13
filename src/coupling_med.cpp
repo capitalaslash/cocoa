@@ -38,7 +38,7 @@ void CouplingMED::setup(Problem * src, Problem * tgt)
 
   auto [kvPair, success] = problemTgt_->fieldsCoupling_.emplace("mask", new FieldMED);
   assert(success);
-  kvPair->second->init("mask", meshTgt);
+  kvPair->second->init("mask", meshTgt, SUPPORT_TYPE::ON_NODES);
   kvPair->second->setValues(mask);
 }
 

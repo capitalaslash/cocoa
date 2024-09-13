@@ -14,6 +14,20 @@
 #include "enums.hpp"
 #include "field_coupling.hpp"
 
+inline MEDCoupling::TypeOfField supportType2MEDtype(SUPPORT_TYPE const support)
+{
+  switch (support)
+  {
+  case SUPPORT_TYPE::ON_NODES:
+    return MEDCoupling::ON_NODES;
+  case SUPPORT_TYPE::ON_CELLS:
+    return MEDCoupling::ON_CELLS;
+  default:
+    fmt::print(stderr, "field type not recognized\n");
+    return MEDCoupling::ON_NODES; // no default option available in MEDCoupling
+  }
+}
+
 struct FieldMED: public FieldCoupling
 {
   struct Frame
@@ -28,7 +42,8 @@ struct FieldMED: public FieldCoupling
   size_t size() const noexcept override { return fieldPtr_->getNumberOfValues(); }
   double const * dataPtr() override { return fieldPtr_->getArray()->getConstPointer(); }
   // std::vector<double> getData() override;
-  void init(std::string_view name, MeshCoupling * mesh) override;
+  void
+  init(std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support) override;
   void initIO(std::string_view filename) override;
   void setValues(std::vector<double> const & data, uint dim = 1U) override;
   void setValues(double value, uint size, uint dim = 1U) override;

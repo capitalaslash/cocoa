@@ -70,14 +70,15 @@ else()
 endif()
 
 # openfoam.org ---
-if (COCOA_ENABLE_OFCOM)
+if (COCOA_ENABLE_OFORG)
   find_package(OpenFOAMorg REQUIRED)
   list(APPEND LIB_FILES
     src/problem_oforg.hpp
-    # src/problem_oforg.cpp
+    src/problem_oforg.cpp
   )
   list(APPEND LIB_DEPENDENCIES
     OpenFOAMorg::ALL
+    $ENV{FOAM_LIBBIN}/dummy/libmetisDecomp.so
   )
 endif()
 
@@ -217,6 +218,10 @@ cocoa_add_app(simple)
 
 if (COCOA_ENABLE_PROXPDE)
   cocoa_add_app(proxpde)
+endif()
+
+if (COCOA_ENABLE_OFORG)
+  cocoa_add_app(oforg)
 endif()
 
 cocoa_add_app(ns)

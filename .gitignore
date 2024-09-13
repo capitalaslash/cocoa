@@ -2,6 +2,7 @@
 .vscode/
 build*/
 contrib/
+data/oforg*/
 spack*/
 CMakeLists.txt.*
 run_cmake.bash

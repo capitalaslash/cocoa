@@ -22,10 +22,11 @@ FieldMED::~FieldMED()
 
 // std::vector<double> FieldMED::getData() override { return data_; }
 
-void FieldMED::init(std::string_view name, MeshCoupling * mesh)
+void FieldMED::init(
+    std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support)
 {
   fieldPtr_ = MEDCoupling::MEDCouplingFieldDouble::New(
-      MEDCoupling::ON_NODES, MEDCoupling::ONE_TIME);
+      supportType2MEDtype(support), MEDCoupling::ONE_TIME);
   inited_ = true;
 
   // TODO: allow more field natures
@@ -36,7 +37,12 @@ void FieldMED::init(std::string_view name, MeshCoupling * mesh)
   fieldPtr_->setMesh(dynamic_cast<MeshMED *>(mesh)->meshPtr_);
 }
 
-void FieldMED::initIO(std::string_view filename) { filename_ = filename; }
+void FieldMED::initIO(std::string_view filename)
+{
+  filename_ = filename;
+  std::filesystem::path dir = filename_.parent_path();
+  std::filesystem::create_directories(dir);
+}
 
 void FieldMED::setValues(std::vector<double> const & data, uint const dim)
 {
