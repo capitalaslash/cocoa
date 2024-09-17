@@ -86,14 +86,14 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
       else if (token == "bc_start:")
       {
         bufferStream >> token;
-        bcStartType_ = str2fdbc(token);
-        bufferStream >> bcStartValue_;
+        bcStart_.type = str2fdbc(token);
+        bufferStream >> bcStart_.value;
       }
       else if (token == "bc_end:")
       {
         bufferStream >> token;
-        bcEndType_ = str2fdbc(token);
-        bufferStream >> bcEndValue_;
+        bcEnd_.type = str2fdbc(token);
+        bufferStream >> bcEnd_.value;
       }
       else if (token == "out_file:")
         bufferStream >> outFile_;
@@ -200,24 +200,24 @@ void ProblemFD1D::solve()
   double const h = 1. / (n_ - 1);
 
   // update
-  for (uint k = 0; k < n_; k++)
+  for (uint k = 0; k < u_.size(); k++)
     uOld_[k] = u_[k];
 
   // bc start
-  switch (bcStartType_)
+  switch (bcStart_.type)
   {
   case FD_BC_TYPE::DIRICHLET:
   {
     m_.diag[0] = 1.0;
     m_.diagUp[0] = 0.0;
-    rhs_[0] = bcStartValue_;
+    rhs_[0] = bcStart_.value;
     break;
   }
   case FD_BC_TYPE::NEUMANN:
   {
     m_.diag[0] = 1.0;
     m_.diagUp[0] = -1.0;
-    rhs_[0] = bcStartValue_ * h;
+    rhs_[0] = bcStart_.value * h;
     break;
   }
   default:
@@ -228,20 +228,20 @@ void ProblemFD1D::solve()
   }
 
   // bc end
-  switch (bcEndType_)
+  switch (bcEnd_.type)
   {
   case FD_BC_TYPE::DIRICHLET:
   {
     m_.diag[n_ - 1] = 1.0;
     m_.diagDown[n_ - 1] = 0.0;
-    rhs_[n_ - 1] = bcEndValue_;
+    rhs_[n_ - 1] = bcEnd_.value;
     break;
   }
   case FD_BC_TYPE::NEUMANN:
   {
     m_.diag[n_ - 1] = -1.0;
     m_.diagDown[n_ - 1] = 1.0;
-    rhs_[n_ - 1] = bcEndValue_ * h;
+    rhs_[n_ - 1] = bcEnd_.value * h;
     break;
   }
   default:

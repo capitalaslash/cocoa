@@ -46,10 +46,8 @@ struct ProblemFD1D: public Problem
   std::vector<double> rhs_;
   FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::TRIDIAG;
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
-  FD_BC_TYPE bcStartType_ = FD_BC_TYPE::NONE;
-  double bcStartValue_ = 0.0;
-  FD_BC_TYPE bcEndType_ = FD_BC_TYPE::NONE;
-  double bcEndValue_ = 0.0;
+  FDBC bcStart_;
+  FDBC bcEnd_;
   std::string outFile_ = "./fd1d";
   std::string nameExt_ = "uExternal";
 

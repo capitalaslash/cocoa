@@ -28,6 +28,13 @@ inline FD_BC_TYPE str2fdbc(std::string_view name)
 }
 
 // =====================================================================
+struct FDBC
+{
+  FD_BC_TYPE type = FD_BC_TYPE::NONE;
+  double value = 0.0;
+};
+
+// =====================================================================
 enum struct FD_SOLVER_TYPE : uint8_t
 {
   NONE = 0,
