@@ -8,8 +8,8 @@
 
 // local
 #include "enums.hpp"
-#include "fdutils.hpp"
-#include "problem.hpp"
+#include "problem/fdutils.hpp"
+#include "problem/problem.hpp"
 
 struct ProblemFD1D: public Problem
 {

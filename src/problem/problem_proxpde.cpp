@@ -1,4 +1,4 @@
-#include "problem_proxpde.hpp"
+#include "problem/problem_proxpde.hpp"
 
 // std
 #include <string_view>
@@ -8,10 +8,9 @@
 #include <proxpde/builder.hpp>
 
 // local
+#include "coupling/field_coupling.hpp"
+#include "coupling/mesh_med.hpp"
 #include "enums.hpp"
-#include "field_med.hpp"
-#include "mesh_coupling.hpp"
-#include "mesh_med.hpp"
 
 std::unique_ptr<Problem> ProblemProXPDE::build(EQN_TYPE const type)
 {

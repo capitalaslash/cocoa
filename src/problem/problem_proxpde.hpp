@@ -20,7 +20,7 @@
 
 // local
 #include "enums.hpp"
-#include "problem.hpp"
+#include "problem/problem.hpp"
 
 struct ProblemProXPDE: public Problem
 {

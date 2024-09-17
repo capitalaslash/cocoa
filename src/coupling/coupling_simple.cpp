@@ -7,7 +7,7 @@
 #include <fmt/ranges.h>
 
 // local
-#include "problem_fd1d.hpp"
+#include "problem/problem_fd1d.hpp"
 
 void CouplingSimple::setup(Problem * pSrc, Problem * pTgt)
 {

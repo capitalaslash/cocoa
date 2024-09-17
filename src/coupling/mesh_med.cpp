@@ -1,4 +1,4 @@
-#include "mesh_med.hpp"
+#include "coupling/mesh_med.hpp"
 
 // medcoupling
 #include <MEDCouplingUMesh.hxx>

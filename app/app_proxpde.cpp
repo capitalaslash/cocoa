@@ -2,9 +2,9 @@
 #include <cassert>
 
 // local
-#include "coupling_manager.hpp"
-#include "problem.hpp"
-#include "problem_proxpde.hpp"
+#include "coupling/coupling_manager.hpp"
+#include "problem/problem.hpp"
+#include "problem/problem_proxpde.hpp"
 
 int main()
 {

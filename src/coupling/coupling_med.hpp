@@ -8,7 +8,7 @@
 #include <MEDCouplingRemapper.hxx>
 
 // local
-#include "coupling_manager.hpp"
+#include "coupling/coupling_manager.hpp"
 
 struct Problem;
 

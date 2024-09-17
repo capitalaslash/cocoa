@@ -1,16 +1,16 @@
-#include "problem_oforg.hpp"
+#include "problem/problem_oforg.hpp"
 
 // std
-#include <IOobject.H>
 #include <cassert>
-#include <volFieldsFwd.H>
 
 // openfoam.org
+#include <IOobject.H>
+#include <volFieldsFwd.H>
 // #include <ConstantField.H>  // only in openfoam.com
 
 // local
+#include "coupling/mesh_med.hpp"
 #include "enums.hpp"
-#include "mesh_med.hpp"
 
 void ProblemOForg::setup(ParamList_T const & params)
 {

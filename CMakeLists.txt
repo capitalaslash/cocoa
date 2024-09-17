@@ -20,23 +20,22 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(LIB_FILES
-  src/coupling_manager.hpp
-  src/coupling_simple.hpp
-  src/coupling_simple.cpp
-  src/coupling_factory.cpp
   src/enums.hpp
-  src/field_coupling.hpp
-  src/field_factory.cpp
-  src/fdutils.hpp
-  src/fdutils.cpp
-  src/mesh_coupling.hpp
-  src/mesh_factory.cpp
-  src/problem.hpp
-  src/problem_fd1d.hpp
-  src/problem_fd1d.cpp
-  src/problem_femus.hpp
-  src/problem_oforg.hpp
-  src/problem_factory.cpp
+  src/coupling/coupling_manager.hpp
+  src/coupling/coupling_simple.hpp
+  src/coupling/coupling_simple.cpp
+  src/coupling/coupling_factory.cpp
+  src/coupling/field_coupling.hpp
+  src/coupling/field_factory.cpp
+  src/coupling/mesh_coupling.hpp
+  src/coupling/mesh_factory.cpp
+  src/problem/problem.hpp
+  src/problem/fdutils.hpp
+  src/problem/fdutils.cpp
+  src/problem/problem_fd1d.hpp
+  src/problem/problem_fd1d.cpp
+  src/problem/problem_femus.hpp
+  src/problem/problem_factory.cpp
   ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
 )
 set(LIB_DEPENDENCIES
@@ -73,8 +72,8 @@ endif()
 if (COCOA_ENABLE_OFORG)
   find_package(OpenFOAMorg REQUIRED)
   list(APPEND LIB_FILES
-    src/problem_oforg.hpp
-    src/problem_oforg.cpp
+    src/problem/problem_oforg.hpp
+    src/problem/problem_oforg.cpp
   )
   list(APPEND LIB_DEPENDENCIES
     OpenFOAMorg::ALL
@@ -86,8 +85,8 @@ endif()
 if (COCOA_ENABLE_PROXPDE)
   find_package(ProXPDE REQUIRED)
   list(APPEND LIB_FILES
-    src/problem_proxpde.hpp
-    src/problem_proxpde.cpp
+    src/problem/problem_proxpde.hpp
+    src/problem/problem_proxpde.cpp
   )
   list(APPEND LIB_DEPENDENCIES
     ProXPDE::proxpde
@@ -118,12 +117,12 @@ if (COCOA_ENABLE_MEDCOUPLING)
   )
   add_library(medcoupling::medcoupling ALIAS medcoupling)
   list(APPEND LIB_FILES
-    src/coupling_med.hpp
-    src/coupling_med.cpp
-    src/field_med.hpp
-    src/field_med.cpp
-    src/mesh_med.hpp
-    src/mesh_med.cpp
+    src/coupling/coupling_med.hpp
+    src/coupling/coupling_med.cpp
+    src/coupling/field_med.hpp
+    src/coupling/field_med.cpp
+    src/coupling/mesh_med.hpp
+    src/coupling/mesh_med.cpp
   )
   list(APPEND LIB_DEPENDENCIES
     medcoupling::medcoupling

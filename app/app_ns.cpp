@@ -1,5 +1,5 @@
 // local
-#include "problem.hpp"
+#include "problem/problem.hpp"
 
 int main()
 {

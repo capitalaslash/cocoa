@@ -1,4 +1,4 @@
-#include "problem_fd1d.hpp"
+#include "problem/problem_fd1d.hpp"
 
 // std
 #include <cassert>
@@ -11,9 +11,9 @@
 #include <fmt/core.h>
 
 // local
+#include "coupling/field_coupling.hpp"
+#include "coupling/mesh_coupling.hpp"
 #include "enums.hpp"
-#include "field_coupling.hpp"
-#include "mesh_coupling.hpp"
 
 void ProblemFD1D::setup(Problem::ParamList_T const & params)
 {

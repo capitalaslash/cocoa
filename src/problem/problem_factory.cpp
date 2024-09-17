@@ -4,11 +4,12 @@
 // local
 #include "plugins.hpp"
 
-#include "problem.hpp"
-#include "problem_fd1d.hpp"
-#include "problem_femus.hpp"
-#include "problem_oforg.hpp"
-#include "problem_proxpde.hpp"
+#include "problem/problem.hpp"
+#include "problem/problem_fd1d.hpp"
+#include "problem/problem_fd2d.hpp"
+#include "problem/problem_femus.hpp"
+#include "problem/problem_oforg.hpp"
+#include "problem/problem_proxpde.hpp"
 
 std::unique_ptr<Problem> Problem::build(PROBLEM_TYPE problemType, EQN_TYPE eqnType)
 {

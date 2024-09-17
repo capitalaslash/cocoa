@@ -14,7 +14,7 @@
 #include <NormalizedGeometricTypes> // missing extension!!!
 
 // local
-#include "mesh_coupling.hpp"
+#include "coupling/mesh_coupling.hpp"
 
 enum struct MED_CELL_TYPE : int8_t
 {

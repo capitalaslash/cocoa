@@ -13,7 +13,7 @@
 #include <solver.H>
 
 // local
-#include "problem.hpp"
+#include "problem/problem.hpp"
 
 //- Set the initial time-step according to the solver maxDeltaT
 void setDeltaT(Foam::Time & runTime, const Foam::solver & solver);

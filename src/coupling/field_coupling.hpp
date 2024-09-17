@@ -10,8 +10,8 @@
 #include <fmt/core.h>
 
 // local
+#include "coupling/mesh_coupling.hpp"
 #include "enums.hpp"
-#include "mesh_coupling.hpp"
 
 enum struct SUPPORT_TYPE : uint8_t
 {

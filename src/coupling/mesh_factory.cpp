@@ -7,9 +7,9 @@
 // local
 #include "plugins.hpp"
 
+#include "coupling/mesh_coupling.hpp"
+#include "coupling/mesh_med.hpp"
 #include "enums.hpp"
-#include "mesh_coupling.hpp"
-#include "mesh_med.hpp"
 
 std::unique_ptr<MeshCoupling> MeshCoupling::build(COUPLING_TYPE type)
 {

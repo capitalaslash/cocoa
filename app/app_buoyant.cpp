@@ -1,6 +1,6 @@
 // local
-#include "coupling_manager.hpp"
-#include "problem.hpp"
+#include "coupling/coupling_manager.hpp"
+#include "problem/problem.hpp"
 
 int main()
 {

@@ -7,9 +7,9 @@
 #include <fmt/ranges.h>
 
 // local
-#include "field_med.hpp"
-#include "mesh_med.hpp"
-#include "problem.hpp"
+#include "coupling/field_med.hpp"
+#include "coupling/mesh_med.hpp"
+#include "problem/problem.hpp"
 
 void CouplingMED::setup(Problem * src, Problem * tgt)
 {

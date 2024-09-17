@@ -6,13 +6,13 @@
 #include <pybind11/stl/filesystem.h>
 
 // local
-#include "coupling_med.hpp"
-#include "coupling_simple.hpp"
+#include "coupling/coupling_med.hpp"
+#include "coupling/coupling_simple.hpp"
 #include "enums.hpp"
-#include "problem.hpp"
-#include "problem_fd1d.hpp"
-#include "problem_oforg.hpp"
-#include "problem_proxpde.hpp"
+#include "problem/problem.hpp"
+#include "problem/problem_fd1d.hpp"
+#include "problem/problem_oforg.hpp"
+#include "problem/problem_proxpde.hpp"
 
 namespace py = pybind11;
 

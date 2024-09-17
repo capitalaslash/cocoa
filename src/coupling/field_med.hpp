@@ -8,11 +8,11 @@
 #include <string_view>
 
 // medcoupling
-#include "MEDCouplingFieldDouble.hxx"
+#include <MEDCouplingFieldDouble.hxx>
 
 // local
+#include "coupling/field_coupling.hpp"
 #include "enums.hpp"
-#include "field_coupling.hpp"
 
 inline MEDCoupling::TypeOfField supportType2MEDtype(SUPPORT_TYPE const support)
 {

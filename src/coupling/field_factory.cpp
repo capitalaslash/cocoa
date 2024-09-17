@@ -4,9 +4,9 @@
 // local
 #include "plugins.hpp"
 
+#include "coupling/field_coupling.hpp"
+#include "coupling/field_med.hpp"
 #include "enums.hpp"
-#include "field_coupling.hpp"
-#include "field_med.hpp"
 
 std::unique_ptr<FieldCoupling> FieldCoupling::build(COUPLING_TYPE type)
 {

@@ -7,9 +7,9 @@
 #include <unordered_map>
 
 // local
+#include "coupling/field_coupling.hpp"
+#include "coupling/mesh_coupling.hpp"
 #include "enums.hpp"
-#include "field_coupling.hpp"
-#include "mesh_coupling.hpp"
 
 struct Problem
 {

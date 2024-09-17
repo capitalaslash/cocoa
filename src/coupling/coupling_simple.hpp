@@ -4,7 +4,7 @@
 #include <vector>
 
 // local
-#include "coupling_manager.hpp"
+#include "coupling/coupling_manager.hpp"
 
 struct CouplingSimple: public CouplingManager
 {

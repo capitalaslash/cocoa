@@ -59,8 +59,8 @@ spack env activate spack-env
 
 ```bash
 cd build
-ln -s ../data/fd1d1.dat
-ln -s ../data/fd1d2.dat
+ln -s ../data/fd1d_heat.dat
+ln -s ../data/fd1d_hc.dat
 ```
 
 * run app
@@ -73,5 +73,5 @@ cd build
 * plot results of fd1d
 
 ```bash
-./fd1dplot.py build/fd1d1.dat
+./fd1dplot.py build/fd1d_heat.dat
 ```

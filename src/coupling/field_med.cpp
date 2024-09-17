@@ -1,4 +1,4 @@
-#include "field_med.hpp"
+#include "coupling/field_med.hpp"
 
 // std
 #include <string_view>
@@ -10,7 +10,7 @@
 #include <MEDCouplingFieldDouble.hxx>
 
 // local
-#include "mesh_med.hpp"
+#include "coupling/mesh_med.hpp"
 
 FieldMED::~FieldMED()
 {

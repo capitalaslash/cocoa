@@ -4,9 +4,9 @@
 // local
 #include "plugins.hpp"
 
-#include "coupling_manager.hpp"
-#include "coupling_med.hpp"
-#include "coupling_simple.hpp"
+#include "coupling/coupling_manager.hpp"
+#include "coupling/coupling_med.hpp"
+#include "coupling/coupling_simple.hpp"
 #include "enums.hpp"
 
 std::unique_ptr<CouplingManager> CouplingManager::build(COUPLING_TYPE type)
