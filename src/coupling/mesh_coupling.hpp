@@ -5,6 +5,9 @@
 #include <string_view>
 #include <vector>
 
+// fmt
+#include <fmt/core.h>
+
 // local
 #include "enums.hpp"
 
@@ -21,6 +24,8 @@ struct MeshCoupling
       std::vector<double> const & coords,
       std::vector<uint> conn,
       std::vector<uint> offsets) = 0;
+
+  virtual void printVTK() = 0;
 
   static std::unique_ptr<MeshCoupling> build(COUPLING_TYPE type);
   static std::unique_ptr<MeshCoupling> build(std::string_view type);
@@ -41,4 +46,15 @@ struct MeshSimple: public MeshCoupling
       std::vector<uint> conn,
       std::vector<uint> offsets) override
   {}
+
+  void printVTK() override
+  {
+    if (messageVTK_)
+    {
+      fmt::print(stderr, "VTK print is not implemented in MeshSimple.\n");
+      messageVTK_ = false;
+    }
+  }
+
+  bool messageVTK_ = true;
 };

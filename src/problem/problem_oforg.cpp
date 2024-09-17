@@ -170,7 +170,7 @@ void ProblemOForg::initMeshMED(std::string_view meshName, Foam::fvMesh const & m
   couplingType_ = COUPLING_TYPE::MEDCOUPLING;
   meshCoupling_ = MeshCoupling::build(couplingType_);
   meshCoupling_->init(meshName, 3U, 3U, coords, conn, offsets);
-  dynamic_cast<MeshMED *>(meshCoupling_.get())->printVTK();
+  meshCoupling_->printVTK();
 }
 
 // TODO: move to Problem since it does not require any specific knowledge of the
