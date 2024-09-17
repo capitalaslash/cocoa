@@ -16,19 +16,6 @@
 // local
 #include "coupling/mesh_coupling.hpp"
 
-enum struct MED_CELL_TYPE : int8_t
-{
-  LINE2 = INTERP_KERNEL::NORM_SEG2,
-  TRIANGLE3 = INTERP_KERNEL::NORM_TRI3,
-  QUAD4 = INTERP_KERNEL::NORM_QUAD4,
-  HEX8 = INTERP_KERNEL::NORM_HEXA8,
-};
-
-inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)
-{
-  return static_cast<mcIdType>(t);
-}
-
 struct MeshMED: public MeshCoupling
 {
   MeshMED(): MeshCoupling(COUPLING_TYPE::MEDCOUPLING) {}

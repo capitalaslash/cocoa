@@ -5,6 +5,9 @@
 #include <string>
 #include <string_view>
 
+// local
+#include "plugins.hpp"
+
 // coupling enum =======================================================
 enum struct COUPLING_TYPE : int8_t
 {
@@ -99,3 +102,24 @@ inline std::string eqn2str(EQN_TYPE type)
     return "";
   }
 }
+
+// MED_CELL_TYPE =======================================================
+#ifdef COCOA_ENABLE_MEDCOUPLING
+
+#include <MCIdType.hxx>
+#include <NormalizedGeometricTypes> // missing extension!!!
+
+enum struct MED_CELL_TYPE : int8_t
+{
+  LINE2 = INTERP_KERNEL::NORM_SEG2,
+  TRIANGLE3 = INTERP_KERNEL::NORM_TRI3,
+  QUAD4 = INTERP_KERNEL::NORM_QUAD4,
+  HEX8 = INTERP_KERNEL::NORM_HEXA8,
+};
+
+inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)
+{
+  return static_cast<mcIdType>(t);
+}
+
+#endif

@@ -9,7 +9,6 @@
 
 // local
 #include "coupling/field_coupling.hpp"
-#include "coupling/mesh_med.hpp"
 #include "enums.hpp"
 
 std::unique_ptr<Problem> ProblemProXPDE::build(EQN_TYPE const type)

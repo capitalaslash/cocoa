@@ -1,7 +1,9 @@
 #include "problem/problem_oforg.hpp"
 
 // std
+#include <array>
 #include <cassert>
+#include <unordered_map>
 
 // openfoam.org
 #include <IOobject.H>
@@ -9,7 +11,6 @@
 // #include <ConstantField.H>  // only in openfoam.com
 
 // local
-#include "coupling/mesh_med.hpp"
 #include "enums.hpp"
 
 void ProblemOForg::setup(ParamList_T const & params)
