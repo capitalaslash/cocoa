@@ -1,11 +1,11 @@
 import pycocoa
 
 p1 = pycocoa.ProblemFD1D()
-p1.setup(config_file="fd1d1.dat")
+p1.setup(config_file="fd1d_heat.dat")
 p1.print()
 
 p2 = pycocoa.ProblemFD1D()
-p2.setup(config_file="fd1d2.dat")
+p2.setup(config_file="fd1d_hc.dat")
 p2.print()
 
 c = pycocoa.CouplingSimple()

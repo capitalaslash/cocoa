@@ -2,7 +2,7 @@ import pycocoa
 
 p1 = pycocoa.ProblemFD1D()
 
-p1.setup(config_file="fd1d1.dat")
+p1.setup(config_file="fd1d_heat.dat")
 p1.print()
 
 while p1.run():

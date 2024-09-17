@@ -21,7 +21,7 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   name_ = "empty";
   // mesh
   double start = 0.0;
-  double end = 0.0;
+  double end = 1.0;
   uint nElems = 10U;
   // fields
   double uInit = 0.0;
@@ -83,20 +83,18 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
         bufferStream >> token;
         solverType_ = str2fdsolver(token);
       }
-      else if (token == "bc_start_type:")
+      else if (token == "bc_start:")
       {
         bufferStream >> token;
         bcStartType_ = str2fdbc(token);
-      }
-      else if (token == "bc_start_value:")
         bufferStream >> bcStartValue_;
-      else if (token == "bc_end_type:")
+      }
+      else if (token == "bc_end:")
       {
         bufferStream >> token;
         bcEndType_ = str2fdbc(token);
-      }
-      else if (token == "bc_end_value:")
         bufferStream >> bcEndValue_;
+      }
       else if (token == "out_file:")
         bufferStream >> outFile_;
       else

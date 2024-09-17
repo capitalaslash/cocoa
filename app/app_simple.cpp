@@ -10,8 +10,8 @@ int main()
   auto p1 = Problem::build(PROBLEM_TYPE::FD1D, EQN_TYPE::NONE);
   auto p2 = Problem::build("fd1d", "none");
 
-  p1->setup({{"config_file", "fd1d1.dat"}});
-  p2->setup({{"config_file", "fd1d2.dat"}});
+  p1->setup({{"config_file", "fd1d_heat.dat"}});
+  p2->setup({{"config_file", "fd1d_hc.dat"}});
 
   // check that both problems have been set to use the same coupling type
   assert(p1->couplingType_ == p2->couplingType_);

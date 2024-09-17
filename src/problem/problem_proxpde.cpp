@@ -67,7 +67,8 @@ void ProblemProXPDE::initMeshMED(std::string_view name, Mesh const & mesh)
 
 void ProblemProXPDE::initFieldMED(std::string_view fieldName, std::string_view path)
 {
-  auto [kvPair, success] = fieldsCoupling_.emplace(fieldName, new FieldMED);
+  auto [kvPair, success] = fieldsCoupling_.emplace(
+      fieldName, FieldCoupling::build(COUPLING_TYPE::MEDCOUPLING));
   assert(success);
   kvPair->second->init(fieldName, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
   std::string filename = std::string{path} + "_med.";
@@ -141,6 +142,100 @@ void ProblemProXPDE::solve()
   proxpde::LUSolver solver;
   solver.compute(builder.A);
   u_ = solver.solve(builder.b);
+}
+
+// =====================================================================
+
+void ProblemProXPDEHeat::setup(ParamList_T const & params)
+{
+  // get configuration from file
+  std::string const filename = params.at("config_file");
+  proxpde::ParameterDict config = YAML::LoadFile(filename);
+
+  // init mesh from configuration
+  proxpde::readMesh(mesh_, config["mesh"]);
+  name_ = config["name"].as<std::string>();
+  initMeshMED(name_, mesh_);
+
+  // for (auto const bd: mesh_.facetList)
+
+  // init coupling
+  // TODO: set from file when more coupling strategies are available
+  couplingType_ = COUPLING_TYPE::MEDCOUPLING;
+
+  // init equation
+  equationType_ = str2eqn(config["equation_type"].as<std::string>());
+
+  // init time related members
+  time = 0.0;
+  dt_ = config["dt"].as<double>();
+  finalTime_ = config["final_time"].as<double>();
+
+  // init fe related members
+  feSpace_.init(mesh_);
+  T_.init("T", feSpace_);
+  double const initValue = config["init_value"].as<double>();
+  T_ << initValue;
+  u_ = T_.data;
+
+  // init physical constants and operating conditions
+  alpha_ = config["alpha"].as<double>();
+  q_.init("source", feSpace_);
+  q_ << config["q"].as<double>();
+  feSpaceVel_.init(mesh_);
+  vel_.init("vel", feSpaceVel_);
+  vel_ << config["vel"].as<proxpde::Vec2>();
+
+  // init bcs
+  for (auto const & bc: config["bcs"])
+  {
+    auto const label = bc["label"].as<proxpde::marker_T>();
+    auto const value = bc["value"].as<double>();
+    bcs_.emplace_back(
+        feSpace_, label, [value](proxpde::Vec3 const &) { return value; });
+  }
+
+  // init io
+  io_.init(feSpace_, "output_" + name_ + "/T");
+
+  // coupling
+  switch (equationType_)
+  {
+  case EQN_TYPE::HEAT:
+  {
+    couplingExport_.push_back("Tcfd");
+    // couplingImport_.push_back("vel");
+    break;
+  }
+  case EQN_TYPE::HEAT_COUPLED:
+  {
+    couplingExport_.push_back("T");
+    couplingImport_.push_back("Tcfd");
+    break;
+  }
+  case EQN_TYPE::HEAT_BUOYANT:
+  {
+    couplingExport_.push_back("T");
+    couplingImport_.push_back("vel");
+    break;
+  }
+  default:
+    abort();
+  }
+  initFieldMED(couplingExport_[0], io_.filePath->string());
+  setDataMED(couplingExport_[0], T_.data, feSpace_);
+
+  for (auto const & name: couplingImport_)
+  {
+    if (name != "vel")
+    {
+      initFieldMED(name, "output_" + name_ + "/i_" + name);
+      setDataMED(name, T_.data, feSpace_);
+    }
+  }
+
+  initFieldMED("vel", "output_" + name_ + "/i_vel");
+  setDataMED("vel", vel_.data, feSpaceVel_);
 }
 
 void ProblemProXPDEHeat::assemblyHeat(proxpde::Builder<> & b)
@@ -235,98 +330,6 @@ void ProblemProXPDEHeat::assemblyHeatBuoyant(proxpde::Builder<> & b)
           // source,
       },
       bcs_);
-}
-
-// =====================================================================
-
-void ProblemProXPDEHeat::setup(ParamList_T const & params)
-{
-  // get configuration from file
-  std::string const filename = params.at("config_file");
-  proxpde::ParameterDict config = YAML::LoadFile(filename);
-
-  // init mesh from configuration
-  proxpde::readMesh(mesh_, config["mesh"]);
-  name_ = config["name"].as<std::string>();
-  initMeshMED(name_, mesh_);
-
-  // init coupling
-  // TODO: set from file when more coupling strategies are available
-  couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-
-  // init equation
-  equationType_ = str2eqn(config["equation_type"].as<std::string>());
-
-  // init time related members
-  time = 0.0;
-  dt_ = config["dt"].as<double>();
-  finalTime_ = config["final_time"].as<double>();
-
-  // init fe related members
-  feSpace_.init(mesh_);
-  T_.init("T", feSpace_);
-  double const initValue = config["init_value"].as<double>();
-  T_ << initValue;
-  u_ = T_.data;
-
-  // init physical constants and operating conditions
-  alpha_ = config["alpha"].as<double>();
-  q_.init("source", feSpace_);
-  q_ << config["q"].as<double>();
-  feSpaceVel_.init(mesh_);
-  vel_.init("vel", feSpaceVel_);
-  vel_ << config["vel"].as<proxpde::Vec2>();
-
-  // init bcs
-  for (auto const & bc: config["bcs"])
-  {
-    auto const label = bc["label"].as<proxpde::marker_T>();
-    auto const value = bc["value"].as<double>();
-    bcs_.emplace_back(
-        feSpace_, label, [value](proxpde::Vec3 const &) { return value; });
-  }
-
-  // init io
-  io_.init(feSpace_, "output_" + name_ + "/T");
-
-  // coupling
-  switch (equationType_)
-  {
-  case EQN_TYPE::HEAT:
-  {
-    couplingExport_.push_back("Tcfd");
-    // couplingImport_.push_back("vel");
-    break;
-  }
-  case EQN_TYPE::HEAT_COUPLED:
-  {
-    couplingExport_.push_back("T");
-    couplingImport_.push_back("Tcfd");
-    break;
-  }
-  case EQN_TYPE::HEAT_BUOYANT:
-  {
-    couplingExport_.push_back("T");
-    couplingImport_.push_back("vel");
-    break;
-  }
-  default:
-    abort();
-  }
-  initFieldMED(couplingExport_[0], io_.filePath->string());
-  setDataMED(couplingExport_[0], T_.data, feSpace_);
-
-  for (auto const & name: couplingImport_)
-  {
-    if (name != "vel")
-    {
-      initFieldMED(name, "output_" + name_ + "/i_" + name);
-      setDataMED(name, T_.data, feSpace_);
-    }
-  }
-
-  initFieldMED("vel", "output_" + name_ + "/i_vel");
-  setDataMED("vel", vel_.data, feSpaceVel_);
 }
 
 void ProblemProXPDEHeat::solve()

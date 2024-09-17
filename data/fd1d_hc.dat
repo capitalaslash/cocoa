@@ -1,4 +1,4 @@
-name: fd1d2
+name: fd1d_hc
 start: -1.0
 end: 2.0
 n_elems: 20
@@ -11,8 +11,6 @@ final_time: 4.0
 dt: 0.4
 assembly_name: heatCoupled
 solver_type: vanka
-bc_start_type: dirichlet
-bc_start_value: 0.0
-bc_end_type: neumann
-bc_end_value: 0.0
-out_file: output_fd1d2/u
+bc_start: dirichlet 0.0
+bc_end: neumann 0.0
+out_file: output_fd1d_hc/u
