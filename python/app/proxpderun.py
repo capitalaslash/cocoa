@@ -2,7 +2,7 @@ import pycocoa
 
 p = pycocoa.ProblemProXPDEHeat()
 
-p.setup(config_file="proxpde1.yaml")
+p.setup(config_file="proxpde_heat.yaml")
 p.print()
 
 while p.run():

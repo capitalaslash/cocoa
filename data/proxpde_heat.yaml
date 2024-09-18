@@ -1,4 +1,4 @@
-name: proxpde1
+name: proxpde_heat
 
 mesh:
   type: STRUCTURED

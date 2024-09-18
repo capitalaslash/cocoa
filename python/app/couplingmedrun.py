@@ -8,11 +8,11 @@ def source(p):
 
 
 p1 = pycocoa.ProblemProXPDEHeat()
-p1.setup(config_file="proxpde1.yaml")
+p1.setup(config_file="proxpde_heat.yaml")
 p1.set_source(source)
 
 p2 = pycocoa.ProblemProXPDEHeat()
-p2.setup(config_file="proxpde2.yaml")
+p2.setup(config_file="proxpde_hc.yaml")
 
 print(f"coupling type: {p1.coupling_type}")
 assert p1.coupling_type == p2.coupling_type

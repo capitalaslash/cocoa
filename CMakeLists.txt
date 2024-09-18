@@ -180,6 +180,8 @@ if (COCOA_ENABLE_TESTS)
 
   if (COCOA_ENABLE_PYTHON)
     macro(cocoa_add_test_python name)
+      message(STATUS "adding python app ${name}")
+
       add_test(
         NAME cocoa::python::${name}
         COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/python/app/${name}run.py
@@ -187,14 +189,27 @@ if (COCOA_ENABLE_TESTS)
       set_property(TEST cocoa::python::${name}
         PROPERTY ENVIRONMENT PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
       )
+
+      set(extra_args ${ARGN})
+      list(LENGTH extra_args extra_count)
+      if (${extra_count} GREATER 0)
+        foreach(datafile ${extra_args})
+          MESSAGE(STATUS "copying ${datafile} to binary dir")
+          file(
+            COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/${datafile}
+            DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+          )
+        endforeach()
+      endif()
+
     endmacro()
 
-    cocoa_add_test_python(fd1d)
-    cocoa_add_test_python(couplingsimple)
-    cocoa_add_test_python(oforg)
-    cocoa_add_test_python(proxpde)
-    cocoa_add_test_python(couplingmed)
-    cocoa_add_test_python(buoyant)
+    cocoa_add_test_python(fd1d fd1d_heat.dat)
+    cocoa_add_test_python(couplingsimple fd1d_heat.dat fd1d_hc.dat)
+    cocoa_add_test_python(oforg oforg1)
+    cocoa_add_test_python(proxpde proxpde_heat.yaml)
+    cocoa_add_test_python(couplingmed proxpde_heat.yaml proxpde_hc.yaml)
+    cocoa_add_test_python(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
 
   endif()
 endif()
@@ -205,6 +220,7 @@ set(APP_FILES "")
 
 macro(cocoa_add_app name)
   message(STATUS "adding app ${name}")
+
   add_executable(app_${name})
   list(APPEND APP_FILES app/app_${name}.cpp)
   target_sources(app_${name}
@@ -219,22 +235,35 @@ macro(cocoa_add_app name)
   if (COCOA_ENABLE_TESTS)
     add_test(NAME cocoa::app::${name} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/app_${name})
   endif()
+
+  set(extra_args ${ARGN})
+  list(LENGTH extra_args extra_count)
+  if (${extra_count} GREATER 0)
+    foreach(datafile ${extra_args})
+      MESSAGE(STATUS "copying ${datafile} to binary dir")
+      file(
+        COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/${datafile}
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+      )
+    endforeach()
+  endif()
+
 endmacro()
 
-cocoa_add_app(fd1d)
-cocoa_add_app(fd2d)
-cocoa_add_app(simple)
+cocoa_add_app(fd1d fd1d_heat.dat)
+cocoa_add_app(fd2d fd2d_heat.dat)
+cocoa_add_app(simple fd1d_heat.dat fd1d_hc.dat)
 
 if (COCOA_ENABLE_PROXPDE)
-  cocoa_add_app(proxpde)
+  cocoa_add_app(proxpde proxpde_heat.yaml proxpde_hc.yaml)
 endif()
 
 if (COCOA_ENABLE_OFORG)
-  cocoa_add_app(oforg)
+  cocoa_add_app(oforg oforg1)
 endif()
 
-cocoa_add_app(ns)
-cocoa_add_app(buoyant)
+cocoa_add_app(ns proxpde_ns.yaml)
+cocoa_add_app(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
 
 
 # format ===============================================================

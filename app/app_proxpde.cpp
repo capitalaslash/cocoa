@@ -9,12 +9,12 @@
 int main()
 {
   auto p1 = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::HEAT);
-  p1->setup({{"config_file", "proxpde1.yaml"}});
+  p1->setup({{"config_file", "proxpde_heat.yaml"}});
   dynamic_cast<ProblemProXPDEHeat *>(p1.get())->q_
       << [](proxpde::Vec3 const & p) { return std::sin(M_PI * p[1]); };
 
   auto p2 = Problem::build("proxpde", "heatCoupled");
-  p2->setup({{"config_file", "proxpde2.yaml"}});
+  p2->setup({{"config_file", "proxpde_hc.yaml"}});
 
   // check that both problems have been set to use the same coupling type
   assert(p1->couplingType_ == p2->couplingType_);
