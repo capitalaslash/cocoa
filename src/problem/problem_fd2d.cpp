@@ -210,8 +210,8 @@ void ProblemFD2D::advance()
   it++;
 }
 
-static constexpr std::vector<uint>
-sideDOF(std::array<uint, 2U> const & n, uint const side)
+// static constexpr std::vector<uint> // requires gcc >= 12
+static const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, uint const side)
 {
   switch (side)
   {
