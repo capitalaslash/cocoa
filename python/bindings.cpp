@@ -1,3 +1,5 @@
+#include "plugins.hpp"
+
 // pybind11
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
@@ -53,8 +55,11 @@ PYBIND11_MODULE(pycocoa, m)
 
   py::class_<ProblemFD1D, Problem>(m, "ProblemFD1D").def(py::init<>());
 
+#ifdef COCOA_ENABLE_OFORG
   py::class_<ProblemOForg, Problem>(m, "ProblemOForg").def(py::init<>());
+#endif
 
+#ifdef COCOA_ENABLE_PROXPDE
   py::class_<ProblemProXPDEHeat, Problem>(m, "ProblemProXPDEHeat")
       .def(py::init<>())
       .def(
@@ -64,6 +69,7 @@ PYBIND11_MODULE(pycocoa, m)
           { p->q_ << source; });
 
   py::class_<ProblemProXPDENS, Problem>(m, "ProblemProXPDENS").def(py::init<>());
+#endif
 
   // coupling ==========================================================
   py::class_<CouplingManager>(m, "CouplingManager")
@@ -81,5 +87,7 @@ PYBIND11_MODULE(pycocoa, m)
 
   py::class_<CouplingSimple, CouplingManager>(m, "CouplingSimple").def(py::init<>());
 
+#ifdef COCOA_ENABLE_MEDCOUPLING
   py::class_<CouplingMED, CouplingManager>(m, "CouplingMED").def(py::init<>());
+#endif
 }

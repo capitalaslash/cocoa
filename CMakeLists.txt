@@ -133,8 +133,9 @@ endif()
 
 # pybind11 ---
 if (COCOA_ENABLE_PYTHON)
-  find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+  find_package(Python 3.10 COMPONENTS Interpreter Development REQUIRED)
   find_package(pybind11 CONFIG REQUIRED)
+  find_package(Eigen3 3.4 REQUIRED)
 endif()
 
 # library ==============================================================
@@ -169,6 +170,7 @@ if (COCOA_ENABLE_PYTHON)
   target_link_libraries(pycocoa
     PRIVATE
       cocoa::cocoa
+      Eigen3::Eigen
   )
   install(TARGETS pycocoa DESTINATION .)
 endif()
