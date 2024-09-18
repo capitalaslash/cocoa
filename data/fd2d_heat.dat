@@ -2,7 +2,7 @@ name: fd2d1
 start: 0.0 0.0
 end: 1.0 1.0
 n_elems: 20 20
-coupling_type: medcoupling
+coupling_type: simple
 u_init: 1.0
 q: 1
 alpha: 2
