@@ -146,8 +146,9 @@ target_sources(cocoa
 )
 target_link_libraries(cocoa
   PUBLIC
-  ${LIB_DEPENDENCIES}
+    ${LIB_DEPENDENCIES}
 )
+target_compile_features(cocoa PRIVATE cxx_std_20)
 add_library(cocoa::cocoa ALIAS cocoa)
 
 configure_file(src/plugins.hpp.in plugins.hpp @ONLY)
