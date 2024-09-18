@@ -13,6 +13,7 @@
 #include "enums.hpp"
 #include "problem/problem.hpp"
 #include "problem/problem_fd1d.hpp"
+#include "problem/problem_fd2d.hpp"
 #include "problem/problem_oforg.hpp"
 #include "problem/problem_proxpde.hpp"
 
@@ -54,6 +55,8 @@ PYBIND11_MODULE(pycocoa, m)
       .def("setField", &Problem::setField, "name"_a, "field"_a);
 
   py::class_<ProblemFD1D, Problem>(m, "ProblemFD1D").def(py::init<>());
+
+  py::class_<ProblemFD2D, Problem>(m, "ProblemFD2D").def(py::init<>());
 
 #ifdef COCOA_ENABLE_OFORG
   py::class_<ProblemOForg, Problem>(m, "ProblemOForg").def(py::init<>());

@@ -1,8 +1,8 @@
 import pycocoa
 
-p = pycocoa.ProblemFD1D()
+p = pycocoa.ProblemFD2D()
 
-p.setup(config_file="fd1d_heat.dat")
+p.setup(config_file="fd2d_heat.dat")
 p.print()
 
 while p.run():

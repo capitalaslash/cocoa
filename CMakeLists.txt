@@ -208,6 +208,7 @@ if (COCOA_ENABLE_TESTS)
 
     cocoa_add_test_python(fd1d fd1d_heat.dat)
     cocoa_add_test_python(couplingsimple fd1d_heat.dat fd1d_hc.dat)
+    cocoa_add_test_python(fd2d fd2d_heat.dat)
     cocoa_add_test_python(oforg oforg1)
     cocoa_add_test_python(proxpde proxpde_heat.yaml)
     cocoa_add_test_python(couplingmed proxpde_heat.yaml proxpde_hc.yaml)
