@@ -381,5 +381,5 @@ std::unordered_map<EQN_TYPE, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_ =
 
 std::unordered_map<FD_SOLVER_TYPE, ProblemFD1D::Solver_T> ProblemFD1D::solvers_ = {
     {FD_SOLVER_TYPE::TRIDIAG, [](ProblemFD1D * p) { p->solveTriDiag(); }},
-    {FD_SOLVER_TYPE::VANKA, [](ProblemFD1D * p) { p->solveVanka(); }},
+    {FD_SOLVER_TYPE::VANKA1D, [](ProblemFD1D * p) { p->solveVanka(); }},
 };

@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 // fmt
@@ -39,15 +40,21 @@ enum struct FD_SOLVER_TYPE : uint8_t
 {
   NONE = 0,
   TRIDIAG,
-  VANKA,
+  VANKA1D,
+  VANKA2DCB,
+  VANKA2DSCI,
 };
 
 inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
 {
   if (name == "tridiag")
     return FD_SOLVER_TYPE::TRIDIAG;
-  if (name == "vanka")
-    return FD_SOLVER_TYPE::VANKA;
+  if (name == "vanka1d")
+    return FD_SOLVER_TYPE::VANKA1D;
+  if (name == "vanka2dcb")
+    return FD_SOLVER_TYPE::VANKA2DCB;
+  if (name == "vanka2dsci")
+    return FD_SOLVER_TYPE::VANKA2DSCI;
   fmt::print(stderr, "solver {} not recognized\n", name);
   std::abort();
   return FD_SOLVER_TYPE::NONE;
@@ -73,6 +80,34 @@ struct MatrixTriDiag
 };
 
 // =====================================================================
+struct MatrixCSR
+{
+  struct Entry
+  {
+    size_t clm;
+    double value;
+  };
+
+  using Triplet_T = std::tuple<size_t, size_t, double>;
+  using Row_T = std::vector<Entry>;
+
+  MatrixCSR() = default;
+  explicit MatrixCSR(size_t n): n_{n}, data_{n_, Row_T{}} {}
+  ~MatrixCSR() = default;
+
+  void init(size_t n);
+
+  void clear();
+  void close();
+
+  size_t n_;
+  std::vector<Triplet_T> triplets_;
+  std::vector<Row_T> data_;
+};
+
+std::vector<double> operator*(MatrixCSR const & m, std::vector<double> const & v);
+
+// =====================================================================
 template <size_t n>
 struct MatrixDense
 {
@@ -88,6 +123,7 @@ struct MatrixDense
 template <>
 struct MatrixDense<2U>
 {
+  using Vec2D_T = std::array<double, 2U>;
   MatrixDense() = default;
   ~MatrixDense() = default;
 
@@ -106,13 +142,13 @@ struct MatrixDense<2U>
     return im;
   }
 
-  std::array<double, 2U> operator*(std::array<double, 2U> const & v) const
+  Vec2D_T operator*(Vec2D_T const & v) const
   {
-    std::array<double, 2U> result;
+    Vec2D_T result;
     result[0] = data[0][0] * v[0] + data[0][1] * v[1];
     result[1] = data[1][0] * v[0] + data[1][1] * v[1];
     return result;
   }
 
-  std::array<std::array<double, 2U>, 2U> data;
+  std::array<Vec2D_T, 2U> data;
 };

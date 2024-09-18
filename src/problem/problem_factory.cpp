@@ -20,6 +20,11 @@ std::unique_ptr<Problem> Problem::build(PROBLEM_TYPE problemType, EQN_TYPE eqnTy
     return std::unique_ptr<Problem>{new ProblemFD1D};
     break;
   }
+  case PROBLEM_TYPE::FD2D:
+  {
+    return std::unique_ptr<Problem>{new ProblemFD2D};
+    break;
+  }
 #ifdef COCOA_ENABLE_FEMUS
   case PROBLEM_TYPE::FEMUS:
   {
@@ -43,6 +48,7 @@ std::unique_ptr<Problem> Problem::build(PROBLEM_TYPE problemType, EQN_TYPE eqnTy
 #endif
   default:
   {
+    fmt::print(stderr, "problem type not recognized\n");
     std::abort();
   }
   }

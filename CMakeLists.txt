@@ -34,6 +34,8 @@ set(LIB_FILES
   src/problem/fdutils.cpp
   src/problem/problem_fd1d.hpp
   src/problem/problem_fd1d.cpp
+  src/problem/problem_fd2d.hpp
+  src/problem/problem_fd2d.cpp
   src/problem/problem_femus.hpp
   src/problem/problem_factory.cpp
   ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
@@ -219,6 +221,7 @@ macro(cocoa_add_app name)
 endmacro()
 
 cocoa_add_app(fd1d)
+cocoa_add_app(fd2d)
 cocoa_add_app(simple)
 
 if (COCOA_ENABLE_PROXPDE)

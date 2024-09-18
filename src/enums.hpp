@@ -32,6 +32,7 @@ enum struct PROBLEM_TYPE : int8_t
 {
   NONE = 0,
   FD1D,
+  FD2D,
   FEMUS,
   PROXPDE,
   OFCOM,
@@ -42,6 +43,8 @@ inline PROBLEM_TYPE str2problem(std::string_view name)
 {
   if (name == "fd1d")
     return PROBLEM_TYPE::FD1D;
+  if (name == "fd2d")
+    return PROBLEM_TYPE::FD2D;
   if (name == "femus")
     return PROBLEM_TYPE::FEMUS;
   if (name == "proxpde")
