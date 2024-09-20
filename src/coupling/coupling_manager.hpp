@@ -19,10 +19,7 @@ struct CouplingManager
 
   virtual void
   project(std::string_view fieldNameSrc, std::string_view fieldNameTgt) = 0;
-  virtual void project(std::string_view fieldName) final
-  {
-    this->project(fieldName, fieldName);
-  }
+  void project(std::string_view fieldName) { this->project(fieldName, fieldName); }
 
   static std::unique_ptr<CouplingManager> build(COUPLING_TYPE type);
   static std::unique_ptr<CouplingManager> build(std::string_view type);

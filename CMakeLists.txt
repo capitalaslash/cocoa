@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15...3.29)
+cmake_minimum_required(VERSION 3.25...3.30)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "type of build")
@@ -19,30 +19,32 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-set(LIB_FILES
+set(LIB_SOURCES
+  src/coupling/coupling_simple.cpp
+  src/coupling/coupling_factory.cpp
+  src/coupling/field_factory.cpp
+  src/coupling/mesh_factory.cpp
+  src/problem/fdutils.cpp
+  src/problem/problem_fd1d.cpp
+  src/problem/problem_fd2d.cpp
+  src/problem/problem_factory.cpp
+)
+set(LIB_HEADERS
   src/enums.hpp
   src/coupling/coupling_manager.hpp
   src/coupling/coupling_simple.hpp
-  src/coupling/coupling_simple.cpp
-  src/coupling/coupling_factory.cpp
   src/coupling/field_coupling.hpp
-  src/coupling/field_factory.cpp
   src/coupling/mesh_coupling.hpp
-  src/coupling/mesh_factory.cpp
   src/problem/problem.hpp
   src/problem/fdutils.hpp
-  src/problem/fdutils.cpp
   src/problem/problem_fd1d.hpp
-  src/problem/problem_fd1d.cpp
   src/problem/problem_fd2d.hpp
-  src/problem/problem_fd2d.cpp
   src/problem/problem_femus.hpp
-  src/problem/problem_factory.cpp
-  ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
 )
 set(LIB_DEPENDENCIES
   fmt::fmt
 )
+
 
 # options ==============================================================
 
@@ -53,6 +55,7 @@ option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." OFF)
 option(COCOA_ENABLE_PYTHON "Enable python bindings." OFF)
 option(COCOA_ENABLE_TESTS "Enable tests." ON)
 option(COCOA_FETCH_FMT "Get libfmt from the web" OFF)
+
 
 # external dependencies ================================================
 
@@ -73,9 +76,11 @@ endif()
 # openfoam.org ---
 if (COCOA_ENABLE_OFORG)
   find_package(OpenFOAMorg REQUIRED)
-  list(APPEND LIB_FILES
-    src/problem/problem_oforg.hpp
+  list(APPEND LIB_SOURCES
     src/problem/problem_oforg.cpp
+  )
+  list(APPEND LIB_HEADERS
+    src/problem/problem_oforg.hpp
   )
   list(APPEND LIB_DEPENDENCIES
     OpenFOAMorg::ALL
@@ -86,9 +91,11 @@ endif()
 # proxpde ---
 if (COCOA_ENABLE_PROXPDE)
   find_package(ProXPDE REQUIRED)
-  list(APPEND LIB_FILES
-    src/problem/problem_proxpde.hpp
+  list(APPEND LIB_SOURCES
     src/problem/problem_proxpde.cpp
+  )
+  list(APPEND LIB_HEADERS
+    src/problem/problem_proxpde.hpp
   )
   list(APPEND LIB_DEPENDENCIES
     ProXPDE::proxpde
@@ -97,8 +104,7 @@ endif()
 
 # medcoupling ---
 if (COCOA_ENABLE_MEDCOUPLING)
-  find_package(MEDCoupling
-    REQUIRED
+  find_package(MEDCoupling REQUIRED
     PATHS
       ${CMAKE_SOURCE_DIR}/contrib/medcoupling/cmake_files
       $ENV{SPACK_ENV}/.spack-env/view/cmake_files
@@ -113,18 +119,20 @@ if (COCOA_ENABLE_MEDCOUPLING)
       # medicoco
       medloader
   )
-  target_include_directories(medcoupling SYSTEM
-    INTERFACE
-      ${MEDCOUPLING_INCLUDE_DIRS}
-  )
+  # target_include_directories(medcoupling SYSTEM
+  #   INTERFACE
+  #     ${MEDCOUPLING_INCLUDE_DIRS}
+  # )
   add_library(medcoupling::medcoupling ALIAS medcoupling)
-  list(APPEND LIB_FILES
-    src/coupling/coupling_med.hpp
+  list(APPEND LIB_SOURCES
     src/coupling/coupling_med.cpp
-    src/coupling/field_med.hpp
     src/coupling/field_med.cpp
-    src/coupling/mesh_med.hpp
     src/coupling/mesh_med.cpp
+  )
+  list(APPEND LIB_HEADERS
+    src/coupling/coupling_med.hpp
+    src/coupling/field_med.hpp
+    src/coupling/mesh_med.hpp
   )
   list(APPEND LIB_DEPENDENCIES
     medcoupling::medcoupling
@@ -138,12 +146,19 @@ if (COCOA_ENABLE_PYTHON)
   find_package(Eigen3 3.4 REQUIRED)
 endif()
 
+
 # library ==============================================================
 
 add_library(cocoa)
 target_sources(cocoa
   PRIVATE
-    ${LIB_FILES}
+    ${LIB_SOURCES}
+    ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
+)
+target_sources(cocoa PUBLIC
+  FILE_SET HEADERS
+  BASE_DIRS src
+  FILES ${LIB_HEADERS}
 )
 target_link_libraries(cocoa
   PUBLIC
@@ -154,12 +169,12 @@ add_library(cocoa::cocoa ALIAS cocoa)
 
 configure_file(src/plugins.hpp.in plugins.hpp @ONLY)
 target_include_directories(cocoa
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+  PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 feature_summary(WHAT ALL)
+
 
 # python ===============================================================
 
@@ -172,8 +187,12 @@ if (COCOA_ENABLE_PYTHON)
       cocoa::cocoa
       Eigen3::Eigen
   )
-  install(TARGETS pycocoa DESTINATION .)
+  target_include_directories(pycocoa
+    PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}
+  )
 endif()
+
 
 # test =================================================================
 
@@ -209,13 +228,14 @@ if (COCOA_ENABLE_TESTS)
     cocoa_add_test_python(fd1d fd1d_heat.dat)
     cocoa_add_test_python(couplingsimple fd1d_heat.dat fd1d_hc.dat)
     cocoa_add_test_python(fd2d fd2d_heat.dat)
-    cocoa_add_test_python(oforg oforg1)
+    cocoa_add_test_python(oforg oforg1 oforg1.dat)
     cocoa_add_test_python(proxpde proxpde_heat.yaml)
     cocoa_add_test_python(couplingmed proxpde_heat.yaml proxpde_hc.yaml)
     cocoa_add_test_python(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
 
   endif()
 endif()
+
 
 # application ==========================================================
 
@@ -233,6 +253,10 @@ macro(cocoa_add_app name)
   target_link_libraries(app_${name}
     PUBLIC
       cocoa::cocoa
+  )
+  target_include_directories(app_${name}
+    PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}
   )
 
   if (COCOA_ENABLE_TESTS)
@@ -269,12 +293,74 @@ cocoa_add_app(ns proxpde_ns.yaml)
 cocoa_add_app(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
 
 
+# install ==============================================================
+
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/cocoa-config-version.cmake
+  COMPATIBILITY AnyNewerVersion
+)
+
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/cocoa-config-version.cmake
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+)
+
+install(
+  TARGETS cocoa
+  EXPORT cocoaTargets
+  FILE_SET HEADERS
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cocoa
+)
+
+if (COCOA_ENABLE_MEDCOUPLING)
+  install(
+    TARGETS medcoupling
+    EXPORT cocoaTargets
+  )
+endif()
+
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cocoa
+)
+
+install(
+  TARGETS pycocoa
+  EXPORT cocoaTargets
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(
+  EXPORT cocoaTargets
+  NAMESPACE cocoa::
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+)
+
+configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/cocoa-config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cocoa-config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/cocoa-config.cmake
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+)
+
+install(
+  FILES ${CMAKE_CURRENT_LIST_DIR}/cmake/FindOpenFOAMorg.cmake
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+)
+
+
 # format ===============================================================
 
 find_program(CLANGFORMAT clang-format)
 if (CLANGFORMAT)
   set(SRC_FILES
-    ${LIB_FILES}
+    ${LIB_SOURCES}
+    ${LIB_HEADERS}
     ${APP_FILES}
     src/python_bindings.cpp
   )

@@ -34,7 +34,7 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   dt_ = 0.1;
 
   // read configuration from file
-  std::filesystem::path configFile = params.at("config_file");
+  std::filesystem::path const configFile = params.at("config_file");
   std::ifstream in(configFile, std::ios::in);
   if (!in)
   {

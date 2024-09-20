@@ -1,0 +1,26 @@
+find_package(fmt REQUIRED)
+
+if (@COCOA_ENABLE_OFORG@)
+  list(APPEND CMAKE_MODULE_PATH "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_DATADIR@/cocoa")
+  find_package(OpenFOAMorg REQUIRED)
+endif()
+
+if (@COCOA_ENABLE_PROXPDE@)
+  find_package(ProXPDE REQUIRED)
+endif()
+
+if (@COCOA_ENABLE_MEDCOUPLING@)
+  find_package(MEDCoupling REQUIRED
+  PATHS
+    ${CMAKE_SOURCE_DIR}/contrib/medcoupling/cmake_files
+    $ENV{SPACK_ENV}/.spack-env/view/cmake_files
+  )
+endif()
+
+if (@COCOA_ENABLE_PYTHON@)
+  find_package(Python 3.10 COMPONENTS Interpreter Development REQUIRED)
+  find_package(pybind11 CONFIG REQUIRED)
+  find_package(Eigen3 3.4 REQUIRED)
+endif()
+
+include(${CMAKE_CURRENT_LIST_DIR}/cocoaTargets.cmake)
