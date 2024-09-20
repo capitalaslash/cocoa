@@ -311,13 +311,32 @@ void ProblemOForg::print()
              << "  ClockTime = " << runTime_->elapsedClockTime() << " s" << Foam::nl
              << Foam::endl;
 
-  if (it % runTime_->controlDict().lookupOrDefault("writeInterval", 1) == 0)
+  bool writeVTK = false;
+  Foam::word const writeStyle = runTime_->controlDict().lookup("writeControl");
+  if (writeStyle == "timeStep")
   {
+    if (runTime_->controlDict().lookupOrDefault("writeInterval", 1) == 0)
+      writeVTK = true;
+  }
+  else if (writeStyle == "runTime")
+  {
+    double const dt = runTime_->controlDict().lookupOrDefault("writeInterval", 1.0);
+    if (lastPrint_ + dt > time - 1.e-12)
+    {
+      writeVTK = true;
+      lastPrint_ = time;
+    }
+  }
+  else
+  {
+    fmt::print(stderr, "writeControl {} not supported\n", writeStyle);
+  }
+
+  if (writeVTK)
     for (auto const & [name, type]: namesExport_)
     {
       getField(name)->printVTK(time, it);
     }
-  }
 }
 
 void setDeltaT(Foam::Time & runTime, const Foam::solver & solver)

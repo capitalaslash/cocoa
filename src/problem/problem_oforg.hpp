@@ -54,6 +54,7 @@ struct ProblemOForg: public Problem
   Foam::autoPtr<Foam::solver> solverPtr_;
   std::unique_ptr<Foam::pimpleSingleRegionControl> pimple_;
   std::vector<std::pair<std::string, OFFIELD_TYPE>> namesExport_;
+  double lastPrint_ = 0.0;
 };
 
 #endif
