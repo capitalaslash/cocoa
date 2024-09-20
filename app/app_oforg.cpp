@@ -4,7 +4,10 @@
 int main()
 {
   auto p = Problem::build(PROBLEM_TYPE::OFORG, EQN_TYPE::HEAT);
-  p->setup({{"case_dir", "oforg1"}});
+  p->setup({
+      {"case_dir", "oforg1"},
+      {"config_file", "oforg1.dat"},
+  });
 
   p->print();
 

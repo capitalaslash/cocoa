@@ -3,6 +3,7 @@
 // std
 #include <array>
 #include <cassert>
+#include <fstream>
 #include <unordered_map>
 
 // openfoam.org
@@ -16,7 +17,6 @@
 void ProblemOForg::setup(ParamList_T const & params)
 {
   name_ = params.at("case_dir").string();
-
   int argc = 3;
   char ** argv = new char *[3];
   argv[0] = (char *)"app_oforg";
@@ -67,7 +67,7 @@ void ProblemOForg::setup(ParamList_T const & params)
       *runTime_,
       Foam::IOobject::MUST_READ}});
 
-  initMeshMED("mesh_oforg", *mesh_);
+  initMeshMED("mesh_" + name_, *mesh_);
 
   // Instantiate the selected solver
   solverPtr_ = Foam::solver::New(solverName_, *mesh_);
@@ -79,19 +79,47 @@ void ProblemOForg::setup(ParamList_T const & params)
   // Set the initial time-step
   setDeltaT(*runTime_, *solverPtr_);
 
-  namesExport_ = {
-      {"p", OFFIELD_TYPE::SCALAR},
-      {"U", OFFIELD_TYPE::VECTOR},
-      {"nut", OFFIELD_TYPE::SCALAR},
-      {"k", OFFIELD_TYPE::SCALAR},
-      {"epsilon", OFFIELD_TYPE::SCALAR},
-      // {"omega", OFFIELD_TYPE::SCALAR},
-      // {"T", OFFIELD_TYPE::SCALAR},
-  };
+  std::string outputVTK = "./output_oforg";
+  if (params.contains("config_file"))
+  {
+    std::filesystem::path const configFile = params.at("config_file").string();
+    std::ifstream in(configFile, std::ios::in);
+    if (!in)
+    {
+      fmt::print(stderr, "configuration file {} not found!\n", configFile.string());
+      std::abort();
+    }
+    std::string buffer;
+    while (std::getline(in, buffer, '\n'))
+    {
+      std::istringstream bufferStream{buffer};
+      std::string token;
+      while (std::getline(bufferStream, token, ' '))
+      {
+        if (token == "scalar_vars:")
+          while (std::getline(bufferStream, token, ' '))
+          {
+            namesExport_.emplace_back(token, OFFIELD_TYPE::SCALAR);
+          }
+        else if (token == "vector_vars:")
+          while (std::getline(bufferStream, token, ' '))
+          {
+            namesExport_.emplace_back(token, OFFIELD_TYPE::VECTOR);
+          }
+        else if (token == "output_vtk:")
+          bufferStream >> outputVTK;
+        else
+        {
+          fmt::print(stderr, "key {} invalid\n", token);
+          bufferStream >> token;
+        }
+      }
+    }
+  }
 
   for (auto const & [name, type]: namesExport_)
   {
-    initFieldMED(name, "./output_oforg1/" + name);
+    initFieldMED(name, outputVTK + "/" + name);
     switch (type)
     {
     case OFFIELD_TYPE::SCALAR:
