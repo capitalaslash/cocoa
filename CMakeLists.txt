@@ -232,6 +232,7 @@ if (COCOA_ENABLE_TESTS)
     cocoa_add_test_python(proxpde proxpde_heat.yaml)
     cocoa_add_test_python(couplingmed proxpde_heat.yaml proxpde_hc.yaml)
     cocoa_add_test_python(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
+    cocoa_add_test_python(custom)
 
   endif()
 endif()

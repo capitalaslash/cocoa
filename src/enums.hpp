@@ -64,6 +64,7 @@ enum struct EQN_TYPE : int8_t
   HEAT_BUOYANT,
   NS,
   NS_BOUSSINESQ,
+  CUSTOM,
 };
 
 inline EQN_TYPE str2eqn(std::string_view name)

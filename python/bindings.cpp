@@ -11,6 +11,7 @@
 #include "coupling/coupling_med.hpp"
 #include "coupling/coupling_simple.hpp"
 #include "enums.hpp"
+#include "problem/fdutils.hpp"
 #include "problem/problem.hpp"
 #include "problem/problem_fd1d.hpp"
 #include "problem/problem_fd2d.hpp"
@@ -29,6 +30,11 @@ PYBIND11_MODULE(pycocoa, m)
       .value("medcoupling", COUPLING_TYPE::MEDCOUPLING)
       .value("ofm2m", COUPLING_TYPE::OFM2M)
       .value("simple", COUPLING_TYPE::SIMPLE);
+
+  py::enum_<EQN_TYPE>(m, "EQN_TYPE")
+      .value("none", EQN_TYPE::NONE)
+      .value("heat", EQN_TYPE::HEAT)
+      .value("custom", EQN_TYPE::CUSTOM);
 
   // problems ==========================================================
   py::class_<Problem>(m, "Problem")
@@ -52,9 +58,45 @@ PYBIND11_MODULE(pycocoa, m)
       .def("solve", &Problem::solve)
       .def("print", &Problem::print)
       .def("getField", &Problem::getField, "name"_a)
-      .def("setField", &Problem::setField, "name"_a, "field"_a);
+      .def("setField", &Problem::setField, "name"_a, "field"_a)
+      .def_readwrite("couplingType", &Problem::couplingType_)
+      .def_readwrite("time", &Problem::time);
 
-  py::class_<ProblemFD1D, Problem>(m, "ProblemFD1D").def(py::init<>());
+  py::class_<ProblemFD1D, Problem>(m, "ProblemFD1D")
+      .def(py::init<>())
+      .def("initMeshCoupling", &ProblemFD1D::initMeshCoupling)
+      .def("initFieldCoupling", &ProblemFD1D::initFieldCoupling)
+      .def(
+          "createOutputDir",
+          [](ProblemFD1D * p, std::string_view path)
+          { std::filesystem::create_directories(path); })
+      .def(
+          "setupIO",
+          [](ProblemFD1D * p, std::string_view path)
+          {
+            p->initMeshCoupling(std::string(path) + "/mesh");
+            p->initFieldCoupling(std::string(path) + "/u");
+            p->outFile_ = std::string(path) + "/u";
+            std::filesystem::create_directories(path);
+          })
+      .def_readwrite("name", &ProblemFD1D::name_)
+      .def_readwrite("start", &ProblemFD1D::start_)
+      .def_readwrite("h", &ProblemFD1D::h_)
+      .def_readwrite("n", &ProblemFD1D::n_)
+      .def_readwrite("u", &ProblemFD1D::u_)
+      .def_readwrite("uOld", &ProblemFD1D::uOld_)
+      .def_readwrite("q", &ProblemFD1D::q_)
+      .def_readwrite("alpha", &ProblemFD1D::alpha_)
+      .def_readwrite("finalTime", &ProblemFD1D::finalTime_)
+      .def_readwrite("dt", &ProblemFD1D::dt_)
+      .def_readwrite("m", &ProblemFD1D::m_)
+      .def_readwrite("rhs", &ProblemFD1D::rhs_)
+      .def_readwrite("solverType", &ProblemFD1D::solverType_)
+      .def_readwrite("eqnType", &ProblemFD1D::eqnType_)
+      .def_readwrite("bcStart", &ProblemFD1D::bcStart_)
+      .def_readwrite("bcEnd", &ProblemFD1D::bcEnd_)
+      .def_readwrite("outFile", &ProblemFD1D::outFile_)
+      .def_readwrite("nameExt", &ProblemFD1D::nameExt_);
 
   py::class_<ProblemFD2D, Problem>(m, "ProblemFD2D").def(py::init<>());
 
@@ -93,4 +135,30 @@ PYBIND11_MODULE(pycocoa, m)
 #ifdef COCOA_ENABLE_MEDCOUPLING
   py::class_<CouplingMED, CouplingManager>(m, "CouplingMED").def(py::init<>());
 #endif
+
+  // FD utils
+  py::enum_<FD_BC_TYPE>(m, "FD_BC_TYPE")
+      .value("none", FD_BC_TYPE::NONE)
+      .value("dirichlet", FD_BC_TYPE::DIRICHLET)
+      .value("neumann", FD_BC_TYPE::NEUMANN);
+
+  py::class_<FDBC>(m, "FDBC").def(py::init<FD_BC_TYPE, double>());
+
+  py::class_<VectorFD>(m, "VectorFD", py::buffer_protocol())
+      .def(py::init<size_t>())
+      .def_buffer(
+          [](VectorFD & v)
+          {
+            return py::buffer_info(
+                v.data(),
+                sizeof(double),
+                py::format_descriptor<double>::format(),
+                1U,
+                {v.size()},
+                {sizeof(double)});
+          });
+
+  py::class_<MatrixTriDiag>(m, "MatrixTriDiag")
+      .def(py::init<size_t>())
+      .def("init", &MatrixTriDiag::init, "n"_a);
 }

@@ -25,6 +25,7 @@ FieldMED::~FieldMED()
 void FieldMED::init(
     std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support)
 {
+  name_ = name;
   fieldPtr_ = MEDCoupling::MEDCouplingFieldDouble::New(
       supportType2MEDtype(support), MEDCoupling::ONE_TIME);
   inited_ = true;

@@ -40,10 +40,16 @@ struct FieldCoupling
   static std::unique_ptr<FieldCoupling> build(COUPLING_TYPE type);
   static std::unique_ptr<FieldCoupling> build(std::string_view type);
 
-  COUPLING_TYPE type_ = COUPLING_TYPE::NONE;
   std::string name_ = "";
+  COUPLING_TYPE type_ = COUPLING_TYPE::NONE;
   std::filesystem::path filename_ = "./tmp";
 };
+
+inline std::ostream & operator<<(std::ostream & out, FieldCoupling const & f)
+{
+  out << "FieldCoupling(" << f.name_ << ", " << static_cast<uint>(f.type_) << ")";
+  return out;
+}
 
 // =====================================================================
 
@@ -57,19 +63,25 @@ struct FieldSimple: public FieldCoupling
   double operator[](size_t k) const override { return data_[k]; }
 
   // std::vector<double> getData() override { return data_; }
+  virtual void init(
+      std::string_view name,
+      MeshCoupling * /*mesh*/,
+      SUPPORT_TYPE const supportType) override
+  {
+    name_ = name;
+    supportType_ = supportType;
+  }
+  virtual void initIO(std::string_view /*filename*/) override {}
   virtual void
-  init(std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support) override
-  {}
-  virtual void initIO(std::string_view filename) override {}
-  virtual void setValues(std::vector<double> const & data, uint const dim = 1U) override
+  setValues(std::vector<double> const & data, uint const /*dim*/ = 1U) override
   {
     data_ = data;
   }
-  virtual void setValues(double value, uint size, uint const dim = 1U) override
+  virtual void setValues(double value, uint size, uint const /*dim*/ = 1U) override
   {
     data_.resize(size, value);
   }
-  virtual void printVTK(double time, uint iter) override
+  virtual void printVTK(double /*time*/, uint /*iter*/) override
   {
     if (messageVTK_)
     {
@@ -79,5 +91,6 @@ struct FieldSimple: public FieldCoupling
   }
 
   std::vector<double> data_;
+  SUPPORT_TYPE supportType_;
   bool messageVTK_ = true;
 };

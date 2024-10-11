@@ -144,7 +144,7 @@ void ProblemFD1D::initMeshCoupling(std::filesystem::path const & fileName)
   std::vector<uint> conn(nElems * 3);
   for (uint k = 0; k < nElems; k++)
   {
-    conn[3 * k] = 2; // MEDCellTypeToIKCell(MED_CELL_TYPE::LINE2);
+    conn[3 * k] = MEDCellTypeToIKCell(MED_CELL_TYPE::LINE2);
     conn[3 * k + 1] = k;
     conn[3 * k + 2] = k + 1;
   }

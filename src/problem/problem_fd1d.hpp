@@ -4,7 +4,6 @@
 #include <functional>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 // local
 #include "enums.hpp"
@@ -36,14 +35,14 @@ struct ProblemFD1D: public Problem
   double start_;
   double h_;
   uint n_;
-  std::vector<double> u_;
-  std::vector<double> uOld_;
-  std::vector<double> q_;
+  VectorFD u_;
+  VectorFD uOld_;
+  VectorFD q_;
   double alpha_;
   double finalTime_;
   double dt_;
   MatrixTriDiag m_;
-  std::vector<double> rhs_;
+  VectorFD rhs_;
   FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::TRIDIAG;
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
   FDBC bcStart_;

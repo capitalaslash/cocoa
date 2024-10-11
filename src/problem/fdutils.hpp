@@ -61,10 +61,23 @@ inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
 }
 
 // =====================================================================
+// struct VectorFD
+// {
+//   VectorFD() = default;
+//   explicit VectorFD(size_t const n): data_(n) {}
+//   ~VectorFD() = default;
+
+//   double * data() { return data_.data(); }
+
+//   std::vector<double> data_;
+// };
+using VectorFD = std::vector<double>;
+
+// =====================================================================
 struct MatrixTriDiag
 {
   MatrixTriDiag() = default;
-  explicit MatrixTriDiag(size_t n): diag(n), diagUp(n), diagDown(n) {}
+  explicit MatrixTriDiag(size_t const n): diag(n), diagUp(n), diagDown(n) {}
   ~MatrixTriDiag() = default;
 
   void init(size_t n)
