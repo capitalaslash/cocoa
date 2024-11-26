@@ -13,7 +13,7 @@
 struct ProblemFD1D: public Problem
 {
   using Assembly_T = std::function<void(ProblemFD1D *)>;
-  using Solver_T = std::function<void(ProblemFD1D *)>;
+  using Solver_T = std::function<std::pair<uint, double>(ProblemFD1D *)>;
 
   ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE} {}
   ~ProblemFD1D() = default;
@@ -28,8 +28,8 @@ struct ProblemFD1D: public Problem
   void initFieldCoupling(std::filesystem::path const & fileName);
   void assemblyHeat();
   void assemblyHeatCoupled();
-  void solveTriDiag();
-  void solveVanka();
+  std::pair<uint, double> solveTriDiag();
+  std::pair<uint, double> solveVanka();
 
   std::string name_;
   double start_;

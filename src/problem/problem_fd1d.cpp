@@ -255,25 +255,10 @@ void ProblemFD1D::solve()
   assemblies_.at(eqnType_)(this);
 
   // solve
-  solvers_.at(solverType_)(this);
+  auto const [numIters, residual] = solvers_.at(solverType_)(this);
+  fmt::print("num iters: {:4d}, residual norm: {:.8e}\n", numIters, residual);
 
-  // residual
-  std::vector<double> res(n_);
-  res[0] = rhs_[0] - (m_.diag[0] * u_[0] + m_.diagUp[0] * u_[1]);
-  for (uint k = 1; k < n_ - 1; k++)
-  {
-    double const prod =
-        m_.diagDown[k] * u_[k - 1] + m_.diag[k] * u_[k] + m_.diagUp[k] * u_[k + 1];
-    res[k] = rhs_[k] - prod;
-  }
-  res[n_ - 1] =
-      rhs_[n_ - 1] - (m_.diagDown[n_ - 1] * u_[n_ - 2] + m_.diag[n_ - 1] * u_[n_ - 1]);
-
-  double resNorm = 0.0;
-  for (uint k = 0; k < n_; k++)
-    resNorm += res[k] * res[k];
-  fmt::print("residual norm: {:.6e}\n", std::sqrt(resNorm));
-
+  // update coupling field
   getField("u")->setValues(u_);
 }
 
@@ -314,7 +299,24 @@ void ProblemFD1D::assemblyHeatCoupled()
   }
 }
 
-void ProblemFD1D::solveTriDiag()
+// TODO: unify with MatrixCRS version using templates
+double computeResidual(
+    MatrixTriDiag const & m,
+    std::vector<double> const & x,
+    std::vector<double> const & b,
+    double const area = 1.0)
+{
+  std::vector<double> res(x.size());
+  auto const tmp = m * x;
+  for (uint k = 0; k < res.size(); k++)
+    res[k] = (b[k] - tmp[k]);
+  double resNorm = 0.0;
+  for (uint k = 0; k < res.size(); k++)
+    resNorm += res[k] * res[k] * area;
+  return std::sqrt(resNorm);
+}
+
+std::pair<uint, double> ProblemFD1D::solveTriDiag()
 {
   std::vector<double> upPrime(n_);
   std::vector<double> rhsPrime(n_);
@@ -337,12 +339,25 @@ void ProblemFD1D::solveTriDiag()
   {
     u_[k] = rhsPrime[k] - upPrime[k] * u_[k + 1];
   }
+
+  return std::pair{1U, computeResidual(m_, u_, rhs_, h_)};
 }
 
-void ProblemFD1D::solveVanka()
+std::pair<uint, double> ProblemFD1D::solveVanka()
 {
-  for (uint n = 0U; n < 20U; n++)
+  uint maxIter = 1000U;
+  double const toll = 1e-6;
+
+  for (uint n = 0U; n < maxIter; n++)
   {
+    double const resNorm = computeResidual(m_, u_, rhs_, h_);
+
+    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    if (resNorm < toll)
+    {
+      return std::pair{n, resNorm};
+    }
+
     // for (uint k = 0U; k < n_; k++)
     //   uOld_[k] = u_[k];
 
@@ -359,6 +374,8 @@ void ProblemFD1D::solveVanka()
     u_[0] = (rhs_[0] - m_.diagUp[0] * u_[1]) / m_.diag[0];
     u_[n_ - 1] = (rhs_[n_ - 1] - m_.diagDown[n_ - 1] * u_[n_ - 2]) / m_.diag[n_ - 1];
   }
+
+  return std::pair{maxIter, computeResidual(m_, u_, rhs_, h_)};
 }
 
 void ProblemFD1D::print()
@@ -380,6 +397,6 @@ std::unordered_map<EQN_TYPE, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_ =
 };
 
 std::unordered_map<FD_SOLVER_TYPE, ProblemFD1D::Solver_T> ProblemFD1D::solvers_ = {
-    {FD_SOLVER_TYPE::TRIDIAG, [](ProblemFD1D * p) { p->solveTriDiag(); }},
-    {FD_SOLVER_TYPE::VANKA1D, [](ProblemFD1D * p) { p->solveVanka(); }},
+    {FD_SOLVER_TYPE::TRIDIAG, [](ProblemFD1D * p) { return p->solveTriDiag(); }},
+    {FD_SOLVER_TYPE::VANKA1D, [](ProblemFD1D * p) { return p->solveVanka(); }},
 };
