@@ -92,6 +92,8 @@ struct MatrixTriDiag
   std::vector<double> diagDown;
 };
 
+std::vector<double> operator*(MatrixTriDiag const & m, std::vector<double> const & v);
+
 // =====================================================================
 struct MatrixCSR
 {

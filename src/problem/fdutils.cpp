@@ -3,6 +3,24 @@
 // std
 #include <cassert>
 
+// =====================================================================
+std::vector<double> operator*(MatrixTriDiag const & m, std::vector<double> const & v)
+{
+  uint const n = m.diag.size();
+  assert(n == v.size());
+  std::vector<double> r(n);
+
+  r[0] = m.diag[0] * v[0] + m.diagUp[0] * v[1];
+  for (uint k = 1U; k < n - 1; k++)
+  {
+    r[k] = m.diagDown[k] * v[k - 1] + m.diag[k] * v[k] + m.diagUp[k] * v[k + 1];
+  }
+  r[n - 1] = m.diagDown[n - 1] * v[n - 2] + m.diag[n - 1] * v[n - 1];
+
+  return r;
+}
+
+// =====================================================================
 void MatrixCSR::init(size_t n)
 {
   n_ = n;
@@ -37,6 +55,7 @@ void MatrixCSR::close()
       data_[row].emplace_back(clm, value);
     }
   }
+
   std::vector<Triplet_T>().swap(triplets_);
 }
 
@@ -52,5 +71,6 @@ std::vector<double> operator*(MatrixCSR const & m, std::vector<double> const & v
       r[k] += value * v[id];
     }
   }
+
   return r;
 }
