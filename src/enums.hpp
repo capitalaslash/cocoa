@@ -126,4 +126,21 @@ inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)
   return static_cast<mcIdType>(t);
 }
 
+#else
+
+using mcIdType = std::uint32_t;
+
+enum struct MED_CELL_TYPE : int8_t
+{
+  LINE2 = 12,
+  TRIANGLE3 = 23,
+  QUAD4 = 24,
+  HEX8 = 38,
+};
+
+inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)
+{
+  return static_cast<mcIdType>(t);
+}
+
 #endif
