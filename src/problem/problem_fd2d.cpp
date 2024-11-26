@@ -49,7 +49,11 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
     std::string token;
     while (std::getline(bufferStream, token, ' '))
     {
-      if (token == "name:")
+      if (token[0] == '#')
+      {
+        // this is a comment, ignore line
+      }
+      else if (token == "name:")
         bufferStream >> name_;
       else if (token == "start:")
       {
