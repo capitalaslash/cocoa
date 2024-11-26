@@ -41,6 +41,7 @@ enum struct FD_SOLVER_TYPE : uint8_t
   NONE = 0,
   TRIDIAG,
   VANKA1D,
+  JACOBI2D,
   VANKA2DCB,
   VANKA2DSCI,
 };
@@ -51,6 +52,8 @@ inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
     return FD_SOLVER_TYPE::TRIDIAG;
   if (name == "vanka1d")
     return FD_SOLVER_TYPE::VANKA1D;
+  if (name == "jacobi2d")
+    return FD_SOLVER_TYPE::JACOBI2D;
   if (name == "vanka2dcb")
     return FD_SOLVER_TYPE::VANKA2DCB;
   if (name == "vanka2dsci")

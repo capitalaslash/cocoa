@@ -15,7 +15,7 @@ struct ProblemFD2D: public Problem
 {
   using Vec2D_T = std::array<double, 2U>;
   using Assembly_T = std::function<void(ProblemFD2D *)>;
-  using Solver_T = std::function<void(ProblemFD2D *)>;
+  using Solver_T = std::function<std::pair<uint, double>(ProblemFD2D *)>;
 
   ProblemFD2D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE} {}
   virtual ~ProblemFD2D() = default;
@@ -30,8 +30,9 @@ struct ProblemFD2D: public Problem
   void initFieldCoupling(std::filesystem::path const & fileName);
   void assemblyHeat();
   void assemblyHeatCoupled();
-  void solveVankaSCI();
-  void solveVankaCB();
+  std::pair<uint, double> solveJacobi();
+  std::pair<uint, double> solveVankaSCI();
+  std::pair<uint, double> solveVankaCB();
 
   std::string name_;
   Vec2D_T start_;
