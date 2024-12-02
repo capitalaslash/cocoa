@@ -328,11 +328,13 @@ install(
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cocoa
 )
 
-install(
-  TARGETS pycocoa
-  EXPORT cocoaTargets
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
+if (COCOA_ENABLE_PYTHON)
+  install(
+    TARGETS pycocoa
+    EXPORT cocoaTargets
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
+endif()
 
 install(
   EXPORT cocoaTargets
