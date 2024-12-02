@@ -16,7 +16,7 @@ pNS.print()
 pHeat.print()
 
 while pNS.run() or pHeat.run():
-    couplingHeatToNS.project("T");
+    couplingHeatToNS.project("T")
     pNS.advance()
     pNS.solve()
     pNS.print()
