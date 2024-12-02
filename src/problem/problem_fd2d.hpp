@@ -17,7 +17,7 @@ struct ProblemFD2D: public Problem
   using Assembly_T = std::function<void(ProblemFD2D *)>;
   using Solver_T = std::function<std::pair<uint, double>(ProblemFD2D *)>;
 
-  ProblemFD2D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE} {}
+  ProblemFD2D(): Problem{PROBLEM_TYPE::FD2D, COUPLING_TYPE::NONE} {}
   virtual ~ProblemFD2D() = default;
 
   void setup(Problem::ParamList_T const & params) override;
@@ -42,6 +42,7 @@ struct ProblemFD2D: public Problem
   std::vector<double> uOld_;
   std::vector<double> q_;
   double alpha_;
+  std::array<double, 2> c_ = {0.0, 0.0};
   double finalTime_;
   double dt_;
   MatrixCSR m_;

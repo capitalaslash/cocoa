@@ -406,13 +406,50 @@ void ProblemFD2D::assemblyHeat()
     for (uint i = 1; i < n_[0] - 1; i++)
     {
       auto const id = i + j * n_[0];
+
+      // middle
       m_.triplets_.emplace_back(
-          id, id, 1. / dt_ + alpha_ * (2. / (h_[0] * h_[0]) + 2. / (h_[1] * h_[1])));
-      m_.triplets_.emplace_back(id, id - n_[0], -alpha_ / (h_[1] * h_[1]));
-      m_.triplets_.emplace_back(id, id + 1, -alpha_ / (h_[0] * h_[0]));
-      m_.triplets_.emplace_back(id, id + n_[0], -alpha_ / (h_[1] * h_[1]));
-      m_.triplets_.emplace_back(id, id - 1, -alpha_ / (h_[0] * h_[0]));
-      rhs_[id] = uOld_[id] / dt_ + q_[id];
+          id,
+          id,
+          1. / dt_                                            // time derivative
+              + alpha_ * 2. / (h_[0] * h_[0] + h_[1] * h_[1]) // diffusion
+      );
+
+      // bottom
+      m_.triplets_.emplace_back(
+          id,
+          id - n_[0],
+          -alpha_ / (h_[1] * h_[1]) // diffusion
+              - c_[1] / h_[1]       // advection
+      );
+
+      // right
+      m_.triplets_.emplace_back(
+          id,
+          id + 1,
+          -alpha_ / (h_[0] * h_[0]) // diffusion
+              + c_[0] / h_[0]       // advection
+      );
+
+      // top
+      m_.triplets_.emplace_back(
+          id,
+          id + n_[0],
+          -alpha_ / (h_[1] * h_[1]) // diffusion
+              + c_[1] / h_[1]       // advection
+      );
+
+      // left
+      m_.triplets_.emplace_back(
+          id,
+          id - 1,
+          -alpha_ / (h_[0] * h_[0]) // diffusion
+              - c_[0] / h_[0]       // advection
+      );
+
+      rhs_[id] = uOld_[id] / dt_ // time derivative
+                 + q_[id]        // source
+          ;
     }
   m_.close();
 }
