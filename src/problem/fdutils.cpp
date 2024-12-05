@@ -31,7 +31,7 @@ void MatrixCSR::init(size_t n)
 
 void MatrixCSR::clear()
 {
-  std::vector<Triplet_T>().swap(triplets_);
+  std::vector<Triplet_T>{}.swap(triplets_);
   std::vector<Row_T>(n_).swap(data_);
 }
 

@@ -361,7 +361,7 @@ void ProblemFD2D::solve()
       for (uint k = 0U; k < dofList.size(); k++)
       {
         uint const dof = dofList[k];
-        m_.set(dof, dof, 1.0);
+        m_.add(dof, dof, 1.0);
         rhs_[dof] = bc.values[k];
       }
       break;
@@ -388,7 +388,7 @@ void ProblemFD2D::solve()
   for (uint k = 0; k < 4U; k++)
   {
     auto const dof = cornerDOF(n_)[k];
-    m_.triplets_.emplace_back(dof, dof, 1.0);
+    m_.add(dof, dof, 1.0);
     if (bcs_[cornerSides[k][0]].type == FD_BC_TYPE::DIRICHLET)
     {
       rhs_[dof] = bcs_[cornerSides[k][0]].values[cornerEnd(n_, k).first];
@@ -431,7 +431,7 @@ void ProblemFD2D::assemblyHeat()
       auto const id = i + j * n_[0];
 
       // middle
-      m_.triplets_.emplace_back(
+      m_.add(
           id,
           id,
           1. / dt_                                            // time derivative
@@ -439,35 +439,35 @@ void ProblemFD2D::assemblyHeat()
       );
 
       // bottom
-      m_.triplets_.emplace_back(
+      m_.add(
           id,
           id - n_[0],
           -alpha_ / (h_[1] * h_[1]) // diffusion
-              - c_[1] / h_[1]       // advection
+              - c_[1][id] / h_[1]   // advection
       );
 
       // right
-      m_.triplets_.emplace_back(
+      m_.add(
           id,
           id + 1,
           -alpha_ / (h_[0] * h_[0]) // diffusion
-              + c_[0] / h_[0]       // advection
+              + c_[0][id] / h_[0]   // advection
       );
 
       // top
-      m_.triplets_.emplace_back(
+      m_.add(
           id,
           id + n_[0],
           -alpha_ / (h_[1] * h_[1]) // diffusion
-              + c_[1] / h_[1]       // advection
+              + c_[1][id] / h_[1]   // advection
       );
 
       // left
-      m_.triplets_.emplace_back(
+      m_.add(
           id,
           id - 1,
           -alpha_ / (h_[0] * h_[0]) // diffusion
-              - c_[0] / h_[0]       // advection
+              - c_[0][id] / h_[0]   // advection
       );
 
       rhs_[id] = uOld_[id] / dt_ // time derivative

@@ -164,6 +164,18 @@ struct MatrixCSR
 
   void init(size_t n);
 
+  void set(int const /*row*/, int const /*clm*/, double const /*value*/)
+  {
+    fmt::print(stderr, "set() is not supported in MatrixCSR!\n");
+    std::abort();
+  }
+
+  void add(uint const row, uint const clm, double const value)
+  {
+    triplets_.emplace_back(row, clm, value);
+  }
+
+  void clearRow(uint const row) { Row_T{}.swap(data_[row]); }
   void clear();
   void close();
 
