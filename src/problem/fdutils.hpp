@@ -95,19 +95,53 @@ inline double norm2sq(std::vector<double> & v)
 struct MatrixTriDiag
 {
   MatrixTriDiag() = default;
-  explicit MatrixTriDiag(size_t const n): diag(n), diagUp(n), diagDown(n) {}
+  explicit MatrixTriDiag(size_t const n):
+      diags_{std::vector<double>(n), std::vector<double>(n), std::vector<double>(n)}
+  {}
   ~MatrixTriDiag() = default;
 
   void init(size_t n)
   {
-    diag.resize(n);
-    diagUp.resize(n);
-    diagDown.resize(n);
+    diags_[0].resize(n, 0.0);
+    diags_[1].resize(n, 0.0);
+    diags_[2].resize(n, 0.0);
   }
 
-  std::vector<double> diag;
-  std::vector<double> diagUp;
-  std::vector<double> diagDown;
+  void set(int const row, int const clm, double const value)
+  {
+    assert(std::abs(clm - row) <= 1);
+    diags_[clm - row + 1][row] = value;
+  }
+
+  void add(int const row, int const clm, double const value)
+  {
+    assert(std::abs(clm - row) <= 1);
+    diags_[clm - row + 1][row] += value;
+  }
+
+  void clearRow(uint const row)
+  {
+    diags_[0][row] = 0.0;
+    diags_[1][row] = 0.0;
+    diags_[2][row] = 0.0;
+  }
+  void clear()
+  {
+    uint const n = diags_[1].size();
+    diags_[0].resize(n, 0.0);
+    diags_[1].resize(n, 0.0);
+    diags_[2].resize(n, 0.0);
+  }
+  void close() {}
+
+  std::vector<double> & diag() { return diags_[1]; }
+  std::vector<double> & diagUp() { return diags_[2]; }
+  std::vector<double> & diagDown() { return diags_[0]; }
+  std::vector<double> const & diag() const { return diags_[1]; }
+  std::vector<double> const & diagUp() const { return diags_[2]; }
+  std::vector<double> const & diagDown() const { return diags_[0]; }
+
+  std::array<std::vector<double>, 3U> diags_;
 };
 
 std::vector<double> operator*(MatrixTriDiag const & m, std::vector<double> const & v);

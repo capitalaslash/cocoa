@@ -220,8 +220,8 @@ void ProblemFD1D::solve()
   {
   case FD_BC_TYPE::DIRICHLET:
   {
-    m_.diag[0] = 1.0;
-    m_.diagUp[0] = 0.0;
+    m_.clearRow(0U);
+    m_.diag()[0] = 1.0;
     rhs_[0] = bcStart_.values[0];
     break;
   }
@@ -267,6 +267,7 @@ void ProblemFD1D::solve()
   fmt::print("num iters: {:4d}, ", numIters);
   fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
 
+  m_.clear();
 
   // update coupling field
   getField("u")->setValues(u_);
@@ -276,9 +277,11 @@ void ProblemFD1D::assemblyHeat()
 {
   for (uint k = 0U; k < n_; k++)
   {
-    m_.diag[k] = 1. / dt_ + alpha_ * 2. / (h_ * h_);
-    m_.diagUp[k] = -alpha_ / (h_ * h_);
-    m_.diagDown[k] = -alpha_ / (h_ * h_);
+    uint const kLeft = (k != 0) ? k - 1 : k + 1;
+    uint const kRight = (k != n_ - 1) ? k + 1 : k - 1;
+    m_.add(k, k, 1. / dt_ + alpha_ * 2. / (h_ * h_));
+    m_.add(k, kLeft, -alpha_ / (h_ * h_));
+    m_.add(k, kRight, -alpha_ / (h_ * h_));
     rhs_[k] = uOld_[k] / dt_ + q_[k];
   }
 }
@@ -294,12 +297,12 @@ void ProblemFD1D::assemblyHeatCoupled()
   for (uint k = 1U; k < n_ - 1; k++)
   {
     // matrix
-    m_.diag[k] = 1. / dt_                  // time
-                 + alpha_ * 2. / (h_ * h_) // diffusion
-                 + kAmpli                  // feedback control
+    m_.diag()[k] = 1. / dt_                  // time
+                   + alpha_ * 2. / (h_ * h_) // diffusion
+                   + kAmpli                  // feedback control
         ;
-    m_.diagUp[k] = -alpha_ / (h_ * h_);   // diffusion
-    m_.diagDown[k] = -alpha_ / (h_ * h_); // diffusion
+    m_.diagUp()[k] = -alpha_ / (h_ * h_);   // diffusion
+    m_.diagDown()[k] = -alpha_ / (h_ * h_); // diffusion
 
     // rhs
     rhs_[k] = uOld_[k] / dt_     // time
@@ -314,16 +317,14 @@ double computeResidual(
     MatrixTriDiag const & m,
     std::vector<double> const & x,
     std::vector<double> const & b,
-    double const area = 1.0)
+    double const area)
 {
   std::vector<double> res(x.size());
   auto const tmp = m * x;
   for (uint k = 0; k < res.size(); k++)
     res[k] = (b[k] - tmp[k]);
-  double resNorm = 0.0;
-  for (uint k = 0; k < res.size(); k++)
-    resNorm += res[k] * res[k] * area;
-  return std::sqrt(resNorm);
+  double const resNorm = std::sqrt(norm2sq(res) * area);
+  return resNorm;
 }
 
 std::pair<uint, double> ProblemFD1D::solveTriDiag()
@@ -331,17 +332,17 @@ std::pair<uint, double> ProblemFD1D::solveTriDiag()
   std::vector<double> upPrime(n_);
   std::vector<double> rhsPrime(n_);
 
-  upPrime[0] = m_.diagUp[0] / m_.diag[0];
+  upPrime[0] = m_.diagUp()[0] / m_.diag()[0];
   for (uint k = 1U; k < n_ - 1; k++)
   {
-    upPrime[k] = m_.diagUp[k] / (m_.diag[k] - m_.diagDown[k] * upPrime[k - 1]);
+    upPrime[k] = m_.diagUp()[k] / (m_.diag()[k] - m_.diagDown()[k] * upPrime[k - 1]);
   }
 
-  rhsPrime[0] = rhs_[0] / m_.diag[0];
+  rhsPrime[0] = rhs_[0] / m_.diag()[0];
   for (uint k = 1U; k < n_; k++)
   {
-    rhsPrime[k] = (rhs_[k] - m_.diagDown[k] * rhsPrime[k - 1]) /
-                  (m_.diag[k] - m_.diagDown[k] * upPrime[k - 1]);
+    rhsPrime[k] = (rhs_[k] - m_.diagDown()[k] * rhsPrime[k - 1]) /
+                  (m_.diag()[k] - m_.diagDown()[k] * upPrime[k - 1]);
   }
 
   u_[n_ - 1] = rhsPrime[n_ - 1];
@@ -373,16 +374,17 @@ std::pair<uint, double> ProblemFD1D::solveVanka()
 
     for (uint k = 1U; k < n_ - 1; k += 2U)
     {
-      u_[k] = (rhs_[k] - m_.diagDown[k] * u_[k - 1] - m_.diagUp[k] * u_[k + 1]) /
-              m_.diag[k];
+      u_[k] = (rhs_[k] - m_.diagDown()[k] * u_[k - 1] - m_.diagUp()[k] * u_[k + 1]) /
+              m_.diag()[k];
     }
     for (uint k = 2U; k < n_ - 1; k += 2U)
     {
-      u_[k] = (rhs_[k] - m_.diagDown[k] * u_[k - 1] - m_.diagUp[k] * u_[k + 1]) /
-              m_.diag[k];
+      u_[k] = (rhs_[k] - m_.diagDown()[k] * u_[k - 1] - m_.diagUp()[k] * u_[k + 1]) /
+              m_.diag()[k];
     }
-    u_[0] = (rhs_[0] - m_.diagUp[0] * u_[1]) / m_.diag[0];
-    u_[n_ - 1] = (rhs_[n_ - 1] - m_.diagDown[n_ - 1] * u_[n_ - 2]) / m_.diag[n_ - 1];
+    u_[0] = (rhs_[0] - m_.diagUp()[0] * u_[1]) / m_.diag()[0];
+    u_[n_ - 1] =
+        (rhs_[n_ - 1] - m_.diagDown()[n_ - 1] * u_[n_ - 2]) / m_.diag()[n_ - 1];
   }
 
   return std::pair{maxIter, computeResidual(m_, u_, rhs_, h_)};
