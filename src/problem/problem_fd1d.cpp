@@ -14,6 +14,7 @@
 #include "coupling/field_coupling.hpp"
 #include "coupling/mesh_coupling.hpp"
 #include "enums.hpp"
+#include "problem/fdutils.hpp"
 
 void ProblemFD1D::setup(Problem::ParamList_T const & params)
 {
@@ -206,7 +207,6 @@ void ProblemFD1D::solve()
 {
   fmt::print("\n===\n");
   fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
-  double const h = 1. / (n_ - 1);
 
   // update
   for (uint k = 0; k < u_.size(); k++)
@@ -227,7 +227,7 @@ void ProblemFD1D::solve()
   }
   case FD_BC_TYPE::NEUMANN:
   {
-    rhs_[0] += -2.0 * alpha_ * bcStart_.values[0] / h;
+    rhs_[0] += -2.0 * alpha_ * bcStart_.values[0] / h_;
     break;
   }
   default:
@@ -249,7 +249,7 @@ void ProblemFD1D::solve()
   }
   case FD_BC_TYPE::NEUMANN:
   {
-    rhs_[n_ - 1] += 2.0 * alpha_ * bcEnd_.values[0] / h;
+    rhs_[n_ - 1] += 2.0 * alpha_ * bcEnd_.values[0] / h_;
     break;
   }
   default:
@@ -267,7 +267,10 @@ void ProblemFD1D::solve()
   fmt::print("num iters: {:4d}, ", numIters);
   fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
 
+  // clean up
   m_.clear();
+  for (uint k = 0; k < rhs_.size(); k++)
+    rhs_[k] = 0.0;
 
   // update coupling field
   getField("u")->setValues(u_);

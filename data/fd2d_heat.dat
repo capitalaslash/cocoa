@@ -4,12 +4,13 @@ end: 1.0 1.0
 n_elems: 20 20
 coupling_type: simple
 u_init: 1.0
-q: 1
-alpha: 2
+q: 1.0
+alpha: 1.0
+c: 1.0 0.0
 start_time: 0.0
 final_time: 4.0
 dt: 0.4
 assembly_name: heat
-solver_type: jacobi2d
-bcs: dirichlet 1.0 neumann 0.0 neumann -1.0 neumann 0.0
+solver_type: gaussseidel2d
+bcs: dirichlet 1.0 dirichlet 0.0 neumann -1.0 dirichlet 0.0
 out_file: output_fd2d_heat/u

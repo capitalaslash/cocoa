@@ -59,3 +59,6 @@ struct ProblemFD2D: public Problem
   static std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
   static std::unordered_map<FD_SOLVER_TYPE, Solver_T> solvers_;
 };
+
+const std::vector<uint>
+sideDOF(std::array<uint, 2U> const & n, uint const side, bool const withEnds = false);

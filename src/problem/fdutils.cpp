@@ -43,6 +43,7 @@ void MatrixCSR::close()
     auto clmFound = false;
     for (uint k = 0; k < data_[row].size(); k++)
     {
+      // check if clm has already been set
       if (data_[row][k].clm == clm)
       {
         clmFound = true;
@@ -50,12 +51,14 @@ void MatrixCSR::close()
         break;
       }
     }
+    // when the clm is not yet stored, create new storage place
     if (!clmFound)
     {
       data_[row].emplace_back(clm, value);
     }
   }
 
+  // clear out triplets after storing them
   std::vector<Triplet_T>().swap(triplets_);
 }
 

@@ -2,6 +2,7 @@
 
 // std
 #include <cassert>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <numeric>
@@ -28,11 +29,11 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
   // fields
   double uInit = 0.0;
   double qValue = 1.0;
-  // bcs
-  std::array<double, 4U> bcValues{0.0, 0.0, 0.0, 0.0};
   // physical constants
   alpha_ = 0.2;
   std::array<double, 2U> cValues{0.0, 0.0};
+  // bcs
+  std::array<double, 4U> bcValues{0.0, 0.0, 0.0, 0.0};
   // time
   time = 0.0;
   finalTime_ = 1.0;
@@ -238,90 +239,117 @@ void ProblemFD2D::advance()
   it++;
 }
 
-// static constexpr std::vector<uint> // requires gcc >= 12
-static const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, uint const side)
+// TODO: static constexpr std::vector<uint> requires gcc >= 12
+// TODO: enum for sides
+// TODO: replace bool with enum
+// TODO: remove bool
+const std::vector<uint>
+sideDOF(std::array<uint, 2U> const & n, uint const side, bool const withEnds)
 {
+  uint const dofSize = (withEnds) ? n[side % 2] : n[side % 2] - 2;
+  uint const dofStart = (withEnds) ? 0U : 1U;
+  std::vector<uint> dofList(dofSize);
+
   switch (side)
   {
   case 0U: // bottom
   {
-    std::vector<uint> dofList(n[0] - 2);
-    std::iota(dofList.begin(), dofList.end(), 1U);
-    return dofList;
+    std::iota(dofList.begin(), dofList.end(), dofStart);
+    break;
   }
   case 1U: // right
   {
-    std::vector<uint> dofList(n[1] - 2);
-    for (uint k = 0U; k < n[1] - 2; k++)
-      dofList[k] = (k + 2) * n[0] - 1;
-    return dofList;
+    for (uint k = 0U; k < dofSize; k++)
+      dofList[k] = (k + dofStart + 1) * n[0] - 1;
+    break;
   }
   case 2U: // top
   {
-    std::vector<uint> dofList(n[0] - 2);
-    std::iota(dofList.begin(), dofList.end(), n[0] * (n[1] - 1) + 1);
-    return dofList;
+    std::iota(dofList.begin(), dofList.end(), n[0] * (n[1] - 1) + dofStart);
+    break;
   }
   case 3U: // left
   {
-    std::vector<uint> dofList(n[1] - 2);
-    for (uint k = 0U; k < n[1] - 2; k++)
-      dofList[k] = (k + 1) * n[0];
-    return dofList;
+    for (uint k = 0U; k < dofSize; k++)
+      dofList[k] = (k + dofStart) * n[0];
+    break;
   }
   default:
     std::abort();
   }
 
-  return std::vector<uint>(0U);
+  return dofList;
 }
+
+// static constexpr int sideOffset(std::array<uint, 2U> const & n, uint k)
+// {
+//   switch (k)
+//   {
+//   case 0U: // bottom
+//     return n[0];
+//   case 1U: // right
+//     return -1;
+//   case 2U: // top
+//     return -n[0];
+//   case 3U: // left
+//     return 1;
+//   default:
+//     std::abort();
+//   }
+//   return 0;
+// }
 
 static constexpr std::array<uint, 4U> cornerDOF(std::array<uint, 2U> const & n)
 {
-  return std::array<uint, 4U>{{0U, n[0] - 1, n[0] * (n[1] - 1), n[0] * n[1] - 1}};
-}
-
-static constexpr int sideOffset(std::array<uint, 2U> const & n, uint k)
-{
-  switch (k)
-  {
-  case 0U:
-    return n[0];
-  case 1U:
-    return -1;
-  case 2U:
-    return -n[0];
-  case 3U:
-    return 1;
-  default:
-    std::abort();
-  }
-  return 0;
+  return std::array<uint, 4U>{{
+      0U,                // bottom-left
+      n[0] - 1,          // bottom-right
+      n[0] * n[1] - 1,   // top-right
+      n[0] * (n[1] - 1), // top-left
+  }};
 }
 
 static constexpr std::array<std::array<uint, 2U>, 4U> cornerSides = {{
-    {{0, 3}},
-    {{0, 1}},
-    {{2, 3}},
-    {{2, 1}},
+    {{0, 3}}, // bottom-left
+    {{1, 0}}, // bottom-right
+    {{2, 1}}, // top-right
+    {{3, 2}}, // top-left
 }};
 
-static constexpr int cornerOffset(std::array<uint, 2U> const & n, uint k)
+// static constexpr int cornerOffset(std::array<uint, 2U> const & n, uint k)
+// {
+//   switch (k)
+//   {
+//   case 0U: // bottom-left
+//     return n[0] + 1;
+//   case 1U: // bottom-right
+//     return n[0] - 1;
+//   case 2U: // top-right
+//     return -n[0] - 1;
+//   case 3U: // top-left
+//     return -n[0] + 1;
+//   default:
+//     std::abort();
+//   }
+//   return 0;
+// }
+
+static constexpr std::pair<uint, uint> cornerEnd(std::array<uint, 2U> const & n, uint k)
 {
   switch (k)
   {
   case 0U:
-    return n[0] + 1; // bottom left
+    return {0, 0}; // bottom left
   case 1U:
-    return n[0] - 1; // bottom right
+    return {0, n[0] - 1}; // bottom right
   case 2U:
-    return -n[0] + 1; // top left
+    return {n[0] - 1, n[1] - 1}; // top left
   case 3U:
-    return -n[0] - 1; // top right
+    return {n[1] - 1, 0}; // top right
   default:
     std::abort();
   }
-  return 0;
+  return {0, 0};
 }
 
 // TODO: unify with 1D version by using templates
@@ -341,19 +369,37 @@ double computeResidual(
 
 void ProblemFD2D::solve()
 {
+  fmt::print("\n===\n");
   fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
-  Vec2D_T const h = {1. / (n_[0] - 1), 1. / (n_[0] - 1)};
+
+  // TODO: improve CFL evaluation by using better estimation of cell diameter
+  double maxCFL = 0.0;
+  for (uint k = 0U; k < u_.size(); k++)
+  {
+    double const cLocal = std::sqrt(c_[0][k] * c_[0][k] + c_[1][k] * c_[1][k]);
+    maxCFL = std::max(cLocal * dt_ / std::min(h_[0], h_[1]), maxCFL);
+  }
+  fmt::print("maxCFL: {:.6e}\n", maxCFL);
 
   // update
   for (uint k = 0; k < u_.size(); k++)
     uOld_[k] = u_[k];
 
+  // assembly
+  assemblies_.at(eqnType_)(this);
+
+  // TODO: decide if sign should mean always entrant/always outgoing (+1/-1 always) or
+  // follow direction axis (current)
+  std::array<double, 4U> const sideSign = {-1.0, 1.0, 1.0, -1.0};
+  std::array<double, 4U> const hSide = {h_[1], h_[0], h_[1], h_[0]};
+
   // sides
-  for (uint k = 0U; k < 4U; k++)
+  for (uint s = 0U; s < 4U; s++)
   {
-    auto const & bc = bcs_[k];
-    auto const dofList = sideDOF(n_, k);
-    auto const offset = sideOffset(n_, k);
+    auto const & bc = bcs_[s];
+    auto const dofList = sideDOF(n_, s, true);
+    // auto const offset = sideOffset(n_, k);
+
     switch (bc.type)
     {
     case FD_BC_TYPE::DIRICHLET:
@@ -361,6 +407,7 @@ void ProblemFD2D::solve()
       for (uint k = 0U; k < dofList.size(); k++)
       {
         uint const dof = dofList[k];
+        m_.clearRow(dof);
         m_.add(dof, dof, 1.0);
         rhs_[dof] = bc.values[k];
       }
@@ -368,51 +415,45 @@ void ProblemFD2D::solve()
     }
     case FD_BC_TYPE::NEUMANN:
     {
-      for (auto const & dof: dofList)
+      for (uint k = 1U; k < dofList.size() - 1; k++)
       {
-        m_.triplets_.emplace_back(dof, dof, 1.0);
-        m_.triplets_.emplace_back(dof, dof + offset, -1.0);
-        rhs_[dof] = bc.value * h[1];
+        uint const dof = dofList[k];
+        rhs_[dof] += sideSign[s] * 2.0 * alpha_ * bc.values[k] / hSide[s];
       }
       break;
     }
     default:
     {
-      fmt::print(stderr, "bc {} not specified!\n", k);
+      fmt::print(stderr, "bc {} not specified!\n", s);
       std::abort();
     }
     }
   }
 
-  // corners
-  for (uint k = 0; k < 4U; k++)
-  {
-    auto const dof = cornerDOF(n_)[k];
-    m_.add(dof, dof, 1.0);
-    if (bcs_[cornerSides[k][0]].type == FD_BC_TYPE::DIRICHLET)
-    {
-      rhs_[dof] = bcs_[cornerSides[k][0]].values[cornerEnd(n_, k).first];
-    }
-    else if (bcs_[cornerSides[k][1]].type == FD_BC_TYPE::DIRICHLET)
-    {
-      rhs_[dof] = bcs_[cornerSides[k][1]].values[cornerEnd(n_, k).second];
-    }
-    else
-    {
-      m_.triplets_.emplace_back(dof, dof + cornerOffset(n_, k), -1.0);
-      rhs_[dof] =
-          bcs_[cornerSides[k][0]].value * h[1] + bcs_[cornerSides[k][1]].value * h[0];
-    }
-  }
+  // TODO: manage Neumann/Neumann corners
+  // for (uint k = 0; k < 4U; k++)
+  // {
+  //   auto const dof = cornerDOF(n_)[k];
+  //   m_.add(dof, dof, 1.0);
+  //   if (bcs_[cornerSides[k][0]].type == FD_BC_TYPE::NEUMANN &&
+  //   bcs_[cornerSides[k][1]].type == FD_BC_TYPE::NEUMANN)
+  //   {
+  //     m_.add(dof, dof + cornerOffset(n_, k), -1.0);
+  //     rhs_[dof] =
+  //         bcs_[cornerSides[k][0]].values[] * h_[1] + bcs_[cornerSides[k][1]].values[]
+  //         * h_[0];
+  //   }
+  // }
 
-  // fmt::print(stderr, "{}\n", m_.triplets_);
+  m_.close();
 
-  // assembly
-  assemblies_.at(eqnType_)(this);
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
 
   // solve
   auto const [numIters, residual] = solvers_.at(solverType_)(this);
-  fmt::print("num iters: {:4d}, residual norm: {:.8e}\n", numIters, residual);
+  fmt::print("num iters: {:4d}, ", numIters);
+  fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
 
   // clean up
   m_.clear();
@@ -425,50 +466,45 @@ void ProblemFD2D::solve()
 
 void ProblemFD2D::assemblyHeat()
 {
-  for (uint j = 1; j < n_[1] - 1; j++)
-    for (uint i = 1; i < n_[0] - 1; i++)
+  for (uint j = 0U; j < n_[1]; j++)
+    for (uint i = 0U; i < n_[0]; i++)
     {
       auto const id = i + j * n_[0];
 
       // middle
-      m_.add(
-          id,
-          id,
-          1. / dt_                                            // time derivative
-              + alpha_ * 2. / (h_[0] * h_[0] + h_[1] * h_[1]) // diffusion
-      );
+      double const value =
+          1. / dt_                                                 // time derivative
+          + alpha_ * (2. / (h_[0] * h_[0]) + 2. / (h_[1] * h_[1])) // diffusion
+          ;
+      m_.add(id, id, value);
 
       // bottom
-      m_.add(
-          id,
-          id - n_[0],
-          -alpha_ / (h_[1] * h_[1]) // diffusion
-              - c_[1][id] / h_[1]   // advection
-      );
+      uint const idBottom = (j != 0U) ? id - n_[0] : id + n_[0];
+      double const valueBottom = -alpha_ / (h_[1] * h_[1]) // diffusion
+                                 - c_[1][id] / h_[1]       // advection
+          ;
+      m_.add(id, idBottom, valueBottom);
 
       // right
-      m_.add(
-          id,
-          id + 1,
-          -alpha_ / (h_[0] * h_[0]) // diffusion
-              + c_[0][id] / h_[0]   // advection
-      );
+      uint const idRight = (i != n_[0] - 1) ? id + 1 : id - 1;
+      double const valueRight = -alpha_ / (h_[0] * h_[0]) // diffusion
+                                + c_[0][id] / h_[0]       // advection
+          ;
+      m_.add(id, idRight, valueRight);
 
       // top
-      m_.add(
-          id,
-          id + n_[0],
-          -alpha_ / (h_[1] * h_[1]) // diffusion
-              + c_[1][id] / h_[1]   // advection
-      );
+      uint const idTop = (j != n_[1] - 1) ? id + n_[0] : id - n_[0];
+      double const valueTop = -alpha_ / (h_[1] * h_[1]) // diffusion
+                              + c_[1][id] / h_[1]       // advection
+          ;
+      m_.add(id, idTop, valueTop);
 
       // left
-      m_.add(
-          id,
-          id - 1,
-          -alpha_ / (h_[0] * h_[0]) // diffusion
-              - c_[0][id] / h_[0]   // advection
-      );
+      uint const idLeft = (i != 0U) ? id - 1 : id + 1;
+      double const valueLeft = -alpha_ / (h_[0] * h_[0]) // diffusion
+                               - c_[0][id] / h_[0]       // advection
+          ;
+      m_.add(id, idLeft, valueLeft);
 
       rhs_[id] = uOld_[id] / dt_ // time derivative
                  + q_[id]        // source
