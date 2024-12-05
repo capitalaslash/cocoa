@@ -281,6 +281,7 @@ endmacro()
 cocoa_add_app(fd1d fd1d_heat.dat)
 cocoa_add_app(fd2d fd2d_heat.dat)
 cocoa_add_app(simple fd1d_heat.dat fd1d_hc.dat)
+cocoa_add_app(cyclic fd2d_heatpipe.dat)
 
 if (COCOA_ENABLE_PROXPDE)
   cocoa_add_app(proxpde proxpde_heat.yaml proxpde_hc.yaml)

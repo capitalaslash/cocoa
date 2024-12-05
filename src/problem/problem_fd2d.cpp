@@ -241,37 +241,33 @@ void ProblemFD2D::advance()
 
 // TODO: static constexpr std::vector<uint> requires gcc >= 12
 // TODO: enum for sides
-// TODO: replace bool with enum
-// TODO: remove bool
-const std::vector<uint>
-sideDOF(std::array<uint, 2U> const & n, uint const side, bool const withEnds)
+const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, uint const side)
 {
-  uint const dofSize = (withEnds) ? n[side % 2] : n[side % 2] - 2;
-  uint const dofStart = (withEnds) ? 0U : 1U;
+  uint const dofSize = n[side % 2];
   std::vector<uint> dofList(dofSize);
 
   switch (side)
   {
   case 0U: // bottom
   {
-    std::iota(dofList.begin(), dofList.end(), dofStart);
+    std::iota(dofList.begin(), dofList.end(), 0U);
     break;
   }
   case 1U: // right
   {
     for (uint k = 0U; k < dofSize; k++)
-      dofList[k] = (k + dofStart + 1) * n[0] - 1;
+      dofList[k] = (k + 1) * n[0] - 1;
     break;
   }
   case 2U: // top
   {
-    std::iota(dofList.begin(), dofList.end(), n[0] * (n[1] - 1) + dofStart);
+    std::iota(dofList.begin(), dofList.end(), n[0] * (n[1] - 1));
     break;
   }
   case 3U: // left
   {
     for (uint k = 0U; k < dofSize; k++)
-      dofList[k] = (k + dofStart) * n[0];
+      dofList[k] = k * n[0];
     break;
   }
   default:
@@ -393,17 +389,31 @@ void ProblemFD2D::solve()
   std::array<double, 4U> const sideSign = {-1.0, 1.0, 1.0, -1.0};
   std::array<double, 4U> const hSide = {h_[1], h_[0], h_[1], h_[0]};
 
-  // sides
+  // Neumann sides
   for (uint s = 0U; s < 4U; s++)
   {
     auto const & bc = bcs_[s];
-    auto const dofList = sideDOF(n_, s, true);
+    auto const dofList = sideDOF(n_, s);
     // auto const offset = sideOffset(n_, k);
 
-    switch (bc.type)
+    if (bc.type == FD_BC_TYPE::NEUMANN)
     {
-    case FD_BC_TYPE::DIRICHLET:
+      for (uint k = 0U; k < dofList.size(); k++)
+      {
+        uint const dof = dofList[k];
+        rhs_[dof] += sideSign[s] * 2.0 * alpha_ * bc.values[k] / hSide[s];
+      }
+    }
+  }
+
+  // Dirichlet sides
+  for (uint s = 0U; s < 4U; s++)
+  {
+    auto const & bc = bcs_[s];
+
+    if (bc.type == FD_BC_TYPE::DIRICHLET)
     {
+      auto const dofList = sideDOF(n_, s);
       for (uint k = 0U; k < dofList.size(); k++)
       {
         uint const dof = dofList[k];
@@ -413,24 +423,9 @@ void ProblemFD2D::solve()
       }
       break;
     }
-    case FD_BC_TYPE::NEUMANN:
-    {
-      for (uint k = 1U; k < dofList.size() - 1; k++)
-      {
-        uint const dof = dofList[k];
-        rhs_[dof] += sideSign[s] * 2.0 * alpha_ * bc.values[k] / hSide[s];
-      }
-      break;
-    }
-    default:
-    {
-      fmt::print(stderr, "bc {} not specified!\n", s);
-      std::abort();
-    }
-    }
   }
 
-  // TODO: manage Neumann/Neumann corners
+  // TODO: manage Neumann/Neumann corners?
   // for (uint k = 0; k < 4U; k++)
   // {
   //   auto const dof = cornerDOF(n_)[k];
