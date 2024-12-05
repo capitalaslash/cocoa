@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import pycocoa as pc
+import pycocoa as pc  # type: ignore
 
 if __name__ == "__main__":
     p = pc.ProblemFD1D()
@@ -46,8 +46,8 @@ if __name__ == "__main__":
     p.eqnType = pc.EQN_TYPE.heat
 
     # bcs
-    p.bcStart = pc.FDBC(pc.FD_BC_TYPE.dirichlet, 1.0)
-    p.bcEnd = pc.FDBC(pc.FD_BC_TYPE.neumann, 0.0)
+    p.bcStart = pc.FDBC(pc.FD_BC_TYPE.dirichlet, [1.0])
+    p.bcEnd = pc.FDBC(pc.FD_BC_TYPE.neumann, [0.0])
 
     # io
     p.setupIO("output_custom")
