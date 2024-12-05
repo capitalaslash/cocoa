@@ -481,28 +481,28 @@ void ProblemFD2D::assemblyHeat()
       // bottom
       uint const idBottom = (j != 0U) ? id - n_[0] : id + n_[0];
       double const valueBottom = -alpha_ / (h_[1] * h_[1]) // diffusion
-                                 - c_[1][id] / h_[1]       // advection
+                                 - 0.5 * c_[1][id] / h_[1] // advection
           ;
       m_.add(id, idBottom, valueBottom);
 
       // right
       uint const idRight = (i != n_[0] - 1) ? id + 1 : id - 1;
       double const valueRight = -alpha_ / (h_[0] * h_[0]) // diffusion
-                                + c_[0][id] / h_[0]       // advection
+                                + 0.5 * c_[0][id] / h_[0] // advection
           ;
       m_.add(id, idRight, valueRight);
 
       // top
       uint const idTop = (j != n_[1] - 1) ? id + n_[0] : id - n_[0];
       double const valueTop = -alpha_ / (h_[1] * h_[1]) // diffusion
-                              + c_[1][id] / h_[1]       // advection
+                              + 0.5 * c_[1][id] / h_[1] // advection
           ;
       m_.add(id, idTop, valueTop);
 
       // left
       uint const idLeft = (i != 0U) ? id - 1 : id + 1;
       double const valueLeft = -alpha_ / (h_[0] * h_[0]) // diffusion
-                               - c_[0][id] / h_[0]       // advection
+                               - 0.5 * c_[0][id] / h_[0] // advection
           ;
       m_.add(id, idLeft, valueLeft);
 
