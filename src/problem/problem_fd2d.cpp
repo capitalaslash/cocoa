@@ -37,6 +37,9 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
   time = 0.0;
   finalTime_ = 1.0;
   dt_ = 0.1;
+  // linear algebra
+  maxIters_ = 1000U;
+  toll_ = 1.e-6;
 
   // read configuration from file
   std::filesystem::path configFile = params.at("config_file");
@@ -106,6 +109,10 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
         bufferStream >> token;
         solverType_ = str2fdsolver(token);
       }
+      else if (token == "max_iters:")
+        bufferStream >> maxIters_;
+      else if (token == "toll:")
+        bufferStream >> toll_;
       else if (token == "bcs:")
       {
         for (uint k = 0U; k < 4U; k++)
@@ -317,6 +324,7 @@ static constexpr int cornerOffset(std::array<uint, 2U> const & n, uint k)
   return 0;
 }
 
+// TODO: unify with 1D version by using templates
 double computeResidual(
     MatrixCSR const & m,
     std::vector<double> const & x,
@@ -327,10 +335,8 @@ double computeResidual(
   auto const tmp = m * x;
   for (uint k = 0; k < res.size(); k++)
     res[k] = (b[k] - tmp[k]);
-  double resNorm = 0.0;
-  for (uint k = 0; k < res.size(); k++)
-    resNorm += res[k] * res[k] * area;
-  return std::sqrt(resNorm);
+  double const resNorm = std::sqrt(norm2sq(res) * area);
+  return resNorm;
 }
 
 void ProblemFD2D::solve()
@@ -499,15 +505,13 @@ void ProblemFD2D::assemblyHeatCoupled()
 
 std::pair<uint, double> ProblemFD2D::solveJacobi()
 {
-  uint const maxIter = 1000U;
-  double const toll = 1e-6;
   std::vector<double> uNew(u_.size());
 
-  for (uint n = 0; n < maxIter; n++)
+  for (uint n = 0; n < maxIters_; n++)
   {
     double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
     // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll)
+    if (resNorm < toll_)
     {
       return std::pair{n, resNorm};
     }
@@ -535,7 +539,40 @@ std::pair<uint, double> ProblemFD2D::solveJacobi()
       u_[k] = uNew[k];
   }
 
-  return std::pair{maxIter, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
+  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
+}
+
+std::pair<uint, double> ProblemFD2D::solveGaussSeidel()
+{
+  for (uint n = 0; n < maxIters_; n++)
+  {
+    double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
+    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    if (resNorm < toll_)
+    {
+      return std::pair{n, resNorm};
+    }
+
+    for (uint k = 0U; k < u_.size(); k++)
+    {
+      double valueNew = rhs_[k];
+      double diag = 0.0;
+      for (auto const [clm, value]: m_.data_[k])
+      {
+        if (clm == k)
+        {
+          diag = value;
+        }
+        else
+        {
+          valueNew -= value * u_[clm];
+        }
+      }
+      u_[k] = valueNew / diag;
+    }
+  }
+
+  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
 }
 
 inline double solveLine(
@@ -555,15 +592,12 @@ inline double solveLine(
 
 std::pair<uint, double> ProblemFD2D::solveVankaSCI()
 {
-  uint const maxIter = 1000U;
-  double const toll = 1e-6;
-
-  for (uint n = 0U; n < maxIter; n++)
+  for (uint n = 0U; n < maxIters_; n++)
   {
     double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
 
     // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll)
+    if (resNorm < toll_)
     {
       return std::pair{n, resNorm};
     }
@@ -593,20 +627,17 @@ std::pair<uint, double> ProblemFD2D::solveVankaSCI()
       }
   }
 
-  return std::pair{maxIter, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
+  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
 }
 
 std::pair<uint, double> ProblemFD2D::solveVankaCB()
 {
-  uint const maxIter = 1000U;
-  double const toll = 1e-6;
-
-  for (uint n = 0U; n < maxIter; n++)
+  for (uint n = 0U; n < maxIters_; n++)
   {
     double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
 
     // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll)
+    if (resNorm < toll_)
     {
       return std::pair{n, resNorm};
     }
@@ -618,7 +649,7 @@ std::pair<uint, double> ProblemFD2D::solveVankaCB()
       u_[k] = solveLine(m_, rhs_, u_, k);
   }
 
-  return std::pair{maxIter, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
+  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
 }
 
 void ProblemFD2D::print()
@@ -648,6 +679,8 @@ std::unordered_map<EQN_TYPE, ProblemFD2D::Assembly_T> ProblemFD2D::assemblies_ =
 
 std::unordered_map<FD_SOLVER_TYPE, ProblemFD2D::Solver_T> ProblemFD2D::solvers_ = {
     {FD_SOLVER_TYPE::JACOBI2D, [](ProblemFD2D * p) { return p->solveJacobi(); }},
+    {FD_SOLVER_TYPE::GAUSSSEIDEL2D,
+     [](ProblemFD2D * p) { return p->solveGaussSeidel(); }},
     {FD_SOLVER_TYPE::VANKA2DCB, [](ProblemFD2D * p) { return p->solveVankaCB(); }},
     {FD_SOLVER_TYPE::VANKA2DSCI, [](ProblemFD2D * p) { return p->solveVankaSCI(); }},
 };

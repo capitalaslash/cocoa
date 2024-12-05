@@ -44,6 +44,7 @@ enum struct FD_SOLVER_TYPE : uint8_t
   TRIDIAG,
   VANKA1D,
   JACOBI2D,
+  GAUSSSEIDEL2D,
   VANKA2DCB,
   VANKA2DSCI,
 };
@@ -56,6 +57,8 @@ inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
     return FD_SOLVER_TYPE::VANKA1D;
   if (name == "jacobi2d")
     return FD_SOLVER_TYPE::JACOBI2D;
+  if (name == "gaussseidel2d")
+    return FD_SOLVER_TYPE::GAUSSSEIDEL2D;
   if (name == "vanka2dcb")
     return FD_SOLVER_TYPE::VANKA2DCB;
   if (name == "vanka2dsci")
@@ -77,6 +80,16 @@ inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
 //   std::vector<double> data_;
 // };
 using VectorFD = std::vector<double>;
+
+inline double norm2sq(std::vector<double> & v)
+{
+  double sum = 0.0;
+  for (auto const & value: v)
+  {
+    sum += value * value;
+  }
+  return sum;
+}
 
 // =====================================================================
 struct MatrixTriDiag

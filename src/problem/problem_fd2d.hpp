@@ -31,6 +31,7 @@ struct ProblemFD2D: public Problem
   void assemblyHeat();
   void assemblyHeatCoupled();
   std::pair<uint, double> solveJacobi();
+  std::pair<uint, double> solveGaussSeidel();
   std::pair<uint, double> solveVankaSCI();
   std::pair<uint, double> solveVankaCB();
 
@@ -47,7 +48,9 @@ struct ProblemFD2D: public Problem
   double dt_;
   MatrixCSR m_;
   std::vector<double> rhs_;
-  FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::VANKA2DCB;
+  FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::JACOBI2D;
+  double toll_ = 1.e-6;
+  uint maxIters_;
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
   std::array<FDBC, 4U> bcs_;
   std::string outFile_ = "./fd2d";
