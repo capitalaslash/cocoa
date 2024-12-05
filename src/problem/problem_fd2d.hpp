@@ -42,7 +42,7 @@ struct ProblemFD2D: public Problem
   std::vector<double> uOld_;
   std::vector<double> q_;
   double alpha_;
-  std::array<double, 2> c_ = {0.0, 0.0};
+  std::array<std::vector<double>, 2> c_;
   double finalTime_;
   double dt_;
   MatrixCSR m_;

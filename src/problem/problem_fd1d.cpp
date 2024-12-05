@@ -91,13 +91,17 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
       {
         bufferStream >> token;
         bcStart_.type = str2fdbc(token);
-        bufferStream >> bcStart_.value;
+        double value;
+        bufferStream >> value;
+        bcStart_.values.assign(1, value);
       }
       else if (token == "bc_end:")
       {
         bufferStream >> token;
         bcEnd_.type = str2fdbc(token);
-        bufferStream >> bcEnd_.value;
+        double value;
+        bufferStream >> value;
+        bcEnd_.values.assign(1, value);
       }
       else if (token == "out_file:")
         bufferStream >> outFile_;
@@ -200,12 +204,16 @@ void ProblemFD1D::advance()
 
 void ProblemFD1D::solve()
 {
+  fmt::print("\n===\n");
   fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
   double const h = 1. / (n_ - 1);
 
   // update
   for (uint k = 0; k < u_.size(); k++)
     uOld_[k] = u_[k];
+
+  // assembly
+  assemblies_.at(eqnType_)(this);
 
   // bc start
   switch (bcStart_.type)
@@ -214,14 +222,12 @@ void ProblemFD1D::solve()
   {
     m_.diag[0] = 1.0;
     m_.diagUp[0] = 0.0;
-    rhs_[0] = bcStart_.value;
+    rhs_[0] = bcStart_.values[0];
     break;
   }
   case FD_BC_TYPE::NEUMANN:
   {
-    m_.diag[0] = 1.0;
-    m_.diagUp[0] = -1.0;
-    rhs_[0] = bcStart_.value * h;
+    rhs_[0] += -2.0 * alpha_ * bcStart_.values[0] / h;
     break;
   }
   default:
@@ -236,16 +242,14 @@ void ProblemFD1D::solve()
   {
   case FD_BC_TYPE::DIRICHLET:
   {
-    m_.diag[n_ - 1] = 1.0;
-    m_.diagDown[n_ - 1] = 0.0;
-    rhs_[n_ - 1] = bcEnd_.value;
+    m_.clearRow(n_ - 1);
+    m_.diag()[n_ - 1] = 1.0;
+    rhs_[n_ - 1] = bcEnd_.values[0];
     break;
   }
   case FD_BC_TYPE::NEUMANN:
   {
-    m_.diag[n_ - 1] = -1.0;
-    m_.diagDown[n_ - 1] = 1.0;
-    rhs_[n_ - 1] = bcEnd_.value * h;
+    rhs_[n_ - 1] += 2.0 * alpha_ * bcEnd_.values[0] / h;
     break;
   }
   default:
@@ -255,12 +259,14 @@ void ProblemFD1D::solve()
   }
   }
 
-  // assembly
-  assemblies_.at(eqnType_)(this);
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
 
   // solve
   auto const [numIters, residual] = solvers_.at(solverType_)(this);
-  fmt::print("num iters: {:4d}, residual norm: {:.8e}\n", numIters, residual);
+  fmt::print("num iters: {:4d}, ", numIters);
+  fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
+
 
   // update coupling field
   getField("u")->setValues(u_);
@@ -268,7 +274,7 @@ void ProblemFD1D::solve()
 
 void ProblemFD1D::assemblyHeat()
 {
-  for (uint k = 1U; k < n_ - 1; k++)
+  for (uint k = 0U; k < n_; k++)
   {
     m_.diag[k] = 1. / dt_ + alpha_ * 2. / (h_ * h_);
     m_.diagUp[k] = -alpha_ / (h_ * h_);

@@ -2,6 +2,7 @@
 
 // std
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <string_view>
 #include <tuple>
@@ -24,6 +25,7 @@ inline FD_BC_TYPE str2fdbc(std::string_view name)
     return FD_BC_TYPE::DIRICHLET;
   if (name == "neumann")
     return FD_BC_TYPE::NEUMANN;
+  fmt::print(stderr, "boundary condition type not recognized: {}\n", name);
   std::abort();
   return FD_BC_TYPE::NONE;
 }
@@ -32,7 +34,7 @@ inline FD_BC_TYPE str2fdbc(std::string_view name)
 struct FDBC
 {
   FD_BC_TYPE type = FD_BC_TYPE::NONE;
-  double value = 0.0;
+  std::vector<double> values;
 };
 
 // =====================================================================

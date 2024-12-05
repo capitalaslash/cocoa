@@ -28,8 +28,11 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
   // fields
   double uInit = 0.0;
   double qValue = 1.0;
+  // bcs
+  std::array<double, 4U> bcValues{0.0, 0.0, 0.0, 0.0};
   // physical constants
   alpha_ = 0.2;
+  std::array<double, 2U> cValues{0.0, 0.0};
   // time
   time = 0.0;
   finalTime_ = 1.0;
@@ -82,6 +85,11 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
         bufferStream >> qValue;
       else if (token == "alpha:")
         bufferStream >> alpha_;
+      else if (token == "c:")
+      {
+        bufferStream >> cValues[0];
+        bufferStream >> cValues[1];
+      }
       else if (token == "start_time:")
         bufferStream >> time;
       else if (token == "final_time:")
@@ -104,7 +112,7 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
         {
           bufferStream >> token;
           bcs_[k].type = str2fdbc(token);
-          bufferStream >> bcs_[k].value;
+          bufferStream >> bcValues[k];
         }
       }
       else if (token == "out_file:")
@@ -131,6 +139,14 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
   uOld_.resize(n_[0] * n_[1], uInit);
   q_.resize(n_[0] * n_[1], qValue);
   initFieldCoupling(dirPath / "u");
+
+  // physical properties
+  c_[0].resize(n_[0] * n_[1], cValues[0]);
+  c_[1].resize(n_[0] * n_[1], cValues[1]);
+
+  // bcs
+  for (uint k = 0U; k < 4U; k++)
+    bcs_[k].values.resize(n_[k % 2], bcValues[k]);
 
   // linear algebra
   m_.init(n_[0] * n_[1]);
@@ -336,10 +352,11 @@ void ProblemFD2D::solve()
     {
     case FD_BC_TYPE::DIRICHLET:
     {
-      for (auto const & dof: dofList)
+      for (uint k = 0U; k < dofList.size(); k++)
       {
-        m_.triplets_.emplace_back(dof, dof, 1.0);
-        rhs_[dof] = bc.value;
+        uint const dof = dofList[k];
+        m_.set(dof, dof, 1.0);
+        rhs_[dof] = bc.values[k];
       }
       break;
     }
@@ -368,11 +385,11 @@ void ProblemFD2D::solve()
     m_.triplets_.emplace_back(dof, dof, 1.0);
     if (bcs_[cornerSides[k][0]].type == FD_BC_TYPE::DIRICHLET)
     {
-      rhs_[dof] = bcs_[cornerSides[k][0]].value;
+      rhs_[dof] = bcs_[cornerSides[k][0]].values[cornerEnd(n_, k).first];
     }
     else if (bcs_[cornerSides[k][1]].type == FD_BC_TYPE::DIRICHLET)
     {
-      rhs_[dof] = bcs_[cornerSides[k][1]].value;
+      rhs_[dof] = bcs_[cornerSides[k][1]].values[cornerEnd(n_, k).second];
     }
     else
     {
