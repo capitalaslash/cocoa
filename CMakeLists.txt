@@ -66,7 +66,7 @@ include(FetchContent)
 if (COCOA_FETCH_FMT)
   FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG master
+    GIT_TAG e3ddede6c4ee818825c4e5a6dfa1d384860c27d9 # 11.1.1
   )
   FetchContent_MakeAvailable(fmt)
 else()
