@@ -32,7 +32,7 @@ int main()
     p1->solve();
     p1->print();
 
-    coupling12->project("u", "uExternal");
+    coupling12->project("T", "uExternal");
     p2->advance();
     p2->solve();
     p2->print();

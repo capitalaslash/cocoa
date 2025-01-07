@@ -17,7 +17,7 @@ while p1.run() or p2.run():
     p1.solve()
     p1.print()
 
-    c.project(name_src="u", name_tgt="uExternal")
+    c.project(name_src="T", name_tgt="uExternal")
     p2.advance()
     p2.solve()
     p2.print()

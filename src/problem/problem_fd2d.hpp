@@ -26,8 +26,8 @@ struct ProblemFD2D: public Problem
   void solve() override;
   void print() override;
 
-  void initMeshCoupling(std::filesystem::path const & fileName);
-  void initFieldCoupling(std::filesystem::path const & fileName);
+  void initMeshCoupling();
+  void initFieldCoupling();
   void assemblyHeat();
   void assemblyHeatCoupled();
   std::pair<uint, double> solveJacobi();
@@ -39,6 +39,7 @@ struct ProblemFD2D: public Problem
   Vec2D_T start_;
   Vec2D_T h_;
   std::array<uint, 2U> n_;
+  std::string varName_;
   std::vector<double> u_;
   std::vector<double> uOld_;
   std::vector<double> q_;
@@ -53,7 +54,7 @@ struct ProblemFD2D: public Problem
   uint maxIters_;
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
   std::array<FDBC, 4U> bcs_;
-  std::string outFile_ = "./fd2d";
+  std::filesystem::path outputPrefix_ = "./output_fd2d/";
   std::string nameExt_ = "uExternal";
 
   static std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;

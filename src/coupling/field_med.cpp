@@ -38,14 +38,7 @@ void FieldMED::init(
   fieldPtr_->setMesh(dynamic_cast<MeshMED *>(mesh)->meshPtr_);
 }
 
-void FieldMED::initIO(std::string_view filename)
-{
-  filename_ = filename;
-  std::filesystem::path dir = filename_.parent_path();
-  std::filesystem::create_directories(dir);
-}
-
-void FieldMED::setValues(std::vector<double> const & data, uint const dim)
+void FieldMED::setValues(std::span<double> const & data, uint const dim)
 {
   MEDCoupling::DataArrayDouble * array = MEDCoupling::DataArrayDouble::New();
   array->alloc(data.size() / dim, dim);
@@ -65,7 +58,7 @@ void FieldMED::setValues(double value, uint size, uint const dim)
 
 void FieldMED::printVTK(double time, uint iter)
 {
-  auto const filename = filename_.string() + std::to_string(iter);
+  auto const filename = fmt::format("{}_med.{}", (prefix_ / name_).string(), iter);
   frames.push_back(Frame{iter, time});
   fieldPtr_->setTime(time, iter, -1);
   fieldPtr_->writeVTK(filename, false);
@@ -74,7 +67,8 @@ void FieldMED::printVTK(double time, uint iter)
 
 void FieldMED::printPVD() const
 {
-  std::FILE * out = std::fopen((filename_.string() + "pvd").c_str(), "w");
+  auto const filenamePVD = fmt::format("{}.pvd", (prefix_ / name_).string());
+  std::FILE * out = std::fopen(filenamePVD.c_str(), "w");
   fmt::print(
       out,
       "<VTKFile type=\"Collection\" version=\"1.0\" byte_order=\"LittleEndian\" "
@@ -82,12 +76,12 @@ void FieldMED::printPVD() const
   fmt::print(out, "  <Collection>\n");
   for (auto const & frame: frames)
   {
+    auto const filename = fmt::format("{}_med.{}.vtu", name_, frame.iter);
     fmt::print(
         out,
-        "    <DataSet timestep=\"{:.6e}\" part=\"0\" file=\"{}{}.vtu\"/>\n",
+        "    <DataSet timestep=\"{:.6e}\" part=\"0\" file=\"{}\"/>\n",
         frame.time,
-        filename_.filename().string(),
-        frame.iter);
+        filename);
   }
   fmt::print(out, "  </Collection>\n");
   fmt::print(out, "</VTKFile>\n");

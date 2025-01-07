@@ -3,8 +3,8 @@
 // std
 #include <filesystem>
 #include <memory>
+#include <span>
 #include <string>
-#include <vector>
 
 // fmt
 #include <fmt/core.h>
@@ -32,8 +32,12 @@ struct FieldCoupling
   // virtual std::vector<double> getData() = 0;
   virtual void
   init(std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support) = 0;
-  virtual void initIO(std::string_view filename) = 0;
-  virtual void setValues(std::vector<double> const & data, uint const dim = 1U) = 0;
+  virtual void initIO(std::filesystem::path const & prefix)
+  {
+    prefix_ = prefix;
+    std::filesystem::create_directories(prefix_);
+  }
+  virtual void setValues(std::span<double> const & data, uint const dim = 1U) = 0;
   virtual void setValues(double value, uint size, uint const dim = 1U) = 0;
   virtual void printVTK(double time, uint iter) = 0;
 
@@ -42,7 +46,7 @@ struct FieldCoupling
 
   std::string name_ = "";
   COUPLING_TYPE type_ = COUPLING_TYPE::NONE;
-  std::filesystem::path filename_ = "./tmp";
+  std::filesystem::path prefix_ = "./tmp";
 };
 
 inline std::ostream & operator<<(std::ostream & out, FieldCoupling const & f)
@@ -62,7 +66,7 @@ struct FieldSimple: public FieldCoupling
   double const * dataPtr() const override { return data_.data(); }
   double operator[](size_t k) const override { return data_[k]; }
 
-  // std::vector<double> getData() override { return data_; }
+  // std::span<double> getData() override { return data_; }
   virtual void init(
       std::string_view name,
       MeshCoupling * /*mesh*/,
@@ -71,16 +75,18 @@ struct FieldSimple: public FieldCoupling
     name_ = name;
     supportType_ = supportType;
   }
-  virtual void initIO(std::string_view /*filename*/) override {}
+  virtual void initIO(std::filesystem::path const & /*prefix*/) override {}
   virtual void
-  setValues(std::vector<double> const & data, uint const /*dim*/ = 1U) override
+  setValues(std::span<double> const & data, uint const /*dim*/ = 1U) override
   {
-    data_ = data;
+    data_.resize(data.size());
+    std::copy(data.begin(), data.end(), data_.begin());
   }
   virtual void setValues(double value, uint size, uint const /*dim*/ = 1U) override
   {
     data_.resize(size, value);
   }
+
   virtual void printVTK(double /*time*/, uint /*iter*/) override
   {
     if (messageVTK_)

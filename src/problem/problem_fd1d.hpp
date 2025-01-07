@@ -24,8 +24,8 @@ struct ProblemFD1D: public Problem
   void solve() override;
   void print() override;
 
-  void initMeshCoupling(std::filesystem::path const & fileName);
-  void initFieldCoupling(std::filesystem::path const & fileName);
+  void initMeshCoupling();
+  void initFieldCoupling();
   void assemblyHeat();
   void assemblyHeatCoupled();
   std::pair<uint, double> solveTriDiag();
@@ -35,6 +35,7 @@ struct ProblemFD1D: public Problem
   double start_;
   double h_;
   uint n_;
+  std::string varName_;
   VectorFD u_;
   VectorFD uOld_;
   VectorFD q_;
@@ -47,7 +48,8 @@ struct ProblemFD1D: public Problem
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
   FDBC bcStart_;
   FDBC bcEnd_;
-  std::string outFile_ = "./fd1d";
+  bool cleanOutput_ = false;
+  std::filesystem::path outputPrefix_ = "./output_fd1d";
   std::string nameExt_ = "uExternal";
 
   static std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;

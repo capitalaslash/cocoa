@@ -41,12 +41,12 @@ struct ProblemOForg: public Problem
   void solve() override;
   void print() override;
 
-  void initMeshMED(std::string_view meshName, Foam::fvMesh const & mesh);
-  void initFieldMED(std::string_view fieldName, std::string_view path);
+  void initMeshMED(std::string_view name);
+  void initFieldMED(std::string_view name, std::filesystem::path path);
   template <typename Field>
-  void setDataMED(std::string_view fieldName, Field const & field);
+  void setDataMED(std::string_view name, Field const & field);
 
-  std::string name_;
+  std::filesystem::path prefix_;
   std::unique_ptr<Foam::Time> runTime_;
   Foam::word solverName_;
   std::unique_ptr<Foam::fvMesh> mesh_;

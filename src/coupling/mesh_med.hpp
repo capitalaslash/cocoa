@@ -29,7 +29,7 @@ struct MeshMED: public MeshCoupling
       std::vector<uint> conn,
       std::vector<uint> offsets) override;
 
-  void printVTK() override;
+  void printVTK(std::filesystem::path const & path) override;
 
   MEDCoupling::MEDCouplingUMesh * meshPtr_;
   bool inited_ = false;

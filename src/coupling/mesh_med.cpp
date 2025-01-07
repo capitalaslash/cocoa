@@ -40,4 +40,7 @@ void MeshMED::init(
   meshPtr_->changeSpaceDimension(spaceDim);
 }
 
-void MeshMED::printVTK() { meshPtr_->writeVTK(meshPtr_->getName(), false); }
+void MeshMED::printVTK(std::filesystem::path const & path)
+{
+  meshPtr_->writeVTK(path.string(), false);
+}

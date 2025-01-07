@@ -1,6 +1,7 @@
 #pragma once
 
 // std
+#include <filesystem>
 #include <memory>
 #include <string_view>
 #include <vector>
@@ -25,7 +26,7 @@ struct MeshCoupling
       std::vector<uint> conn,
       std::vector<uint> offsets) = 0;
 
-  virtual void printVTK() = 0;
+  virtual void printVTK(std::filesystem::path const & path) = 0;
 
   static std::unique_ptr<MeshCoupling> build(COUPLING_TYPE type);
   static std::unique_ptr<MeshCoupling> build(std::string_view type);
@@ -47,7 +48,7 @@ struct MeshSimple: public MeshCoupling
       std::vector<uint> offsets) override
   {}
 
-  void printVTK() override
+  void printVTK(std::filesystem::path const & /*path*/) override
   {
     if (messageVTK_)
     {

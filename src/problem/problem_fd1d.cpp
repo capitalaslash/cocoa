@@ -66,7 +66,11 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
         bufferStream >> token;
         couplingType_ = str2coupling(token);
       }
-      else if (token == "u_init:")
+      else if (token == "field_external:")
+        bufferStream >> nameExt_;
+      else if (token == "var_name:")
+        bufferStream >> varName_;
+      else if (token == "initial_value:")
         bufferStream >> uInit;
       else if (token == "q:")
         bufferStream >> qValue;
@@ -104,8 +108,10 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
         bufferStream >> value;
         bcEnd_.values.assign(1, value);
       }
-      else if (token == "out_file:")
-        bufferStream >> outFile_;
+      else if (token == "clean_output:")
+        bufferStream >> cleanOutput_;
+      else if (token == "output_prefix:")
+        bufferStream >> outputPrefix_;
       else
       {
         fmt::print(stderr, "key {} invalid\n", token);
@@ -120,24 +126,25 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
   start_ = start;
   h_ = (end - start) / nElems;
   n_ = nElems + 1;
-  auto const dirPath = std::filesystem::path(outFile_).parent_path();
-  initMeshCoupling(dirPath / "mesh");
+  initMeshCoupling();
 
   // fields
   u_.resize(n_, uInit);
   uOld_.resize(n_, uInit);
   q_.resize(n_, qValue);
-  initFieldCoupling(dirPath / "u");
+  initFieldCoupling();
 
   // linear algebra
   m_.init(n_);
   rhs_.resize(n_);
 
   // io
-  std::filesystem::create_directories(dirPath);
+  if (cleanOutput_)
+    std::filesystem::remove_all(outputPrefix_);
+  std::filesystem::create_directories(outputPrefix_);
 }
 
-void ProblemFD1D::initMeshCoupling(std::filesystem::path const & fileName)
+void ProblemFD1D::initMeshCoupling()
 {
   // coords format: x_0, y_0, z_0, x_1, ...
   std::vector<double> coords(n_ * 3);
@@ -167,18 +174,17 @@ void ProblemFD1D::initMeshCoupling(std::filesystem::path const & fileName)
   }
 
   meshCoupling_ = MeshCoupling::build(couplingType_);
-  meshCoupling_->init(fileName.string(), 1U, 1U, coords, conn, offsets);
+  meshCoupling_->init("mesh_fd1d", 1U, 1U, coords, conn, offsets);
 }
 
-void ProblemFD1D::initFieldCoupling(std::filesystem::path const & fileName)
+void ProblemFD1D::initFieldCoupling()
 {
   auto [kvPairU, successU] =
-      fieldsCoupling_.emplace("u", FieldCoupling::build(couplingType_));
+      fieldsCoupling_.emplace(varName_, FieldCoupling::build(couplingType_));
   assert(successU);
-  kvPairU->second->init(
-      fileName.filename().string(), meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
+  kvPairU->second->init(varName_, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
   kvPairU->second->setValues(u_);
-  kvPairU->second->initIO(fileName.string() + "_med.");
+  kvPairU->second->initIO(outputPrefix_);
 
   auto [kvPairExt, successExt] =
       fieldsCoupling_.emplace(nameExt_, FieldCoupling::build(couplingType_));
@@ -273,7 +279,7 @@ void ProblemFD1D::solve()
     rhs_[k] = 0.0;
 
   // update coupling field
-  getField("u")->setValues(u_);
+  getField(varName_)->setValues(u_);
 }
 
 void ProblemFD1D::assemblyHeat()
@@ -395,15 +401,16 @@ std::pair<uint, double> ProblemFD1D::solveVanka()
 
 void ProblemFD1D::print()
 {
-  std::FILE * out =
-      std::fopen((outFile_ + "." + std::to_string(it) + ".dat").c_str(), "w");
+  auto const filename =
+      fmt::format("{}.{}.dat", (outputPrefix_ / varName_).string(), it);
+  std::FILE * out = std::fopen(filename.c_str(), "w");
   for (uint k = 0; k < u_.size(); k++)
   {
     fmt::print(out, "{:.6e} {:.6e}\n", start_ + k * h_, u_[k]);
   }
   std::fclose(out);
 
-  getField("u")->printVTK(time, it);
+  getField(varName_)->printVTK(time, it);
 }
 
 std::unordered_map<EQN_TYPE, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_ = {

@@ -3,7 +3,8 @@ start: 0.0 0.0
 end: 1.0 10.0
 n_elems: 10 20
 coupling_type: medcoupling
-u_init: 0.0
+var_name: T
+initial_value: 0.0
 q: 0.0
 alpha: 1.0
 c: 0.0 1.0
@@ -13,5 +14,5 @@ dt: 1.0
 assembly_name: heat
 solver_type: gaussseidel2d
 bcs: dirichlet 0.0 neumann 1.0 neumann 1.0 neumann 0.0
-out_file: output_fd2d_heatpipe/u
+output_prefix: output_fd2d_heatpipe
 

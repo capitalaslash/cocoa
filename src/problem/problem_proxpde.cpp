@@ -64,14 +64,13 @@ void ProblemProXPDE::initMeshMED(std::string_view name, Mesh const & mesh)
   meshCoupling_->init(name, Elem_T::dim, 3U, coords, conn, offsets);
 }
 
-void ProblemProXPDE::initFieldMED(std::string_view fieldName, std::string_view path)
+void ProblemProXPDE::initFieldMED(std::string_view fieldName, std::string_view prefix)
 {
   auto [kvPair, success] = fieldsCoupling_.emplace(
       fieldName, FieldCoupling::build(COUPLING_TYPE::MEDCOUPLING));
   assert(success);
   kvPair->second->init(fieldName, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
-  std::string filename = std::string{path} + "_med.";
-  kvPair->second->initIO(filename);
+  kvPair->second->initIO(prefix);
 }
 
 template <typename FESpace>
@@ -221,19 +220,19 @@ void ProblemProXPDEHeat::setup(ParamList_T const & params)
   default:
     abort();
   }
-  initFieldMED(couplingExport_[0], io_.filePath->string());
+  initFieldMED(couplingExport_[0], "output_" + name_);
   setDataMED(couplingExport_[0], T_.data, feSpace_);
 
   for (auto const & name: couplingImport_)
   {
     if (name != "vel")
     {
-      initFieldMED(name, "output_" + name_ + "/i_" + name);
+      initFieldMED(name, "output_" + name_);
       setDataMED(name, T_.data, feSpace_);
     }
   }
 
-  initFieldMED("vel", "output_" + name_ + "/i_vel");
+  initFieldMED("vel", "output_");
   setDataMED("vel", vel_.data, feSpaceVel_);
 }
 
@@ -414,7 +413,7 @@ void ProblemProXPDENS::setup(ParamList_T const & params)
   velQ1_.init("velQ1", feSpaceVelQ1_);
   velQ1_.data = projectorQ2Q1_.apply();
   couplingExport_.push_back("vel");
-  initFieldMED("vel", "output_" + name_ + "/vel");
+  initFieldMED("vel", "output_" + name_);
   setDataMED("vel", velQ1_.data, feSpaceVelQ1_);
 
   switch (equationType_)
@@ -426,7 +425,7 @@ void ProblemProXPDENS::setup(ParamList_T const & params)
   case EQN_TYPE::NS_BOUSSINESQ:
   {
     couplingImport_.push_back("T");
-    initFieldMED("T", "output_" + name_ + "/" + "i_T");
+    initFieldMED("T", "output_" + name_ + "/");
     getField("T")->setValues(0.0, feSpaceP_.dof.size);
     break;
   }

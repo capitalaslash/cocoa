@@ -74,15 +74,16 @@ PYBIND11_MODULE(pycocoa, m)
           "setupIO",
           [](ProblemFD1D * p, std::string_view path)
           {
-            p->initMeshCoupling(std::string(path) + "/mesh");
-            p->initFieldCoupling(std::string(path) + "/u");
-            p->outFile_ = std::string(path) + "/u";
+            p->outputPrefix_ = path;
+            p->initMeshCoupling();
+            p->initFieldCoupling();
             std::filesystem::create_directories(path);
           })
       .def_readwrite("name", &ProblemFD1D::name_)
       .def_readwrite("start", &ProblemFD1D::start_)
       .def_readwrite("h", &ProblemFD1D::h_)
       .def_readwrite("n", &ProblemFD1D::n_)
+      .def_readwrite("varName", &ProblemFD1D::varName_)
       .def_readwrite("u", &ProblemFD1D::u_)
       .def_readwrite("uOld", &ProblemFD1D::uOld_)
       .def_readwrite("q", &ProblemFD1D::q_)
@@ -95,7 +96,7 @@ PYBIND11_MODULE(pycocoa, m)
       .def_readwrite("eqnType", &ProblemFD1D::eqnType_)
       .def_readwrite("bcStart", &ProblemFD1D::bcStart_)
       .def_readwrite("bcEnd", &ProblemFD1D::bcEnd_)
-      .def_readwrite("outFile", &ProblemFD1D::outFile_)
+      .def_readwrite("outputPrefix", &ProblemFD1D::outputPrefix_)
       .def_readwrite("nameExt", &ProblemFD1D::nameExt_);
 
   py::class_<ProblemFD2D, Problem>(m, "ProblemFD2D").def(py::init<>());

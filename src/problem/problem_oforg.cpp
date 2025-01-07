@@ -16,12 +16,12 @@
 
 void ProblemOForg::setup(ParamList_T const & params)
 {
-  name_ = params.at("case_dir").string();
+  prefix_ = params.at("case_dir").string();
   int argc = 3;
   char ** argv = new char *[3];
   argv[0] = (char *)"app_oforg";
   argv[1] = (char *)"-case";
-  argv[2] = name_.data();
+  argv[2] = prefix_.string().data();
 
   Foam::argList::addOption("solver", "name", "Solver name");
 
@@ -67,7 +67,7 @@ void ProblemOForg::setup(ParamList_T const & params)
       *runTime_,
       Foam::IOobject::MUST_READ}});
 
-  initMeshMED("mesh_" + name_, *mesh_);
+  initMeshMED("mesh_oforg");
 
   // Instantiate the selected solver
   solverPtr_ = Foam::solver::New(solverName_, *mesh_);
@@ -161,19 +161,19 @@ static std::unordered_map<uint8_t, std::array<uint, 8U>> connOF2MED = {
     {8U, {0U, 1U, 3U, 2U, 4U, 5U, 7U, 6U}}, // HEX8
 };
 
-void ProblemOForg::initMeshMED(std::string_view meshName, Foam::fvMesh const & mesh)
+void ProblemOForg::initMeshMED(std::string_view meshName)
 {
   // // boundary
-  //   Foam::label patchId = mesh.boundaryMesh().findPatchID("name");
-  //   const Foam::polyPatch & namePolyPatch = mesh.boundaryMesh()[patchId];
+  //   Foam::label patchId = mesh_->boundaryMesh().findPatchID("name");
+  //   const Foam::polyPatch & namePolyPatch = mesh_->boundaryMesh()[patchId];
   //   Foam::labelList test(namePolyPatch.boundaryPoints());
   //   forAll(test, pos) { Foam::Info << test[pos] << Foam::endl; }
 
   // coords format: x_0, y_0, z_0, x_1, ...
-  std::vector<double> coords(mesh.nPoints() * 3);
-  forAll(mesh.points(), pointId)
+  std::vector<double> coords(mesh_->nPoints() * 3);
+  forAll(mesh_->points(), pointId)
   {
-    auto const & pt = mesh.points()[pointId];
+    auto const & pt = mesh_->points()[pointId];
     coords[3 * pointId + 0] = pt[0];
     coords[3 * pointId + 1] = pt[1];
     coords[3 * pointId + 2] = pt[2];
@@ -181,37 +181,36 @@ void ProblemOForg::initMeshMED(std::string_view meshName, Foam::fvMesh const & m
 
   // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
   // TODO: extend for generic cells, not only hex8
-  std::vector<uint> conn(mesh.nCells() * (8 + 1));
-  forAll(mesh.cells(), cellId)
+  std::vector<uint> conn(mesh_->nCells() * (8 + 1));
+  forAll(mesh_->cells(), cellId)
   {
     conn[(8 + 1) * cellId] = MEDCellTypeToIKCell(MED_CELL_TYPE::HEX8);
     for (uint p = 0; p < 8; p++)
     {
-      conn[(8 + 1) * cellId + 1 + connOF2MED[8U][p]] = mesh.cellPoints()[cellId][p];
+      conn[(8 + 1) * cellId + 1 + connOF2MED[8U][p]] = mesh_->cellPoints()[cellId][p];
     }
   }
 
   // offsets format: sum_0^k elemk_numpts + 1,
-  std::vector<uint> offsets(mesh.nCells() + 1);
+  std::vector<uint> offsets(mesh_->nCells() + 1);
   offsets[0] = 0;
-  forAll(mesh.cells(), cellId) { offsets[cellId + 1] = offsets[cellId] + 8 + 1; }
+  forAll(mesh_->cells(), cellId) { offsets[cellId + 1] = offsets[cellId] + 8 + 1; }
 
   couplingType_ = COUPLING_TYPE::MEDCOUPLING;
   meshCoupling_ = MeshCoupling::build(couplingType_);
   meshCoupling_->init(meshName, 3U, 3U, coords, conn, offsets);
-  meshCoupling_->printVTK();
+  meshCoupling_->printVTK(prefix_ / "mesh_oforg");
 }
 
 // TODO: move to Problem since it does not require any specific knowledge of the
 // specific type
-void ProblemOForg::initFieldMED(std::string_view fieldName, std::string_view path)
+void ProblemOForg::initFieldMED(std::string_view name, std::filesystem::path prefix)
 {
-  auto [kvPair, success] = fieldsCoupling_.emplace(
-      fieldName, FieldCoupling::build(COUPLING_TYPE::MEDCOUPLING));
+  auto [kvPair, success] =
+      fieldsCoupling_.emplace(name, FieldCoupling::build(COUPLING_TYPE::MEDCOUPLING));
   assert(success);
-  kvPair->second->init(fieldName, meshCoupling_.get(), SUPPORT_TYPE::ON_CELLS);
-  std::string filename = std::string{path} + "_med.";
-  kvPair->second->initIO(filename);
+  kvPair->second->init(name, meshCoupling_.get(), SUPPORT_TYPE::ON_CELLS);
+  kvPair->second->initIO(prefix);
 }
 
 template <typename Field>

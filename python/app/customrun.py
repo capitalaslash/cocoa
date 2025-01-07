@@ -21,6 +21,7 @@ if __name__ == "__main__":
     p.couplingType = pc.COUPLING_TYPE.medcoupling  # pc.COUPLING_TYPE.simple
 
     # fields
+    p.varName = "T"
     p.u = [1.0] * p.n  # pc.VectorFD(p.n)  # np.ndarray(shape=[1, p.n])
     # tmp = pc.VectorFD(p.n)
     # print(type(tmp))
