@@ -1,6 +1,7 @@
 #pragma once
 
 // std
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -107,6 +108,8 @@ struct MatrixTriDiag
     diags_[2].resize(n, 0.0);
   }
 
+  auto size() const -> size_t { return diags_[1].size(); }
+
   void set(int const row, int const clm, double const value)
   {
     assert(std::abs(clm - row) <= 1);
@@ -119,6 +122,18 @@ struct MatrixTriDiag
     diags_[clm - row + 1][row] += value;
   }
 
+  auto at(uint const row, uint const clm) const -> double
+  {
+    if (clm == row - 1)
+      return diags_[0][row];
+    else if (clm == row)
+      return diags_[1][row];
+    else if (clm == row + 1)
+      return diags_[2][row];
+    else
+      return 0.0;
+  }
+
   void clearRow(uint const row)
   {
     diags_[0][row] = 0.0;
@@ -128,9 +143,9 @@ struct MatrixTriDiag
   void clear()
   {
     uint const n = diags_[1].size();
-    diags_[0].resize(n, 0.0);
-    diags_[1].resize(n, 0.0);
-    diags_[2].resize(n, 0.0);
+    std::vector<double>(n).swap(diags_[0]);
+    std::vector<double>(n).swap(diags_[1]);
+    std::vector<double>(n).swap(diags_[2]);
   }
   void close() {}
 
@@ -164,6 +179,8 @@ struct MatrixCSR
 
   void init(size_t n);
 
+  auto size() const -> size_t { return n_; }
+
   void set(int const /*row*/, int const /*clm*/, double const /*value*/)
   {
     fmt::print(stderr, "set() is not supported in MatrixCSR!\n");
@@ -175,7 +192,15 @@ struct MatrixCSR
     triplets_.emplace_back(row, clm, value);
   }
 
-  void clearRow(uint const row) { Row_T{}.swap(data_[row]); }
+  auto at(uint const row, uint const clm) const -> double
+  {
+    for (auto const & entry: data_[row])
+      if (entry.clm == clm)
+        return entry.value;
+    return 0.0;
+  }
+
+  void clearRow(uint const row);
   void clear();
   void close();
 

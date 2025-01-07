@@ -226,8 +226,8 @@ void ProblemFD1D::solve()
   {
   case FD_BC_TYPE::DIRICHLET:
   {
-    m_.clearRow(0U);
-    m_.diag()[0] = 1.0;
+    m_.clearRow(0);
+    m_.add(0, 0, 1.0);
     rhs_[0] = bcStart_.values[0];
     break;
   }
@@ -249,7 +249,7 @@ void ProblemFD1D::solve()
   case FD_BC_TYPE::DIRICHLET:
   {
     m_.clearRow(n_ - 1);
-    m_.diag()[n_ - 1] = 1.0;
+    m_.add(n_ - 1, n_ - 1, 1.0);
     rhs_[n_ - 1] = bcEnd_.values[0];
     break;
   }
@@ -265,13 +265,17 @@ void ProblemFD1D::solve()
   }
   }
 
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+  m_.close();
 
   // solve
   auto const [numIters, residual] = solvers_.at(solverType_)(this);
   fmt::print("num iters: {:4d}, ", numIters);
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
   fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
+
+  fmt::print("matrix: {}\n", m_);
+  fmt::print("rhs: {}\n", rhs_);
+  fmt::print("sol: {}\n", u_);
 
   // clean up
   m_.clear();
@@ -284,7 +288,17 @@ void ProblemFD1D::solve()
 
 void ProblemFD1D::assemblyHeat()
 {
-  for (uint k = 0U; k < n_; k++)
+  // eqn:
+  // du/dt - alpha * d^2u/dx^2 = q
+  // discretization:
+  // u_m / dt - alpha (u_l - 2 * u_m + u_r) / h^2 =
+  // uold_m / dt + q_m
+  // grouping:
+  // (1 / dt + 2 * alpha / h^2) * u_m
+  // - (alpha / h^2) * u_l
+  // - (alpha / h^2) * u_r
+  // = uold_m / dt + q_m
+  for (uint k = 0u; k < n_; k++)
   {
     uint const kLeft = (k != 0) ? k - 1 : k + 1;
     uint const kRight = (k != n_ - 1) ? k + 1 : k - 1;
@@ -303,15 +317,23 @@ void ProblemFD1D::assemblyHeatCoupled()
   std::copy(dataPtr, dataPtr + n_, uExt.data());
 
   double const kAmpli = 10.;
-  for (uint k = 1U; k < n_ - 1; k++)
+  for (uint k = 0u; k < n_; k++)
   {
+    uint const kLeft = (k != 0) ? k - 1 : k + 1;
+    uint const kRight = (k != n_ - 1) ? k + 1 : k - 1;
     // matrix
-    m_.diag()[k] = 1. / dt_                  // time
-                   + alpha_ * 2. / (h_ * h_) // diffusion
-                   + kAmpli                  // feedback control
-        ;
-    m_.diagUp()[k] = -alpha_ / (h_ * h_);   // diffusion
-    m_.diagDown()[k] = -alpha_ / (h_ * h_); // diffusion
+    m_.add(
+        k,
+        k,
+        1. / dt_                      // time
+            + alpha_ * 2. / (h_ * h_) // diffusion
+            + kAmpli);
+    m_.add(
+        k, kRight, -alpha_ / (h_ * h_) // diffusion
+    );
+    m_.add(
+        k, kLeft, -alpha_ / (h_ * h_) // diffusion
+    );
 
     // rhs
     rhs_[k] = uOld_[k] / dt_     // time
@@ -322,8 +344,9 @@ void ProblemFD1D::assemblyHeatCoupled()
 }
 
 // TODO: unify with MatrixCRS version using templates
+template <typename Matrix>
 double computeResidual(
-    MatrixTriDiag const & m,
+    Matrix const & m,
     std::vector<double> const & x,
     std::vector<double> const & b,
     double const area)
@@ -338,20 +361,23 @@ double computeResidual(
 
 std::pair<uint, double> ProblemFD1D::solveTriDiag()
 {
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
   std::vector<double> upPrime(n_);
   std::vector<double> rhsPrime(n_);
 
-  upPrime[0] = m_.diagUp()[0] / m_.diag()[0];
+  upPrime[0] = m_.at(0, 1) / m_.at(0, 0);
   for (uint k = 1U; k < n_ - 1; k++)
   {
-    upPrime[k] = m_.diagUp()[k] / (m_.diag()[k] - m_.diagDown()[k] * upPrime[k - 1]);
+    upPrime[k] = m_.at(k, k + 1) / (m_.at(k, k) - m_.at(k, k - 1) * upPrime[k - 1]);
   }
 
-  rhsPrime[0] = rhs_[0] / m_.diag()[0];
+  rhsPrime[0] = rhs_[0] / m_.at(0, 0);
   for (uint k = 1U; k < n_; k++)
   {
-    rhsPrime[k] = (rhs_[k] - m_.diagDown()[k] * rhsPrime[k - 1]) /
-                  (m_.diag()[k] - m_.diagDown()[k] * upPrime[k - 1]);
+    rhsPrime[k] = (rhs_[k] - m_.at(k, k - 1) * rhsPrime[k - 1]) /
+                  (m_.at(k, k) - m_.at(k, k - 1) * upPrime[k - 1]);
   }
 
   u_[n_ - 1] = rhsPrime[n_ - 1];
@@ -360,11 +386,14 @@ std::pair<uint, double> ProblemFD1D::solveTriDiag()
     u_[k] = rhsPrime[k] - upPrime[k] * u_[k + 1];
   }
 
-  return std::pair{1U, computeResidual(m_, u_, rhs_, h_)};
+  return std::pair{1U, computeResidual(m_, u_, rhs_, h_) / rhsNorm};
 }
 
 std::pair<uint, double> ProblemFD1D::solveVanka()
 {
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
   uint maxIter = 1000U;
   double const toll = 1e-6;
 
@@ -373,9 +402,9 @@ std::pair<uint, double> ProblemFD1D::solveVanka()
     double const resNorm = computeResidual(m_, u_, rhs_, h_);
 
     // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll)
+    if (resNorm < toll * rhsNorm)
     {
-      return std::pair{n, resNorm};
+      return std::pair{n, resNorm / rhsNorm};
     }
 
     // for (uint k = 0U; k < n_; k++)
@@ -383,20 +412,20 @@ std::pair<uint, double> ProblemFD1D::solveVanka()
 
     for (uint k = 1U; k < n_ - 1; k += 2U)
     {
-      u_[k] = (rhs_[k] - m_.diagDown()[k] * u_[k - 1] - m_.diagUp()[k] * u_[k + 1]) /
-              m_.diag()[k];
+      u_[k] = (rhs_[k] - m_.at(k, k - 1) * u_[k - 1] - m_.at(k, k + 1) * u_[k + 1]) /
+              m_.at(k, k);
     }
     for (uint k = 2U; k < n_ - 1; k += 2U)
     {
-      u_[k] = (rhs_[k] - m_.diagDown()[k] * u_[k - 1] - m_.diagUp()[k] * u_[k + 1]) /
-              m_.diag()[k];
+      u_[k] = (rhs_[k] - m_.at(k, k - 1) * u_[k - 1] - m_.at(k, k + 1) * u_[k + 1]) /
+              m_.at(k, k);
     }
-    u_[0] = (rhs_[0] - m_.diagUp()[0] * u_[1]) / m_.diag()[0];
+    u_[0] = (rhs_[0] - m_.at(0, 1) * u_[1]) / m_.at(0, 0);
     u_[n_ - 1] =
-        (rhs_[n_ - 1] - m_.diagDown()[n_ - 1] * u_[n_ - 2]) / m_.diag()[n_ - 1];
+        (rhs_[n_ - 1] - m_.at(n_ - 1, n_ - 2) * u_[n_ - 2]) / m_.at(n_ - 1, n_ - 1);
   }
 
-  return std::pair{maxIter, computeResidual(m_, u_, rhs_, h_)};
+  return std::pair{maxIter, computeResidual(m_, u_, rhs_, h_) / rhsNorm};
 }
 
 void ProblemFD1D::print()

@@ -442,13 +442,14 @@ void ProblemFD2D::solve()
 
   m_.close();
 
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
-
   // solve
   auto const [numIters, residual] = solvers_.at(solverType_)(this);
   fmt::print("num iters: {:4d}, ", numIters);
-  fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
+  fmt::print("relative residual: {:.8e}\n", residual);
+
+  // fmt::print("matrix: {}\n", m_);
+  // fmt::print("rhs: {}\n", rhs_);
+  // fmt::print("sol: {}\n", u_);
 
   // clean up
   m_.clear();
@@ -466,10 +467,24 @@ void ProblemFD2D::assemblyHeat()
     {
       auto const id = i + j * n_[0];
 
+      // eqn:
+      // du/dt + c du/dx - alpha * d^2u/dx^2 = q
+      // discretization:
+      // u_m / dt + cx * (u_r - u_l) / (2 * hx) + cy * (u_t - u_b) / (2 * hy)
+      // - alpha (u_l - 2 * u_m + u_r) / hx^2 - alpha (u_b - 2 * u_m + u_t) / hy^2 =
+      // uold_m / dt + q_m
+      // grouping:
+      // (1 / dt + 2 * alpha (1 / hx^2 + 1 / hy^2) * u_m
+      // - (alpha / hx^2 - cx / hx) * u_l
+      // - (alpha / hx^2 + cx / hx) * u_r
+      // - (alpha / hy^2 - cy / hy) * u_b
+      // - (alpha / hy^2 + cy / hy) * u_t
+      // = u_m / dt + q_m
+
       // middle
       double const value =
-          1. / dt_                                                 // time derivative
-          + alpha_ * (2. / (h_[0] * h_[0]) + 2. / (h_[1] * h_[1])) // diffusion
+          1. / dt_ // time derivative
+          + 2. * alpha_ * (1. / (h_[0] * h_[0]) + 1. / (h_[1] * h_[1])) // diffusion
           ;
       m_.add(id, id, value);
 
@@ -505,7 +520,6 @@ void ProblemFD2D::assemblyHeat()
                  + q_[id]        // source
           ;
     }
-  m_.close();
 }
 
 void ProblemFD2D::assemblyHeatCoupled()
@@ -537,14 +551,16 @@ void ProblemFD2D::assemblyHeatCoupled()
 std::pair<uint, double> ProblemFD2D::solveJacobi()
 {
   std::vector<double> uNew(u_.size());
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
 
   for (uint n = 0; n < maxIters_; n++)
   {
     double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
     // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll_)
+    if (resNorm < toll_ * rhsNorm)
     {
-      return std::pair{n, resNorm};
+      return std::pair{n, resNorm / rhsNorm};
     }
 
     for (uint k = 0U; k < u_.size(); k++)
@@ -570,18 +586,21 @@ std::pair<uint, double> ProblemFD2D::solveJacobi()
       u_[k] = uNew[k];
   }
 
-  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
+  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1]) / rhsNorm};
 }
 
 std::pair<uint, double> ProblemFD2D::solveGaussSeidel()
 {
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
   for (uint n = 0; n < maxIters_; n++)
   {
     double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
     // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll_)
+    if (resNorm < toll_ * rhsNorm)
     {
-      return std::pair{n, resNorm};
+      return std::pair{n, resNorm / rhsNorm};
     }
 
     for (uint k = 0U; k < u_.size(); k++)
@@ -603,7 +622,7 @@ std::pair<uint, double> ProblemFD2D::solveGaussSeidel()
     }
   }
 
-  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
+  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1]) / rhsNorm};
 }
 
 inline double solveLine(
@@ -623,14 +642,17 @@ inline double solveLine(
 
 std::pair<uint, double> ProblemFD2D::solveVankaSCI()
 {
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
   for (uint n = 0U; n < maxIters_; n++)
   {
     double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
 
     // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll_)
+    if (resNorm < toll_ * rhsNorm)
     {
-      return std::pair{n, resNorm};
+      return std::pair{n, resNorm / rhsNorm};
     }
 
     // for (uint k = 0U; k < u_.size(); k++)
@@ -658,19 +680,22 @@ std::pair<uint, double> ProblemFD2D::solveVankaSCI()
       }
   }
 
-  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
+  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1]) / rhsNorm};
 }
 
 std::pair<uint, double> ProblemFD2D::solveVankaCB()
 {
+  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
   for (uint n = 0U; n < maxIters_; n++)
   {
     double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
 
     // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll_)
+    if (resNorm < toll_ * rhsNorm)
     {
-      return std::pair{n, resNorm};
+      return std::pair{n, resNorm / rhsNorm};
     }
 
     // checkerboard
@@ -680,7 +705,7 @@ std::pair<uint, double> ProblemFD2D::solveVankaCB()
       u_[k] = solveLine(m_, rhs_, u_, k);
   }
 
-  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1])};
+  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1]) / rhsNorm};
 }
 
 void ProblemFD2D::print()

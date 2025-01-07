@@ -6,16 +6,16 @@
 // =====================================================================
 std::vector<double> operator*(MatrixTriDiag const & m, std::vector<double> const & v)
 {
-  uint const n = m.diag().size();
+  uint const n = m.size();
   assert(n == v.size());
   std::vector<double> r(n);
 
-  r[0] = m.diag()[0] * v[0] + m.diagUp()[0] * v[1];
-  for (uint k = 1; k < n - 1; k++)
+  r[0] = m.at(0, 0) * v[0] + m.at(0, 1) * v[1];
+  for (uint k = 1u; k < n - 1; k++)
   {
-    r[k] = m.diagDown()[k] * v[k - 1] + m.diag()[k] * v[k] + m.diagUp()[k] * v[k + 1];
+    r[k] = m.at(k, k - 1) * v[k - 1] + m.at(k, k) * v[k] + m.at(k, k + 1) * v[k + 1];
   }
-  r[n - 1] = m.diagDown()[n - 1] * v[n - 2] + m.diag()[n - 1] * v[n - 1];
+  r[n - 1] = m.at(n - 1, n - 2) * v[n - 2] + m.at(n - 1, n - 1) * v[n - 1];
 
   return r;
 }
@@ -27,6 +27,26 @@ void MatrixCSR::init(size_t n)
   data_.resize(n, Row_T{});
   for (uint k = 0; k < n; k++)
     data_[k].reserve(5);
+}
+
+void MatrixCSR::clearRow(uint const row)
+{
+  // clear store data
+  Row_T{}.swap(data_[row]);
+  data_[row].reserve(5);
+
+  // clear triplet data
+  triplets_.erase(
+      std::remove_if(
+          triplets_.begin(),
+          triplets_.end(),
+          [row](auto const & triplet)
+          {
+            if (std::get<0>(triplet) == row)
+              return true;
+            return false;
+          }),
+      triplets_.end());
 }
 
 void MatrixCSR::clear()
