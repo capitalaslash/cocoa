@@ -23,11 +23,25 @@ std::unique_ptr<FieldCoupling> FieldCoupling::build(COUPLING_TYPE type)
     return std::unique_ptr<FieldCoupling>{new FieldMED};
     break;
   }
+#else
+  case COUPLING_TYPE::MEDCOUPLING:
+  {
+    fmt::print(stderr, "MED coupling not available, reverting to Simple coupling\n");
+    return std::unique_ptr<FieldCoupling>{new FieldSimple};
+    break;
+  }
 #endif
 #ifdef COCOA_ENABLE_OFM2M
   case COUPLING_TYPE::OFM2M:
   {
     return std::unique_ptr<FieldCoupling>{new FieldOForg};
+    break;
+  }
+#else
+  case COUPLING_TYPE::OFM2M:
+  {
+    fmt::print(stderr, "OFM2M coupling not available, reverting to Simple coupling\n");
+    return std::unique_ptr<FieldCoupling>{new FieldSimple};
     break;
   }
 #endif

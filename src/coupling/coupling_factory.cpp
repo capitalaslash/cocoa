@@ -1,6 +1,9 @@
 // std
 #include <memory>
 
+// fmtlib
+#include <fmt/core.h>
+
 // local
 #include "plugins.hpp"
 
@@ -24,6 +27,13 @@ std::unique_ptr<CouplingManager> CouplingManager::build(COUPLING_TYPE type)
     return std::unique_ptr<CouplingManager>{new CouplingMED};
     break;
   }
+#else
+  case COUPLING_TYPE::MEDCOUPLING:
+  {
+    fmt::print(stderr, "MED coupling not available, reverting to Simple coupling\n");
+    return std::unique_ptr<CouplingManager>{new CouplingSimple};
+    break;
+  }
 #endif
 #ifdef COCOA_ENABLE_OFM2M
   case COUPLING_TYPE::OFM2M:
@@ -31,9 +41,17 @@ std::unique_ptr<CouplingManager> CouplingManager::build(COUPLING_TYPE type)
     return std::unique_ptr<CouplingManager>{new CouplingOFM2M};
     break;
   }
+#else
+  case COUPLING_TYPE::OFM2M:
+  {
+    fmt::print(stderr, "OFM2M coupling not available, reverting to Simple coupling\n");
+    return std::unique_ptr<CouplingManager>{new CouplingSimple};
+    break;
+  }
 #endif
   default:
   {
+    fmt::print(stderr, "coupling type not recognized!\n");
     std::abort();
   }
   }
