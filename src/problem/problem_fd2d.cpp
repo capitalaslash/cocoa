@@ -421,7 +421,6 @@ void ProblemFD2D::solve()
         m_.add(dof, dof, 1.0);
         rhs_[dof] = bc.values[k];
       }
-      break;
     }
   }
 
