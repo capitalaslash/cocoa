@@ -52,7 +52,11 @@ void ProblemFD1D::setup(Problem::ParamList_T const & params)
     {
       if (token[0] == '#')
       {
-        // this is a comment, ignore line
+        // this is a comment, consume whole line
+        while (bufferStream)
+        {
+          bufferStream >> token;
+        }
       }
       else if (token == "name:")
         bufferStream >> name_;
@@ -269,7 +273,8 @@ void ProblemFD1D::solve()
   m_.close();
 
   // solve
-  auto const [numIters, residual] = solvers_.at(solverType_)(this);
+  auto const [numIters, residual] =
+      solvers_.at(solverType_)(m_, rhs_, u_, 1000u, 1.e-6);
   fmt::print("num iters: {:4d}, ", numIters);
   double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
   fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
@@ -344,91 +349,6 @@ void ProblemFD1D::assemblyHeatCoupled()
   }
 }
 
-// TODO: unify with MatrixCRS version using templates
-template <typename Matrix>
-double computeResidual(
-    Matrix const & m,
-    std::vector<double> const & x,
-    std::vector<double> const & b,
-    double const area)
-{
-  std::vector<double> res(x.size());
-  auto const tmp = m * x;
-  for (uint k = 0; k < res.size(); k++)
-    res[k] = (b[k] - tmp[k]);
-  double const resNorm = std::sqrt(norm2sq(res) * area);
-  return resNorm;
-}
-
-std::pair<uint, double> ProblemFD1D::solveTriDiag()
-{
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
-
-  std::vector<double> upPrime(n_);
-  std::vector<double> rhsPrime(n_);
-
-  upPrime[0] = m_.at(0, 1) / m_.at(0, 0);
-  for (uint k = 1U; k < n_ - 1; k++)
-  {
-    upPrime[k] = m_.at(k, k + 1) / (m_.at(k, k) - m_.at(k, k - 1) * upPrime[k - 1]);
-  }
-
-  rhsPrime[0] = rhs_[0] / m_.at(0, 0);
-  for (uint k = 1U; k < n_; k++)
-  {
-    rhsPrime[k] = (rhs_[k] - m_.at(k, k - 1) * rhsPrime[k - 1]) /
-                  (m_.at(k, k) - m_.at(k, k - 1) * upPrime[k - 1]);
-  }
-
-  u_[n_ - 1] = rhsPrime[n_ - 1];
-  for (int k = n_ - 2; k >= 0; k--)
-  {
-    u_[k] = rhsPrime[k] - upPrime[k] * u_[k + 1];
-  }
-
-  return std::pair{1U, computeResidual(m_, u_, rhs_, h_) / rhsNorm};
-}
-
-std::pair<uint, double> ProblemFD1D::solveVanka()
-{
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
-
-  uint maxIter = 1000U;
-  double const toll = 1e-6;
-
-  for (uint n = 0U; n < maxIter; n++)
-  {
-    double const resNorm = computeResidual(m_, u_, rhs_, h_);
-
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll * rhsNorm)
-    {
-      return std::pair{n, resNorm / rhsNorm};
-    }
-
-    // for (uint k = 0U; k < n_; k++)
-    //   uOld_[k] = u_[k];
-
-    for (uint k = 1U; k < n_ - 1; k += 2U)
-    {
-      u_[k] = (rhs_[k] - m_.at(k, k - 1) * u_[k - 1] - m_.at(k, k + 1) * u_[k + 1]) /
-              m_.at(k, k);
-    }
-    for (uint k = 2U; k < n_ - 1; k += 2U)
-    {
-      u_[k] = (rhs_[k] - m_.at(k, k - 1) * u_[k - 1] - m_.at(k, k + 1) * u_[k + 1]) /
-              m_.at(k, k);
-    }
-    u_[0] = (rhs_[0] - m_.at(0, 1) * u_[1]) / m_.at(0, 0);
-    u_[n_ - 1] =
-        (rhs_[n_ - 1] - m_.at(n_ - 1, n_ - 2) * u_[n_ - 2]) / m_.at(n_ - 1, n_ - 1);
-  }
-
-  return std::pair{maxIter, computeResidual(m_, u_, rhs_, h_) / rhsNorm};
-}
-
 void ProblemFD1D::print()
 {
   auto const filename =
@@ -448,7 +368,22 @@ std::unordered_map<EQN_TYPE, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_ =
     {EQN_TYPE::HEAT_COUPLED, [](ProblemFD1D * p) { p->assemblyHeatCoupled(); }},
 };
 
-std::unordered_map<FD_SOLVER_TYPE, ProblemFD1D::Solver_T> ProblemFD1D::solvers_ = {
-    {FD_SOLVER_TYPE::TRIDIAG, [](ProblemFD1D * p) { return p->solveTriDiag(); }},
-    {FD_SOLVER_TYPE::VANKA1D, [](ProblemFD1D * p) { return p->solveVanka(); }},
+std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD1D::Matrix_T>>
+    ProblemFD1D::solvers_ = {
+        {FD_SOLVER_TYPE::NONE,
+         [](MatrixTriDiag const & m,
+            VectorFD const & b,
+            VectorFD & x,
+            double const residual,
+            uint const maxIters) {
+           return SolverInfo{0u, 0.0};
+         }},
+        {FD_SOLVER_TYPE::JACOBI, &solveJacobi<MatrixTriDiag>},
+        {FD_SOLVER_TYPE::TRIDIAG,
+         [](MatrixTriDiag const & m,
+            VectorFD const & b,
+            VectorFD & x,
+            double const,
+            uint const) { return solveTriDiag(m, b, x); }},
+        {FD_SOLVER_TYPE::VANKA1D, &solveVanka1D},
 };

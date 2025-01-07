@@ -348,21 +348,6 @@ static constexpr std::pair<uint, uint> cornerEnd(std::array<uint, 2U> const & n,
   return {0, 0};
 }
 
-// TODO: unify with 1D version by using templates
-double computeResidual(
-    MatrixCSR const & m,
-    std::vector<double> const & x,
-    std::vector<double> const & b,
-    double const area = 1.0)
-{
-  std::vector<double> res(x.size());
-  auto const tmp = m * x;
-  for (uint k = 0; k < res.size(); k++)
-    res[k] = (b[k] - tmp[k]);
-  double const resNorm = std::sqrt(norm2sq(res) * area);
-  return resNorm;
-}
-
 void ProblemFD2D::solve()
 {
   fmt::print("\n===\n");
@@ -442,7 +427,8 @@ void ProblemFD2D::solve()
   m_.close();
 
   // solve
-  auto const [numIters, residual] = solvers_.at(solverType_)(this);
+  auto const [numIters, residual] =
+      solvers_.at(solverType_)(m_, rhs_, u_, maxIters_, toll_);
   fmt::print("num iters: {:4d}, ", numIters);
   fmt::print("relative residual: {:.8e}\n", residual);
 
@@ -547,166 +533,6 @@ void ProblemFD2D::assemblyHeatCoupled()
   // }
 }
 
-std::pair<uint, double> ProblemFD2D::solveJacobi()
-{
-  std::vector<double> uNew(u_.size());
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
-
-  for (uint n = 0; n < maxIters_; n++)
-  {
-    double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll_ * rhsNorm)
-    {
-      return std::pair{n, resNorm / rhsNorm};
-    }
-
-    for (uint k = 0U; k < u_.size(); k++)
-    {
-      double valueNew = rhs_[k];
-      double diag = 0.0;
-      for (auto const [clm, value]: m_.data_[k])
-      {
-        if (clm == k)
-        {
-          diag = value;
-        }
-        else
-        {
-          valueNew -= value * u_[clm];
-        }
-      }
-      uNew[k] = valueNew / diag;
-    }
-
-    // update current solution
-    for (uint k = 0U; k < uNew.size(); k++)
-      u_[k] = uNew[k];
-  }
-
-  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1]) / rhsNorm};
-}
-
-std::pair<uint, double> ProblemFD2D::solveGaussSeidel()
-{
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
-
-  for (uint n = 0; n < maxIters_; n++)
-  {
-    double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll_ * rhsNorm)
-    {
-      return std::pair{n, resNorm / rhsNorm};
-    }
-
-    for (uint k = 0U; k < u_.size(); k++)
-    {
-      double valueNew = rhs_[k];
-      double diag = 0.0;
-      for (auto const [clm, value]: m_.data_[k])
-      {
-        if (clm == k)
-        {
-          diag = value;
-        }
-        else
-        {
-          valueNew -= value * u_[clm];
-        }
-      }
-      u_[k] = valueNew / diag;
-    }
-  }
-
-  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1]) / rhsNorm};
-}
-
-inline double solveLine(
-    MatrixCSR const & m,
-    std::vector<double> const & rhs,
-    std::vector<double> const & u,
-    size_t const id)
-{
-  assert(m.data_[id][0].clm == id);
-  double value = rhs[id];
-  for (uint j = 1; j < m.data_[id].size(); j++)
-  {
-    value -= m.data_[id][j].value * u[m.data_[id][j].clm];
-  }
-  return value / m.data_[id][0].value;
-}
-
-std::pair<uint, double> ProblemFD2D::solveVankaSCI()
-{
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
-
-  for (uint n = 0U; n < maxIters_; n++)
-  {
-    double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
-
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll_ * rhsNorm)
-    {
-      return std::pair{n, resNorm / rhsNorm};
-    }
-
-    // for (uint k = 0U; k < u_.size(); k++)
-    //   uOld_[k] = u_[k];
-
-    // sides + corners + inside
-    // sides
-    for (uint k = 0U; k < 4U; k++)
-    {
-      auto const dofList = sideDOF(n_, k);
-      for (auto const & dof: dofList)
-        u_[dof] = solveLine(m_, rhs_, u_, dof);
-    }
-
-    // corners
-    for (auto const & id: cornerDOF(n_))
-      u_[id] = solveLine(m_, rhs_, u_, id);
-
-    // inside
-    for (uint j = 1U; j < n_[1] - 1; j += 1U)
-      for (uint i = 1U; i < n_[0] - 1; i += 1U)
-      {
-        auto const id = i + j * n_[0];
-        u_[id] = solveLine(m_, rhs_, u_, id);
-      }
-  }
-
-  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1]) / rhsNorm};
-}
-
-std::pair<uint, double> ProblemFD2D::solveVankaCB()
-{
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_[0] * h_[1]);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
-
-  for (uint n = 0U; n < maxIters_; n++)
-  {
-    double const resNorm = computeResidual(m_, u_, rhs_, h_[0] * h_[1]);
-
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
-    if (resNorm < toll_ * rhsNorm)
-    {
-      return std::pair{n, resNorm / rhsNorm};
-    }
-
-    // checkerboard
-    for (uint k = 0U; k < n_[0] * n_[1]; k += 2U)
-      u_[k] = solveLine(m_, rhs_, u_, k);
-    for (uint k = 1U; k < n_[0] * n_[1]; k += 2U)
-      u_[k] = solveLine(m_, rhs_, u_, k);
-  }
-
-  return std::pair{maxIters_, computeResidual(m_, u_, rhs_, h_[0] * h_[1]) / rhsNorm};
-}
-
 void ProblemFD2D::print()
 {
   auto const filename =
@@ -733,10 +559,10 @@ std::unordered_map<EQN_TYPE, ProblemFD2D::Assembly_T> ProblemFD2D::assemblies_ =
     // {EQN_TYPE::HEAT_COUPLED, [](ProblemFD2D * p) { p->assemblyHeatCoupled(); }},
 };
 
-std::unordered_map<FD_SOLVER_TYPE, ProblemFD2D::Solver_T> ProblemFD2D::solvers_ = {
-    {FD_SOLVER_TYPE::JACOBI2D, [](ProblemFD2D * p) { return p->solveJacobi(); }},
-    {FD_SOLVER_TYPE::GAUSSSEIDEL2D,
-     [](ProblemFD2D * p) { return p->solveGaussSeidel(); }},
-    {FD_SOLVER_TYPE::VANKA2DCB, [](ProblemFD2D * p) { return p->solveVankaCB(); }},
-    {FD_SOLVER_TYPE::VANKA2DSCI, [](ProblemFD2D * p) { return p->solveVankaSCI(); }},
+std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD2D::Matrix_T>>
+    ProblemFD2D::solvers_ = {
+        {FD_SOLVER_TYPE::GAUSSSEIDEL, &solveGaussSeidel<ProblemFD2D::Matrix_T>},
+        {FD_SOLVER_TYPE::JACOBI, &solveJacobi<ProblemFD2D::Matrix_T>},
+        {FD_SOLVER_TYPE::VANKA2DCB, &solveVanka2DCB<ProblemFD2D::Matrix_T>},
+        {FD_SOLVER_TYPE::VANKA2DSCI, &solveVanka2DSCI<ProblemFD2D::Matrix_T>},
 };

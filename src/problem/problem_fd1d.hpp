@@ -13,7 +13,7 @@
 struct ProblemFD1D: public Problem
 {
   using Assembly_T = std::function<void(ProblemFD1D *)>;
-  using Solver_T = std::function<std::pair<uint, double>(ProblemFD1D *)>;
+  using Matrix_T = MatrixTriDiag;
 
   ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE} {}
   ~ProblemFD1D() = default;
@@ -28,8 +28,6 @@ struct ProblemFD1D: public Problem
   void initFieldCoupling();
   void assemblyHeat();
   void assemblyHeatCoupled();
-  std::pair<uint, double> solveTriDiag();
-  std::pair<uint, double> solveVanka();
 
   std::string name_;
   double start_;
@@ -42,7 +40,7 @@ struct ProblemFD1D: public Problem
   double alpha_;
   double finalTime_;
   double dt_;
-  MatrixTriDiag m_;
+  Matrix_T m_;
   VectorFD rhs_;
   FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::TRIDIAG;
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
@@ -53,5 +51,5 @@ struct ProblemFD1D: public Problem
   std::string nameExt_ = "uExternal";
 
   static std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
-  static std::unordered_map<FD_SOLVER_TYPE, Solver_T> solvers_;
+  static std::unordered_map<FD_SOLVER_TYPE, Solver_T<Matrix_T>> solvers_;
 };

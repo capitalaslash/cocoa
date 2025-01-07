@@ -97,3 +97,73 @@ std::vector<double> operator*(MatrixCSR const & m, std::vector<double> const & v
 
   return r;
 }
+
+// =====================================================================
+SolverInfo solveTriDiag(MatrixTriDiag const & m, VectorFD const & b, VectorFD & x)
+{
+  uint const n = b.size();
+  double const rhsNorm = std::sqrt(norm2sq(b) / n);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
+  std::vector<double> upPrime(n);
+  std::vector<double> rhsPrime(n);
+
+  upPrime[0] = m.at(0, 1) / m.at(0, 0);
+  for (uint k = 1U; k < n - 1; k++)
+  {
+    upPrime[k] = m.at(k, k + 1) / (m.at(k, k) - m.at(k, k - 1) * upPrime[k - 1]);
+  }
+
+  rhsPrime[0] = b[0] / m.at(0, 0);
+  for (uint k = 1U; k < n; k++)
+  {
+    rhsPrime[k] = (b[k] - m.at(k, k - 1) * rhsPrime[k - 1]) /
+                  (m.at(k, k) - m.at(k, k - 1) * upPrime[k - 1]);
+  }
+
+  x[n - 1] = rhsPrime[n - 1];
+  for (int k = n - 2; k >= 0; k--)
+  {
+    x[k] = rhsPrime[k] - upPrime[k] * x[k + 1];
+  }
+
+  return {1U, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
+}
+
+SolverInfo solveVanka1D(
+    MatrixTriDiag const & m,
+    VectorFD const & b,
+    VectorFD & x,
+    double const tolerance,
+    uint const maxIters)
+{
+  uint const n = b.size();
+  double const rhsNorm = std::sqrt(norm2sq(b) / n);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
+  for (uint i = 0U; i < maxIters; i++)
+  {
+    double const resNorm = computeResidual(m, x, b, 1.0 / n);
+
+    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    if (resNorm < tolerance * rhsNorm)
+    {
+      return {i, resNorm / rhsNorm};
+    }
+
+    for (uint k = 1U; k < n - 1; k += 2U)
+    {
+      x[k] =
+          (b[k] - m.at(k, k - 1) * x[k - 1] - m.at(k, k + 1) * x[k + 1]) / m.at(k, k);
+    }
+    for (uint k = 2U; k < n - 1; k += 2U)
+    {
+      x[k] =
+          (b[k] - m.at(k, k - 1) * x[k - 1] - m.at(k, k + 1) * x[k + 1]) / m.at(k, k);
+    }
+    x[0] = (b[0] - m.at(0, 1) * x[1]) / m.at(0, 0);
+    x[n - 1] = (b[n - 1] - m.at(n - 1, n - 2) * x[n - 2]) / m.at(n - 1, n - 1);
+  }
+
+  return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
+}

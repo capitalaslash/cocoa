@@ -2,7 +2,7 @@ name: fd1d_hc
 start: -1.0
 end: 2.0
 n_elems: 20
-coupling_type: simple
+coupling_type: medcoupling
 var_name: u
 initial_value: 0.0
 q: 0.0

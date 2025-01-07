@@ -11,8 +11,9 @@ start_time: 0.0
 final_time: 10.0
 dt: 1.0
 assembly_name: heat
-# solver_type: vanka1d
+# solver_type: gaussseidel
 solver_type: tridiag
+# solver_type: vanka2dcb !!! comment test !!!
 bc_start: dirichlet 1.0
 bc_end: neumann 0.0
 output_prefix: output_fd1d_heat

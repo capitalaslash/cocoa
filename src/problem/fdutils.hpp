@@ -1,10 +1,11 @@
 #pragma once
 
 // std
-#include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
+#include <functional>
 #include <string_view>
 #include <tuple>
 #include <vector>
@@ -42,30 +43,33 @@ struct FDBC
 enum struct FD_SOLVER_TYPE : uint8_t
 {
   NONE = 0,
+  GAUSSSEIDEL,
+  JACOBI,
   TRIDIAG,
   VANKA1D,
-  JACOBI2D,
-  GAUSSSEIDEL2D,
   VANKA2DCB,
   VANKA2DSCI,
 };
 
 inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
 {
-  if (name == "tridiag")
+  if (name == "gaussseidel")
+    return FD_SOLVER_TYPE::GAUSSSEIDEL;
+  else if (name == "jacobi")
+    return FD_SOLVER_TYPE::JACOBI;
+  else if (name == "tridiag")
     return FD_SOLVER_TYPE::TRIDIAG;
-  if (name == "vanka1d")
+  else if (name == "vanka1d")
     return FD_SOLVER_TYPE::VANKA1D;
-  if (name == "jacobi2d")
-    return FD_SOLVER_TYPE::JACOBI2D;
-  if (name == "gaussseidel2d")
-    return FD_SOLVER_TYPE::GAUSSSEIDEL2D;
-  if (name == "vanka2dcb")
+  else if (name == "vanka2dcb")
     return FD_SOLVER_TYPE::VANKA2DCB;
-  if (name == "vanka2dsci")
+  else if (name == "vanka2dsci")
     return FD_SOLVER_TYPE::VANKA2DSCI;
-  fmt::print(stderr, "solver {} not recognized\n", name);
-  std::abort();
+  else
+  {
+    fmt::print(stderr, "solver {} not recognized\n", name);
+    std::abort();
+  }
   return FD_SOLVER_TYPE::NONE;
 }
 
@@ -82,7 +86,7 @@ inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
 // };
 using VectorFD = std::vector<double>;
 
-inline double norm2sq(std::vector<double> & v)
+inline double norm2sq(VectorFD const & v)
 {
   double sum = 0.0;
   for (auto const & value: v)
@@ -122,6 +126,18 @@ struct MatrixTriDiag
     diags_[clm - row + 1][row] += value;
   }
 
+  std::vector<std::pair<uint, double>> row(uint k) const
+  {
+    // left
+    if (k == 0u)
+      return {{k, diags_[1][k]}, {k + 1, diags_[2][k]}};
+    // right
+    else if (k == diags_[0].size() - 1)
+      return {{k - 1, diags_[0][k]}, {k, diags_[1][k]}};
+    // inside
+    return {{k - 1, diags_[0][k]}, {k, diags_[1][k]}, {k + 1, diags_[2][k]}};
+  }
+
   auto at(uint const row, uint const clm) const -> double
   {
     if (clm == row - 1)
@@ -149,12 +165,12 @@ struct MatrixTriDiag
   }
   void close() {}
 
-  std::vector<double> & diag() { return diags_[1]; }
-  std::vector<double> & diagUp() { return diags_[2]; }
-  std::vector<double> & diagDown() { return diags_[0]; }
-  std::vector<double> const & diag() const { return diags_[1]; }
-  std::vector<double> const & diagUp() const { return diags_[2]; }
-  std::vector<double> const & diagDown() const { return diags_[0]; }
+  // std::vector<double> & diag() { return diags_[1]; }
+  // std::vector<double> & diagUp() { return diags_[2]; }
+  // std::vector<double> & diagDown() { return diags_[0]; }
+  // std::vector<double> const & diag() const { return diags_[1]; }
+  // std::vector<double> const & diagUp() const { return diags_[2]; }
+  // std::vector<double> const & diagDown() const { return diags_[0]; }
 
   std::array<std::vector<double>, 3U> diags_;
 };
@@ -214,6 +230,8 @@ struct MatrixCSR
   {
     triplets_.emplace_back(row, clm, value);
   }
+
+  Row_T const & row(uint k) const { return data_[k]; }
 
   auto at(uint const row, uint const clm) const -> double
   {
@@ -327,3 +345,257 @@ struct MatrixDense<2U>
 
   std::array<Vec2D_T, 2U> data;
 };
+
+// =====================================================================
+template <typename Matrix>
+double computeResidual(
+    Matrix const & m,
+    std::vector<double> const & x,
+    std::vector<double> const & b,
+    double const area)
+{
+  std::vector<double> res(x.size());
+  auto const tmp = m * x;
+  for (uint k = 0; k < res.size(); k++)
+    res[k] = (b[k] - tmp[k]);
+  double const resNorm = std::sqrt(norm2sq(res) * area);
+  return resNorm;
+}
+
+struct SolverInfo
+{
+  uint nIters;
+  double residual;
+};
+
+// template <typename Matrix>
+// struct Solver
+// {
+//   Solver() = default;
+//   virtual ~Solver() = default;
+
+//   auto set(Matrix const & m) -> void { m_ = &m; }
+//   auto virtual solve(VectorFD const & b, VectorFD & x) const -> SolverInfo = 0;
+
+//   std::unique_ptr<Matrix const> m_;
+//   uint maxIters = 1000u;
+//   double tolerance = 1e-6;
+// };
+
+// template <typename Matrix>
+// using Solver_T =
+//     std::function<SolverInfo(Solver<Matrix> const *, VectorFD const &, VectorFD
+//     &)>;
+
+// struct SolverTriDiag: public Solver<MatrixTriDiag>
+// {
+//   auto virtual solve(VectorFD const & b, VectorFD & x) const
+//       -> SolverInfo override final;
+// };
+
+template <typename Matrix>
+using Solver_T = std::function<SolverInfo(
+    Matrix const &, VectorFD const &, VectorFD &, double const, uint const)>;
+
+SolverInfo solveTriDiag(MatrixTriDiag const & m, VectorFD const & b, VectorFD & x);
+
+SolverInfo solveVanka1D(
+    MatrixTriDiag const & m,
+    VectorFD const & b,
+    VectorFD & x,
+    double const tolerance,
+    uint maxIters);
+
+template <typename Matrix>
+SolverInfo solveJacobi(
+    Matrix const & m,
+    VectorFD const & b,
+    VectorFD & x,
+    double const tolerance,
+    uint maxIters)
+{
+  uint const n = b.size();
+
+  std::vector<double> uNew(x.size());
+  double const rhsNorm = std::sqrt(norm2sq(b) / n);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
+  for (uint i = 0; i < maxIters; i++)
+  {
+    double const resNorm = computeResidual(m, x, b, 1.0 / n);
+    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    if (resNorm < tolerance * rhsNorm)
+    {
+      return {i, resNorm / rhsNorm};
+    }
+
+    for (uint k = 0U; k < x.size(); k++)
+    {
+      double valueNew = b[k];
+      double diag = 0.0;
+      for (auto const & [clm, value]: m.row(k))
+      {
+        if (clm == k)
+        {
+          diag = value;
+        }
+        else
+        {
+          valueNew -= value * x[clm];
+        }
+      }
+      uNew[k] = valueNew / diag;
+    }
+
+    // update current solution
+    for (uint k = 0U; k < uNew.size(); k++)
+      x[k] = uNew[k];
+  }
+
+  return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
+}
+
+template <typename Matrix>
+SolverInfo solveGaussSeidel(
+    Matrix const & m,
+    VectorFD const & b,
+    VectorFD & x,
+    double const tolerance,
+    uint maxIters)
+{
+  uint const n = b.size();
+
+  double const rhsNorm = std::sqrt(norm2sq(b) / n);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
+  for (uint i = 0; i < maxIters; i++)
+  {
+    double const resNorm = computeResidual(m, x, b, 1.0 / n);
+    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    if (resNorm < tolerance * rhsNorm)
+    {
+      return {i, resNorm / rhsNorm};
+    }
+
+    for (uint k = 0U; k < x.size(); k++)
+    {
+      double valueNew = b[k];
+      double diag = 0.0;
+      for (auto const [clm, value]: m.data_[k])
+      {
+        if (clm == k)
+        {
+          diag = value;
+        }
+        else
+        {
+          valueNew -= value * x[clm];
+        }
+      }
+      x[k] = valueNew / diag;
+    }
+  }
+
+  return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
+}
+
+inline double solveLine(
+    MatrixCSR const & m,
+    std::vector<double> const & rhs,
+    std::vector<double> const & u,
+    size_t const id)
+{
+  assert(m.data_[id][0].clm == id);
+  double value = rhs[id];
+  for (uint j = 1; j < m.data_[id].size(); j++)
+  {
+    value -= m.data_[id][j].value * u[m.data_[id][j].clm];
+  }
+  return value / m.data_[id][0].value;
+}
+
+template <typename Matrix>
+SolverInfo solveVanka2DCB(
+    Matrix const & m,
+    VectorFD const & b,
+    VectorFD & x,
+    double const tolerance,
+    uint maxIters)
+{
+  uint const n = b.size();
+
+  double const rhsNorm = std::sqrt(norm2sq(b) / n);
+  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
+  for (uint i = 0U; i < maxIters; i++)
+  {
+    double const resNorm = computeResidual(m, x, b, 1.0 / n);
+
+    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    if (resNorm < tolerance * rhsNorm)
+    {
+      return {i, resNorm / rhsNorm};
+    }
+
+    // checkerboard
+    for (uint k = 0U; k < n; k += 2U)
+      x[k] = solveLine(m, b, x, k);
+    for (uint k = 1U; k < n; k += 2U)
+      x[k] = solveLine(m, b, x, k);
+  }
+
+  return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
+}
+
+template <typename Matrix>
+SolverInfo solveVanka2DSCI(
+    Matrix const & /*m*/,
+    VectorFD const & /*b*/,
+    VectorFD & /*x*/,
+    double const /*tolerance*/,
+    uint /*maxIters*/)
+{
+  return {0u, 0.0};
+
+  // uint const n = b.size();
+
+  // double const rhsNorm = std::sqrt(norm2sq(b)  / n);
+  // fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+
+  // for (uint i = 0U; i < maxIters; i++)
+  // {
+  //   double const resNorm = computeResidual(m, x, b, 1.0 / n);
+
+  //   // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+  //   if (resNorm < tolerance * rhsNorm)
+  //   {
+  //     return {i, resNorm / rhsNorm};
+  //   }
+
+  //   // for (uint k = 0U; k < x.size(); k++)
+  //   //   uOld_[k] = x[k];
+
+  //   // sides + corners + inside
+  //   // sides
+  //   for (uint k = 0U; k < 4U; k++)
+  //   {
+  //     auto const dofList = sideDOF(n, k);
+  //     for (auto const & dof: dofList)
+  //       x[dof] = solveLine(m, b, x, dof);
+  //   }
+
+  //   // corners
+  //   for (auto const & id: cornerDOF(n))
+  //     x[id] = solveLine(m, b, x, id);
+
+  //   // inside
+  //   for (uint j = 1U; j < n[1] - 1; j += 1U)
+  //     for (uint i = 1U; i < n[0] - 1; i += 1U)
+  //     {
+  //       auto const id = i + j * n[0];
+  //       x[id] = solveLine(m, b, x, id);
+  //     }
+  // }
+
+  // return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
+}

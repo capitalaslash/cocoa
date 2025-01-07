@@ -12,7 +12,7 @@ start_time: 0.0
 final_time: 100.0
 dt: 1.0
 assembly_name: heat
-solver_type: gaussseidel2d
+solver_type: gaussseidel
 bcs: dirichlet 0.0 neumann 1.0 neumann 1.0 neumann 0.0
 output_prefix: output_fd2d_heatpipe
 

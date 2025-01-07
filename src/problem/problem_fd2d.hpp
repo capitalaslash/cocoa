@@ -15,7 +15,7 @@ struct ProblemFD2D: public Problem
 {
   using Vec2D_T = std::array<double, 2U>;
   using Assembly_T = std::function<void(ProblemFD2D *)>;
-  using Solver_T = std::function<std::pair<uint, double>(ProblemFD2D *)>;
+  using Matrix_T = MatrixCSR;
 
   ProblemFD2D(): Problem{PROBLEM_TYPE::FD2D, COUPLING_TYPE::NONE} {}
   virtual ~ProblemFD2D() = default;
@@ -30,10 +30,6 @@ struct ProblemFD2D: public Problem
   void initFieldCoupling();
   void assemblyHeat();
   void assemblyHeatCoupled();
-  std::pair<uint, double> solveJacobi();
-  std::pair<uint, double> solveGaussSeidel();
-  std::pair<uint, double> solveVankaSCI();
-  std::pair<uint, double> solveVankaCB();
 
   std::string name_;
   Vec2D_T start_;
@@ -47,9 +43,9 @@ struct ProblemFD2D: public Problem
   std::array<std::vector<double>, 2> c_;
   double finalTime_;
   double dt_;
-  MatrixCSR m_;
+  Matrix_T m_;
   std::vector<double> rhs_;
-  FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::JACOBI2D;
+  FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::JACOBI;
   double toll_ = 1.e-6;
   uint maxIters_;
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
@@ -58,7 +54,7 @@ struct ProblemFD2D: public Problem
   std::string nameExt_ = "uExternal";
 
   static std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
-  static std::unordered_map<FD_SOLVER_TYPE, Solver_T> solvers_;
+  static std::unordered_map<FD_SOLVER_TYPE, Solver_T<Matrix_T>> solvers_;
 };
 
 const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, uint const side);
