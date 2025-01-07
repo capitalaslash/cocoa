@@ -5,6 +5,9 @@
 #include <string>
 #include <string_view>
 
+// fmtlib
+#include "fmt/core.h"
+
 // local
 #include "plugins.hpp"
 
@@ -21,9 +24,15 @@ inline COUPLING_TYPE str2coupling(std::string_view name)
 {
   if (name == "simple")
     return COUPLING_TYPE::SIMPLE;
-  if (name == "medcoupling")
+  else if (name == "medcoupling")
     return COUPLING_TYPE::MEDCOUPLING;
-  std::abort();
+  else if (name == "ofm2m")
+    return COUPLING_TYPE::OFM2M;
+  else
+  {
+    fmt::print(stderr, "Coupling type {} not recognized!\n", name);
+    std::abort();
+  }
   return COUPLING_TYPE::NONE;
 }
 
