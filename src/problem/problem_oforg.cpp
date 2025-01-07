@@ -314,13 +314,16 @@ void ProblemOForg::print()
   Foam::word const writeStyle = runTime_->controlDict().lookup("writeControl");
   if (writeStyle == "timeStep")
   {
-    if (runTime_->controlDict().lookupOrDefault("writeInterval", 1) == 0)
+    Foam::label writeInterval =
+        runTime_->controlDict().lookupOrDefault("writeInterval", 1);
+    if (it % writeInterval == 0)
       writeVTK = true;
   }
   else if (writeStyle == "runTime")
   {
-    double const dt = runTime_->controlDict().lookupOrDefault("writeInterval", 1.0);
-    if (lastPrint_ + dt > time - 1.e-12)
+    double const dtWrite =
+        runTime_->controlDict().lookupOrDefault("writeInterval", 1.0);
+    if (lastPrint_ + dtWrite > time - 1.e-12)
     {
       writeVTK = true;
       lastPrint_ = time;
