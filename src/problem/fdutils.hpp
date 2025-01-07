@@ -161,6 +161,29 @@ struct MatrixTriDiag
 
 std::vector<double> operator*(MatrixTriDiag const & m, std::vector<double> const & v);
 
+template <>
+struct fmt::formatter<MatrixTriDiag>
+{
+  template <typename ParseContext>
+  constexpr auto parse(ParseContext & ctx);
+
+  template <typename FormatContext>
+  auto format(MatrixTriDiag const & m, FormatContext & ctx);
+};
+
+template <typename ParseContext>
+constexpr auto fmt::formatter<MatrixTriDiag>::parse(ParseContext & ctx)
+{
+  return ctx.begin();
+}
+
+template <typename FormatContext>
+auto fmt::formatter<MatrixTriDiag>::format(MatrixTriDiag const & m, FormatContext & ctx)
+{
+  return fmt::format_to(
+      ctx.out(), "down: {}\ndiag: {}\nup: {}", m.diags_[0], m.diags_[1], m.diags_[2]);
+}
+
 // =====================================================================
 struct MatrixCSR
 {
@@ -210,6 +233,54 @@ struct MatrixCSR
 };
 
 std::vector<double> operator*(MatrixCSR const & m, std::vector<double> const & v);
+
+template <>
+struct fmt::formatter<MatrixCSR::Entry>
+{
+  template <typename ParseContext>
+  constexpr auto parse(ParseContext & ctx) -> format_parse_context::iterator;
+
+  template <typename FormatContext>
+  auto format(MatrixCSR::Entry const & e, FormatContext & ctx) const
+      -> format_context::iterator;
+};
+
+template <typename ParseContext>
+constexpr auto fmt::formatter<MatrixCSR::Entry>::parse(ParseContext & ctx)
+    -> format_parse_context::iterator
+{
+  return ctx.begin();
+}
+
+template <typename FormatContext>
+auto fmt::formatter<MatrixCSR::Entry>::format(
+    MatrixCSR::Entry const & e, FormatContext & ctx) const -> format_context::iterator
+{
+  return fmt::format_to(ctx.out(), "[{}, {}]", e.clm, e.value);
+}
+
+template <>
+struct fmt::formatter<MatrixCSR>
+{
+  template <typename ParseContext>
+  constexpr auto parse(ParseContext & ctx);
+
+  template <typename FormatContext>
+  auto format(MatrixCSR const & m, FormatContext & ctx);
+};
+
+template <typename ParseContext>
+constexpr auto fmt::formatter<MatrixCSR>::parse(ParseContext & ctx)
+{
+  return ctx.begin();
+}
+
+template <typename FormatContext>
+auto fmt::formatter<MatrixCSR>::format(MatrixCSR const & m, FormatContext & ctx)
+{
+  return fmt::format_to(
+      ctx.out(), "stored entries:\n{}\npending entries:\n{}", m.data_, m.triplets_);
+}
 
 // =====================================================================
 template <size_t n>

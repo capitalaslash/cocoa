@@ -9,6 +9,7 @@
 
 // libfmt
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 
 // local
 #include "coupling/field_coupling.hpp"
@@ -273,9 +274,9 @@ void ProblemFD1D::solve()
   double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
   fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
 
-  fmt::print("matrix: {}\n", m_);
-  fmt::print("rhs: {}\n", rhs_);
-  fmt::print("sol: {}\n", u_);
+  // fmt::print("matrix: {}\n", m_);
+  // fmt::print("rhs: {}\n", rhs_);
+  // fmt::print("sol: {}\n", u_);
 
   // clean up
   m_.clear();
