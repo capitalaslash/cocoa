@@ -30,12 +30,10 @@ enum struct OFFIELD_TYPE : uint8_t
 
 struct ProblemOForg: public Problem
 {
-  using ParamList_T = Problem::ParamList_T;
-
   ProblemOForg(): Problem{PROBLEM_TYPE::OFORG, COUPLING_TYPE::NONE} {}
   ~ProblemOForg() { Foam::Info << "End\n" << Foam::endl; }
 
-  void setup(ParamList_T const & params) override;
+  void setup(Problem::ConfigList_T const & configs) override;
   bool run() override;
   void advance() override;
   void solve() override;

@@ -13,7 +13,7 @@
 
 struct Problem
 {
-  using ParamList_T = std::unordered_map<std::string, std::filesystem::path>;
+  using ConfigList_T = std::unordered_map<std::string, std::filesystem::path>;
 
   Problem() = default;
   Problem(PROBLEM_TYPE type, COUPLING_TYPE couplingType):
@@ -22,7 +22,7 @@ struct Problem
   {}
   virtual ~Problem() = default;
 
-  virtual void setup(ParamList_T const & params) = 0;
+  virtual void setup(ConfigList_T const & configs) = 0;
   virtual bool run() = 0;
   virtual void advance() = 0;
   virtual void solve() = 0;

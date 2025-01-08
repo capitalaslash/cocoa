@@ -18,7 +18,7 @@ struct ProblemFD1D: public Problem
   ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE} {}
   ~ProblemFD1D() = default;
 
-  void setup(Problem::ParamList_T const & params) override;
+  void setup(Problem::ConfigList_T const & configs) override;
   bool run() override;
   void advance() override;
   void solve() override;

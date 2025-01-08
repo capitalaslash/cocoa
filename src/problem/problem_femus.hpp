@@ -16,9 +16,7 @@ struct ProblemFEMUS: public Problem
   ProblemFEMUS: Problem{PROBLEM_TYPE::FEMUS} {}
   ~ProblemFEMUS() = default;
 
-  using ParamList_T = Problem::ParamList_T;
-
-  void setup(ParamList_T const & params) override
+  void setup(Probelm::ConfigList_T const & configs) override
   {
     fmt::print("ProblemFEMUS::setup() -> init mesh\n");
   }

@@ -20,7 +20,7 @@ struct ProblemFD2D: public Problem
   ProblemFD2D(): Problem{PROBLEM_TYPE::FD2D, COUPLING_TYPE::NONE} {}
   virtual ~ProblemFD2D() = default;
 
-  void setup(Problem::ParamList_T const & params) override;
+  void setup(Problem::ConfigList_T const & configs) override;
   bool run() override;
   void advance() override;
   void solve() override;

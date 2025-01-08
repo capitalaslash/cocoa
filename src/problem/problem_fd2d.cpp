@@ -18,7 +18,7 @@
 #include "enums.hpp"
 #include "problem/fdutils.hpp"
 
-void ProblemFD2D::setup(Problem::ParamList_T const & params)
+void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
 {
   // default values
   name_ = "empty";
@@ -43,7 +43,7 @@ void ProblemFD2D::setup(Problem::ParamList_T const & params)
   toll_ = 1.e-6;
 
   // read configuration from file
-  std::filesystem::path configFile = params.at("config_file");
+  std::filesystem::path configFile = configs.at("config_file");
   std::ifstream in(configFile, std::ios::in);
   if (!in)
   {

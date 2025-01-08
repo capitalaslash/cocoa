@@ -144,10 +144,10 @@ void ProblemProXPDE::solve()
 
 // =====================================================================
 
-void ProblemProXPDEHeat::setup(ParamList_T const & params)
+void ProblemProXPDEHeat::setup(Problem::ConfigList_T const & configs)
 {
   // get configuration from file
-  std::string const filename = params.at("config_file");
+  std::string const filename = configs.at("config_file");
   proxpde::ParameterDict config = YAML::LoadFile(filename);
 
   // init mesh from configuration
@@ -353,10 +353,10 @@ void ProblemProXPDEHeat::print()
 
 // =====================================================================
 
-void ProblemProXPDENS::setup(ParamList_T const & params)
+void ProblemProXPDENS::setup(Problem::ConfigList_T const & configs)
 {
   // get configuration from file
-  std::string const filename = params.at("config_file");
+  std::string const filename = configs.at("config_file");
   proxpde::ParameterDict config = YAML::LoadFile(filename);
 
   // init mesh from configuration

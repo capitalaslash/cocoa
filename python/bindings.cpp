@@ -43,10 +43,10 @@ PYBIND11_MODULE(pycocoa, m)
           "setup",
           [](Problem * p, py::kwargs const & kwargs)
           {
-            using ParamList_T = Problem::ParamList_T;
-            using Key_T = ParamList_T::key_type;
-            // using Value_T = ParamList_T::value_type;
-            ParamList_T configFiles;
+            using ConfigList_T = Problem::ConfigList_T;
+            using Key_T = ConfigList_T::key_type;
+            // using Value_T = ConfigList_T::value_type;
+            ConfigList_T configFiles;
             for (auto kw: kwargs)
             {
               configFiles[kw.first.cast<Key_T>()] = kw.second.cast<std::string>();

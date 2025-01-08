@@ -14,9 +14,9 @@
 // local
 #include "enums.hpp"
 
-void ProblemOForg::setup(ParamList_T const & params)
+void ProblemOForg::setup(Problem::ConfigList_T const & configs)
 {
-  prefix_ = params.at("case_dir").string();
+  prefix_ = configs.at("case_dir").string();
   int argc = 3;
   char ** argv = new char *[3];
   argv[0] = (char *)"app_oforg";
@@ -80,9 +80,9 @@ void ProblemOForg::setup(ParamList_T const & params)
   setDeltaT(*runTime_, *solverPtr_);
 
   std::string outputVTK = "./output_oforg";
-  if (params.contains("config_file"))
+  if (configs.contains("config_file"))
   {
-    std::filesystem::path const configFile = params.at("config_file").string();
+    std::filesystem::path const configFile = configs.at("config_file").string();
     std::ifstream in(configFile, std::ios::in);
     if (!in)
     {

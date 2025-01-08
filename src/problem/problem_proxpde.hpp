@@ -24,12 +24,10 @@
 
 struct ProblemProXPDE: public Problem
 {
-  using ParamList_T = Problem::ParamList_T;
-
   ProblemProXPDE(): Problem{PROBLEM_TYPE::PROXPDE, COUPLING_TYPE::MEDCOUPLING} {}
   virtual ~ProblemProXPDE() = default;
 
-  virtual void setup(ParamList_T const & params) override = 0;
+  virtual void setup(Problem::ConfigList_T const & configs) override = 0;
   void advance() override final;
   bool run() override final;
   virtual void solve() override;
@@ -71,7 +69,6 @@ struct ProblemProXPDE: public Problem
 
 struct ProblemProXPDEHeat: public ProblemProXPDE
 {
-  using ParamList_T = ProblemProXPDE::ParamList_T;
   using Elem_T = proxpde::Quad;
   using Mesh_T = proxpde::Mesh<Elem_T>;
   using FE_T = proxpde::LagrangeFE<Elem_T, 1U>;
@@ -81,7 +78,7 @@ struct ProblemProXPDEHeat: public ProblemProXPDE
   ProblemProXPDEHeat() = default;
   ~ProblemProXPDEHeat() = default;
 
-  void setup(ParamList_T const & params) override;
+  void setup(Problem::ConfigList_T const & configs) override;
   void solve() override;
   void print() override;
 
@@ -106,7 +103,6 @@ struct ProblemProXPDEHeat: public ProblemProXPDE
 
 struct ProblemProXPDENS: public ProblemProXPDE
 {
-  using ParamList_T = ProblemProXPDE::ParamList_T;
   using Elem_T = proxpde::Quad;
   using Mesh_T = proxpde::Mesh<Elem_T>;
   using FE1_T = proxpde::LagrangeFE<Elem_T, 1U>;
@@ -120,7 +116,7 @@ struct ProblemProXPDENS: public ProblemProXPDE
   ProblemProXPDENS() = default;
   ~ProblemProXPDENS() = default;
 
-  void setup(ParamList_T const & params) override;
+  void setup(Problem::ConfigList_T const & configs) override;
   void solve() override;
   void print() override;
 
