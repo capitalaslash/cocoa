@@ -274,7 +274,7 @@ void ProblemFD1D::solve()
 
   // solve
   auto const [numIters, residual] =
-      solvers_.at(solverType_)(m_, rhs_, u_, 1000u, 1.e-6);
+      solvers_.at(solverType_)(m_, rhs_, u_, 1.e-6, 1000u);
   fmt::print("num iters: {:4d}, ", numIters);
   double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
   fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);

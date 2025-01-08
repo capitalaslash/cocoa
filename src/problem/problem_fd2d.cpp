@@ -428,7 +428,7 @@ void ProblemFD2D::solve()
 
   // solve
   auto const [numIters, residual] =
-      solvers_.at(solverType_)(m_, rhs_, u_, maxIters_, toll_);
+      solvers_.at(solverType_)(m_, rhs_, u_, toll_, maxIters_);
   fmt::print("num iters: {:4d}, ", numIters);
   fmt::print("relative residual: {:.8e}\n", residual);
 
