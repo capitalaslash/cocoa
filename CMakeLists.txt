@@ -20,6 +20,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic")
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(LIB_SOURCES
+  src/la.cpp
   src/coupling/coupling_simple.cpp
   src/coupling/coupling_factory.cpp
   src/coupling/field_factory.cpp
@@ -31,6 +32,7 @@ set(LIB_SOURCES
 )
 set(LIB_HEADERS
   src/enums.hpp
+  src/la.hpp
   src/coupling/coupling_manager.hpp
   src/coupling/coupling_simple.hpp
   src/coupling/field_coupling.hpp

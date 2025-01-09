@@ -348,7 +348,7 @@ static constexpr std::pair<uint, uint> cornerEnd(std::array<uint, 2U> const & n,
   return {0, 0};
 }
 
-void ProblemFD2D::solve()
+uint ProblemFD2D::solve()
 {
   fmt::print("\n===\n");
   fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
@@ -425,6 +425,7 @@ void ProblemFD2D::solve()
   // }
 
   m_.close();
+  // m_.print_sparsity_pattern("fd2d_mat.dat");
 
   // solve
   auto const [numIters, residual] =
@@ -443,6 +444,8 @@ void ProblemFD2D::solve()
 
   // update coupling field
   getField(varName_)->setValues(u_);
+
+  return numIters;
 }
 
 void ProblemFD2D::assemblyHeat()

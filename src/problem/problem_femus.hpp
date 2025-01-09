@@ -21,7 +21,7 @@ struct ProblemFEMUS: public Problem
     fmt::print("ProblemFEMUS::setup() -> init mesh\n");
   }
   bool run() override { return false; }
-  void solve() override {}
+  uint solve() override {}
 
   // FEMUSMesh mesh_;
   // std::vector<FEMUSField> fields_;

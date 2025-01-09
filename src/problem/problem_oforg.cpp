@@ -258,7 +258,7 @@ void ProblemOForg::advance()
   Foam::Info << "Time = " << runTime_->userTimeName() << Foam::nl << Foam::endl;
 }
 
-void ProblemOForg::solve()
+uint ProblemOForg::solve()
 {
   // PIMPLE corrector loop
   while (pimple_->loop())
@@ -300,6 +300,9 @@ void ProblemOForg::solve()
       std::abort();
     }
   }
+
+  // TODO: extract the number of iterations
+  return 0u;
 }
 
 void ProblemOForg::print()

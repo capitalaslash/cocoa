@@ -5,6 +5,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <type_traits>
 #include <unordered_map>
 
 // libfmt
@@ -214,7 +215,7 @@ void ProblemFD1D::advance()
   it++;
 }
 
-void ProblemFD1D::solve()
+uint ProblemFD1D::solve()
 {
   fmt::print("\n===\n");
   fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
@@ -290,6 +291,8 @@ void ProblemFD1D::solve()
 
   // update coupling field
   getField(varName_)->setValues(u_);
+
+  return numIters;
 }
 
 void ProblemFD1D::assemblyHeat()

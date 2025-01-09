@@ -30,7 +30,7 @@ struct ProblemProXPDE: public Problem
   virtual void setup(Problem::ConfigList_T const & configs) override = 0;
   void advance() override final;
   bool run() override final;
-  virtual void solve() override;
+  virtual uint solve() override;
   virtual void print() override = 0;
 
   virtual uint size() const = 0;
@@ -79,7 +79,7 @@ struct ProblemProXPDEHeat: public ProblemProXPDE
   ~ProblemProXPDEHeat() = default;
 
   void setup(Problem::ConfigList_T const & configs) override;
-  void solve() override;
+  uint solve() override;
   void print() override;
 
   virtual uint size() const override { return feSpace_.dof.size; }
@@ -117,7 +117,7 @@ struct ProblemProXPDENS: public ProblemProXPDE
   ~ProblemProXPDENS() = default;
 
   void setup(Problem::ConfigList_T const & configs) override;
-  void solve() override;
+  uint solve() override;
   void print() override;
 
   virtual uint size() const override

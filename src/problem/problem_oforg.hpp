@@ -36,7 +36,7 @@ struct ProblemOForg: public Problem
   void setup(Problem::ConfigList_T const & configs) override;
   bool run() override;
   void advance() override;
-  void solve() override;
+  uint solve() override;
   void print() override;
 
   void initMeshMED(std::string_view name);

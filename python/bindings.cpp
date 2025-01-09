@@ -11,6 +11,7 @@
 #include "coupling/coupling_med.hpp"
 #include "coupling/coupling_simple.hpp"
 #include "enums.hpp"
+#include "la.hpp"
 #include "problem/fdutils.hpp"
 #include "problem/problem.hpp"
 #include "problem/problem_fd1d.hpp"
@@ -36,7 +37,7 @@ PYBIND11_MODULE(pycocoa, m)
       .value("heat", EQN_TYPE::HEAT)
       .value("custom", EQN_TYPE::CUSTOM);
 
-  // problems ==========================================================
+  // Problem ===========================================================
   py::class_<Problem>(m, "Problem")
       .def_readwrite("coupling_type", &Problem::couplingType_)
       .def(
@@ -62,6 +63,7 @@ PYBIND11_MODULE(pycocoa, m)
       .def_readwrite("couplingType", &Problem::couplingType_)
       .def_readwrite("time", &Problem::time);
 
+  // ProblemFD1D =======================================================
   py::class_<ProblemFD1D, Problem>(m, "ProblemFD1D")
       .def(py::init<>())
       .def("initMeshCoupling", &ProblemFD1D::initMeshCoupling)
@@ -99,6 +101,7 @@ PYBIND11_MODULE(pycocoa, m)
       .def_readwrite("outputPrefix", &ProblemFD1D::outputPrefix_)
       .def_readwrite("nameExt", &ProblemFD1D::nameExt_);
 
+  // other derived problems ============================================
   py::class_<ProblemFD2D, Problem>(m, "ProblemFD2D").def(py::init<>());
 
 #ifdef COCOA_ENABLE_OFORG
@@ -137,7 +140,7 @@ PYBIND11_MODULE(pycocoa, m)
   py::class_<CouplingMED, CouplingManager>(m, "CouplingMED").def(py::init<>());
 #endif
 
-  // FD utils
+  // FD utils ==========================================================
   py::enum_<FD_BC_TYPE>(m, "FD_BC_TYPE")
       .value("none", FD_BC_TYPE::NONE)
       .value("dirichlet", FD_BC_TYPE::DIRICHLET)
@@ -159,7 +162,12 @@ PYBIND11_MODULE(pycocoa, m)
                 {sizeof(double)});
           });
 
+  // linear algebra ====================================================
   py::class_<MatrixTriDiag>(m, "MatrixTriDiag")
       .def(py::init<size_t>())
       .def("init", &MatrixTriDiag::init, "n"_a);
+
+  py::class_<MatrixCSR>(m, "MatrixCSR")
+      .def(py::init<size_t>())
+      .def("init", &MatrixCSR::init, "n"_a);
 }

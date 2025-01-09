@@ -25,7 +25,7 @@ struct Problem
   virtual void setup(ConfigList_T const & configs) = 0;
   virtual bool run() = 0;
   virtual void advance() = 0;
-  virtual void solve() = 0;
+  virtual uint solve() = 0;
   virtual void print() = 0;
 
   virtual FieldCoupling * getField(std::string_view name)

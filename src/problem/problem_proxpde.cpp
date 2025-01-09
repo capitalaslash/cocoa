@@ -125,7 +125,7 @@ void ProblemProXPDE::advance()
 
 bool ProblemProXPDE::run() { return time < finalTime_; }
 
-void ProblemProXPDE::solve()
+uint ProblemProXPDE::solve()
 {
   fmt::print("{} - time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
 
@@ -140,6 +140,9 @@ void ProblemProXPDE::solve()
   proxpde::LUSolver solver;
   solver.compute(builder.A);
   u_ = solver.solve(builder.b);
+
+  // TODO: extract number of iterations
+  return 0u;
 }
 
 // =====================================================================
@@ -330,9 +333,9 @@ void ProblemProXPDEHeat::assemblyHeatBuoyant(proxpde::Builder<> & b)
       bcs_);
 }
 
-void ProblemProXPDEHeat::solve()
+uint ProblemProXPDEHeat::solve()
 {
-  ProblemProXPDE::solve();
+  auto const numIters = ProblemProXPDE::solve();
 
   // update local var
   T_.data = u_;
@@ -340,6 +343,8 @@ void ProblemProXPDEHeat::solve()
   // update coupling var
   setDataMED(couplingExport_[0], T_.data, feSpace_);
   setDataMED("vel", vel_.data, *vel_.feSpace);
+
+  return numIters;
 }
 
 void ProblemProXPDEHeat::print()
@@ -434,9 +439,9 @@ void ProblemProXPDENS::setup(Problem::ConfigList_T const & configs)
   }
 }
 
-void ProblemProXPDENS::solve()
+uint ProblemProXPDENS::solve()
 {
-  ProblemProXPDE::solve();
+  auto const numIters = ProblemProXPDE::solve();
 
   // update local vars
   vel_.data = u_.head(2U * feSpaceVel_.dof.size);
@@ -446,6 +451,8 @@ void ProblemProXPDENS::solve()
   projectorQ2Q1_.setRhs(vel_.data);
   velQ1_.data = projectorQ2Q1_.apply();
   setDataMED("vel", velQ1_.data, feSpaceVelQ1_);
+
+  return numIters;
 }
 
 void ProblemProXPDENS::print()
