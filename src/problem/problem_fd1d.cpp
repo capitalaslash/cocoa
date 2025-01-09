@@ -239,7 +239,11 @@ uint ProblemFD1D::solve()
   }
   case FD_BC_TYPE::NEUMANN:
   {
-    rhs_[0] += -2.0 * alpha_ * bcStart_.values[0] / h_;
+    // sign: incoming flux is positive
+    // (u_1 - u_-1) / 2h = A
+    // u_-1 = u_1 - 2 h A
+    // u_1 part implemented in assembly
+    rhs_[0] += -2.0 * h_ * bcStart_.values[0] * m_.at(0, 1);
     break;
   }
   default:
@@ -261,7 +265,11 @@ uint ProblemFD1D::solve()
   }
   case FD_BC_TYPE::NEUMANN:
   {
-    rhs_[n_ - 1] += 2.0 * alpha_ * bcEnd_.values[0] / h_;
+    // sign: incoming flux is positive
+    // (u_n-2 - u_n) / 2h = A
+    // u_n = u_n-2 - 2 h A
+    // u_n-2 part implemented in assembly
+    rhs_[n_ - 1] += -2.0 * h_ * bcEnd_.values[0] * m_.at(n_ - 1, n_ - 2);
     break;
   }
   default:
@@ -316,6 +324,7 @@ void ProblemFD1D::assemblyHeat()
     m_.add(k, kRight, -alpha_ / (h_ * h_));
     rhs_[k] = uOld_[k] / dt_ + q_[k];
   }
+  m_.close();
 }
 
 void ProblemFD1D::assemblyHeatCoupled()
@@ -350,6 +359,7 @@ void ProblemFD1D::assemblyHeatCoupled()
               + kAmpli * uExt[k] // feedback control
         ;
   }
+  m_.close();
 }
 
 void ProblemFD1D::print()

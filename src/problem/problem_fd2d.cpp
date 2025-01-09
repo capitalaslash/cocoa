@@ -305,12 +305,12 @@ static constexpr std::array<uint, 4U> cornerDOF(std::array<uint, 2U> const & n)
   }};
 }
 
-static constexpr std::array<std::array<uint, 2U>, 4U> cornerSides = {{
-    {{0, 3}}, // bottom-left
-    {{1, 0}}, // bottom-right
-    {{2, 1}}, // top-right
-    {{3, 2}}, // top-left
-}};
+// static constexpr std::array<std::array<uint, 2U>, 4U> cornerSides = {{
+//     {{0, 3}}, // bottom-left
+//     {{1, 0}}, // bottom-right
+//     {{2, 1}}, // top-right
+//     {{3, 2}}, // top-left
+// }};
 
 // static constexpr int cornerOffset(std::array<uint, 2U> const & n, uint k)
 // {
@@ -330,23 +330,24 @@ static constexpr std::array<std::array<uint, 2U>, 4U> cornerSides = {{
 //   return 0;
 // }
 
-static constexpr std::pair<uint, uint> cornerEnd(std::array<uint, 2U> const & n, uint k)
-{
-  switch (k)
-  {
-  case 0U:
-    return {0, 0}; // bottom left
-  case 1U:
-    return {0, n[0] - 1}; // bottom right
-  case 2U:
-    return {n[0] - 1, n[1] - 1}; // top left
-  case 3U:
-    return {n[1] - 1, 0}; // top right
-  default:
-    std::abort();
-  }
-  return {0, 0};
-}
+// static constexpr std::pair<uint, uint> cornerEnd(std::array<uint, 2U> const & n, uint
+// k)
+// {
+//   switch (k)
+//   {
+//   case 0U:
+//     return {0, 0}; // bottom left
+//   case 1U:
+//     return {0, n[0] - 1}; // bottom right
+//   case 2U:
+//     return {n[0] - 1, n[1] - 1}; // top left
+//   case 3U:
+//     return {n[1] - 1, 0}; // top right
+//   default:
+//     std::abort();
+//   }
+//   return {0, 0};
+// }
 
 uint ProblemFD2D::solve()
 {
@@ -369,10 +370,9 @@ uint ProblemFD2D::solve()
   // assembly
   assemblies_.at(eqnType_)(this);
 
-  // TODO: decide if sign should mean always entrant/always outgoing (+1/-1 always) or
-  // follow direction axis (current)
-  std::array<double, 4U> const sideSign = {-1.0, 1.0, 1.0, -1.0};
   std::array<double, 4U> const hSide = {h_[1], h_[0], h_[1], h_[0]};
+  std::array<int, 4U> const sideOffset = {
+      static_cast<int>(n_[0]), -1, -static_cast<int>(n_[0]), 1};
 
   // Neumann sides
   for (uint s = 0U; s < 4U; s++)
@@ -386,7 +386,12 @@ uint ProblemFD2D::solve()
       for (uint k = 0U; k < dofList.size(); k++)
       {
         uint const dof = dofList[k];
-        rhs_[dof] += sideSign[s] * 2.0 * alpha_ * bc.values[k] / hSide[s];
+        // sign: incoming flux is positive
+        // (u_in - u_out) / 2h = A
+        // u_out = u_in - 2 h A
+        // u_in part implemented in assembly
+        uint const dofIn = dof + sideOffset[s];
+        rhs_[dof] += -2.0 * hSide[s] * bc.values[k] * m_.at(dof, dofIn);
       }
     }
   }
@@ -508,6 +513,7 @@ void ProblemFD2D::assemblyHeat()
                  + q_[id]        // source
           ;
     }
+  m_.close();
 }
 
 void ProblemFD2D::assemblyHeatCoupled()
@@ -534,6 +540,7 @@ void ProblemFD2D::assemblyHeatCoupled()
   //             + kAmpli * uExt[k] // feedback control
   //       ;
   // }
+  // m_.close();
 }
 
 void ProblemFD2D::print()

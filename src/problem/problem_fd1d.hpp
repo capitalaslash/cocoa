@@ -28,6 +28,7 @@ struct ProblemFD1D: public Problem
 
   void initMeshCoupling();
   void initFieldCoupling();
+
   void assemblyHeat();
   void assemblyHeatCoupled();
 
