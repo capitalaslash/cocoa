@@ -81,6 +81,14 @@ PYBIND11_MODULE(pycocoa, m)
             p->initFieldCoupling();
             std::filesystem::create_directories(path);
           })
+      .def(
+          "setAssemblyCustom",
+          [](ProblemFD1D * p, ProblemFD1D::Assembly_T const & f)
+          {
+            auto const [_, success] = p->assemblies_.emplace(EQN_TYPE::CUSTOM, f);
+            p->eqnType_ = EQN_TYPE::CUSTOM;
+            return success;
+          })
       .def_readwrite("name", &ProblemFD1D::name_)
       .def_readwrite("start", &ProblemFD1D::start_)
       .def_readwrite("h", &ProblemFD1D::h_)
@@ -148,6 +156,7 @@ PYBIND11_MODULE(pycocoa, m)
 
   py::class_<FDBC>(m, "FDBC").def(py::init<FD_BC_TYPE, std::vector<double>>());
 
+  // linear algebra ====================================================
   py::class_<VectorFD>(m, "VectorFD", py::buffer_protocol())
       .def(py::init<size_t>())
       .def_buffer(
@@ -162,12 +171,15 @@ PYBIND11_MODULE(pycocoa, m)
                 {sizeof(double)});
           });
 
-  // linear algebra ====================================================
   py::class_<MatrixTriDiag>(m, "MatrixTriDiag")
       .def(py::init<size_t>())
-      .def("init", &MatrixTriDiag::init, "n"_a);
+      .def("init", &MatrixTriDiag::init, "n"_a)
+      .def("add", &MatrixTriDiag::add, "row"_a, "clm"_a, "value"_a)
+      .def("close", &MatrixTriDiag::close);
 
   py::class_<MatrixCSR>(m, "MatrixCSR")
       .def(py::init<size_t>())
-      .def("init", &MatrixCSR::init, "n"_a);
+      .def("init", &MatrixCSR::init, "n"_a)
+      .def("add", &MatrixCSR::add, "row"_a, "clm"_a, "value"_a)
+      .def("close", &MatrixCSR::close);
 }

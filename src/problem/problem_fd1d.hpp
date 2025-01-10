@@ -17,8 +17,17 @@ struct ProblemFD1D: public Problem
   using Assembly_T = std::function<void(ProblemFD1D *)>;
   using Matrix_T = MatrixTriDiag;
 
-  ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE} {}
-  ~ProblemFD1D() = default;
+  ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE}
+  {
+    assemblies_.emplace(EQN_TYPE::HEAT, [](ProblemFD1D * p) { p->assemblyHeat(); });
+    assemblies_.emplace(
+        EQN_TYPE::HEAT_OC, [](ProblemFD1D * p) { p->assemblyHeatCoupled(); });
+  }
+  ~ProblemFD1D()
+  {
+    // erase possibly added assembly
+    assemblies_.erase(EQN_TYPE::CUSTOM);
+  }
 
   void setup(Problem::ConfigList_T const & configs) override;
   bool run() override;
@@ -52,7 +61,7 @@ struct ProblemFD1D: public Problem
   bool cleanOutput_ = false;
   std::filesystem::path outputPrefix_ = "./output_fd1d";
   std::string nameExt_ = "uExternal";
+  std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
 
-  static std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
   static std::unordered_map<FD_SOLVER_TYPE, Solver_T<Matrix_T>> solvers_;
 };

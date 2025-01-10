@@ -5,7 +5,6 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
-#include <type_traits>
 #include <unordered_map>
 
 // libfmt
@@ -375,11 +374,6 @@ void ProblemFD1D::print()
 
   getField(varName_)->printVTK(time, it);
 }
-
-std::unordered_map<EQN_TYPE, ProblemFD1D::Assembly_T> ProblemFD1D::assemblies_ = {
-    {EQN_TYPE::HEAT, [](ProblemFD1D * p) { p->assemblyHeat(); }},
-    {EQN_TYPE::HEAT_COUPLED, [](ProblemFD1D * p) { p->assemblyHeatCoupled(); }},
-};
 
 std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD1D::Matrix_T>>
     ProblemFD1D::solvers_ = {
