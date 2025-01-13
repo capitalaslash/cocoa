@@ -15,5 +15,17 @@ int main()
     p->print();
   }
 
+  auto const * sol = p->getField("T");
+  auto const computed = sol->at(sol->size() - 1);
+  auto const expected = 4.688556424313602e-06;
+  if (std::fabs(computed - expected) > 1.e-12)
+  {
+    fmt::print(
+        stderr,
+        "computed value ({:.16e}) is different from the expected {:.16e}\n",
+        computed,
+        expected);
+    return 1;
+  }
   return 0;
 }
