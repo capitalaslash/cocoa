@@ -154,7 +154,9 @@ PYBIND11_MODULE(pycocoa, m)
       .value("dirichlet", FD_BC_TYPE::DIRICHLET)
       .value("neumann", FD_BC_TYPE::NEUMANN);
 
-  py::class_<FDBC>(m, "FDBC").def(py::init<FD_BC_TYPE, std::vector<double>>());
+  py::class_<FDBC>(m, "FDBC")
+      .def(py::init<FD_BC_TYPE, std::vector<double>>())
+      .def_readwrite("ghost_values", &FDBC::ghostValues);
 
   // linear algebra ====================================================
   py::class_<VectorFD>(m, "VectorFD", py::buffer_protocol())

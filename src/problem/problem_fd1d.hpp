@@ -17,17 +17,8 @@ struct ProblemFD1D: public Problem
   using Assembly_T = std::function<void(ProblemFD1D *)>;
   using Matrix_T = MatrixTriDiag;
 
-  ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE}
-  {
-    assemblies_.emplace(EQN_TYPE::HEAT, [](ProblemFD1D * p) { p->assemblyHeat(); });
-    assemblies_.emplace(
-        EQN_TYPE::HEAT_OC, [](ProblemFD1D * p) { p->assemblyHeatCoupled(); });
-  }
-  ~ProblemFD1D()
-  {
-    // erase possibly added assembly
-    assemblies_.erase(EQN_TYPE::CUSTOM);
-  }
+  ProblemFD1D();
+  virtual ~ProblemFD1D();
 
   void setup(Problem::ConfigList_T const & configs) override;
   bool run() override;

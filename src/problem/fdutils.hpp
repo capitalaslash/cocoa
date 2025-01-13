@@ -37,6 +37,36 @@ struct FDBC
 {
   FD_BC_TYPE type = FD_BC_TYPE::NONE;
   std::vector<double> values;
+  std::vector<double> ghostValues;
+
+  FDBC() = default;
+  ~FDBC() = default;
+
+  FDBC(FD_BC_TYPE const t, size_t const size, double const value):
+      type{t},
+      values(size, value),
+      ghostValues(size, 0.0)
+  {}
+
+  FDBC(FD_BC_TYPE const t, std::vector<double> const & v):
+      type{t},
+      values{v},
+      ghostValues(v.size(), 0.0)
+  {}
+
+  auto init(FD_BC_TYPE const t, size_t const size, double const value) -> void
+  {
+    type = t;
+    values.resize(size, value);
+    ghostValues.resize(size, 0.0);
+  }
+
+  auto init(FD_BC_TYPE const t, std::vector<double> const & v) -> void
+  {
+    type = t;
+    values = v;
+    ghostValues.resize(v.size(), 0.0);
+  }
 };
 
 // =====================================================================

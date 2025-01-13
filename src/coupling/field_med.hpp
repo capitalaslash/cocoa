@@ -44,6 +44,7 @@ struct FieldMED: public FieldCoupling
   {
     return fieldPtr_->getArray()->getConstPointer();
   }
+  double at(size_t k) const override { return *(this->dataPtr() + k); }
   double operator[](size_t k) const override { return *(this->dataPtr() + k); }
 
   // std::vector<double> getData() override;

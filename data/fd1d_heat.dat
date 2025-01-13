@@ -15,6 +15,6 @@ assembly_name: heat
 solver_type: tridiag
 # solver_type: vanka2dcb !!! comment test !!!
 bc_start: dirichlet 0.0
-bc_end: neumann -0.5
+bc_end: neumann 0.5
 output_prefix: output_fd1d_heat
 clean_output: 1

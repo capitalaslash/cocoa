@@ -17,6 +17,20 @@
 #include "enums.hpp"
 #include "problem/fdutils.hpp"
 
+ProblemFD1D::ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE}
+{
+  // register default assemblies
+  assemblies_.emplace(EQN_TYPE::HEAT, [](ProblemFD1D * p) { p->assemblyHeat(); });
+  assemblies_.emplace(
+      EQN_TYPE::HEAT_COUPLED, [](ProblemFD1D * p) { p->assemblyHeatCoupled(); });
+}
+
+ProblemFD1D::~ProblemFD1D()
+{
+  // erase possibly added assembly
+  assemblies_.erase(EQN_TYPE::CUSTOM);
+}
+
 void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
 {
   // default values
@@ -100,18 +114,18 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
       else if (token == "bc_start:")
       {
         bufferStream >> token;
-        bcStart_.type = str2fdbc(token);
+        auto const type = str2fdbc(token);
         double value;
         bufferStream >> value;
-        bcStart_.values.assign(1, value);
+        bcStart_.init(type, {value});
       }
       else if (token == "bc_end:")
       {
         bufferStream >> token;
-        bcEnd_.type = str2fdbc(token);
+        auto const type = str2fdbc(token);
         double value;
         bufferStream >> value;
-        bcEnd_.values.assign(1, value);
+        bcEnd_.init(type, {value});
       }
       else if (token == "clean_output:")
         bufferStream >> cleanOutput_;
@@ -125,7 +139,7 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
     }
   }
   fmt::print("{} - equation type: {}\n", name_, eqn2str(eqnType_));
-  assert(eqnType_ == EQN_TYPE::NONE || assemblies_.contains(eqnType_));
+  assert(assemblies_.contains(eqnType_));
 
   // mesh
   start_ = start;
@@ -242,7 +256,7 @@ uint ProblemFD1D::solve()
     // (u_1 - u_-1) / 2h = A
     // u_-1 = u_1 - 2 h A
     // u_1 part implemented in assembly
-    rhs_[0] += -2.0 * h_ * bcStart_.values[0] * m_.at(0, 1);
+    rhs_[0] += 2.0 * h_ * bcStart_.values[0] * bcStart_.ghostValues[0];
     break;
   }
   default:
@@ -268,7 +282,7 @@ uint ProblemFD1D::solve()
     // (u_n-2 - u_n) / 2h = A
     // u_n = u_n-2 - 2 h A
     // u_n-2 part implemented in assembly
-    rhs_[n_ - 1] += -2.0 * h_ * bcEnd_.values[0] * m_.at(n_ - 1, n_ - 2);
+    rhs_[n_ - 1] += 2.0 * h_ * bcEnd_.values[0] * bcEnd_.ghostValues[0];
     break;
   }
   default:
@@ -316,11 +330,30 @@ void ProblemFD1D::assemblyHeat()
   // = uold_m / dt + q_m
   for (uint k = 0u; k < n_; k++)
   {
-    uint const kLeft = (k != 0) ? k - 1 : k + 1;
-    uint const kRight = (k != n_ - 1) ? k + 1 : k - 1;
+    // diagonal
     m_.add(k, k, 1. / dt_ + alpha_ * 2. / (h_ * h_));
-    m_.add(k, kLeft, -alpha_ / (h_ * h_));
-    m_.add(k, kRight, -alpha_ / (h_ * h_));
+
+    // left
+    auto const value_left = -alpha_ / (h_ * h_);
+    if (k > 0u)
+      m_.add(k, k - 1, value_left);
+    else
+    {
+      m_.add(k, k + 1, value_left);
+      bcStart_.ghostValues[0] = value_left;
+    }
+
+    // right
+    auto const value_right = -alpha_ / (h_ * h_);
+    if (k < n_ - 1)
+      m_.add(k, k + 1, value_right);
+    else
+    {
+      m_.add(k, k - 1, value_right);
+      bcEnd_.ghostValues[0] = value_right;
+    }
+
+    // rhs
     rhs_[k] = uOld_[k] / dt_ + q_[k];
   }
   m_.close();
@@ -336,21 +369,33 @@ void ProblemFD1D::assemblyHeatCoupled()
   double const kAmpli = 10.;
   for (uint k = 0u; k < n_; k++)
   {
-    uint const kLeft = (k != 0) ? k - 1 : k + 1;
-    uint const kRight = (k != n_ - 1) ? k + 1 : k - 1;
-    // matrix
+    // diagonal
     m_.add(
         k,
         k,
         1. / dt_                      // time
             + alpha_ * 2. / (h_ * h_) // diffusion
             + kAmpli);
-    m_.add(
-        k, kRight, -alpha_ / (h_ * h_) // diffusion
-    );
-    m_.add(
-        k, kLeft, -alpha_ / (h_ * h_) // diffusion
-    );
+
+    // left
+    auto const valueLeft = -alpha_ / (h_ * h_); // diffusion
+    if (k > 0u)
+      m_.add(k, k - 1, valueLeft);
+    else
+    {
+      m_.add(k, k + 1, valueLeft);
+      bcStart_.ghostValues[0] = valueLeft;
+    }
+
+    // right
+    auto const valueRight = -alpha_ / (h_ * h_); // diffusion
+    if (k < n_ - 1)
+      m_.add(k, k + 1, valueRight);
+    else
+    {
+      m_.add(k, k - 1, valueRight);
+      bcEnd_.ghostValues[0] = valueRight;
+    }
 
     // rhs
     rhs_[k] = uOld_[k] / dt_     // time

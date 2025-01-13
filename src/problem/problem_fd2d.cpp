@@ -18,6 +18,20 @@
 #include "enums.hpp"
 #include "problem/fdutils.hpp"
 
+ProblemFD2D::ProblemFD2D(): Problem{PROBLEM_TYPE::FD2D, COUPLING_TYPE::NONE}
+{
+  // register default assemblies
+  assemblies_.emplace(EQN_TYPE::HEAT, [](ProblemFD2D * p) { p->assemblyHeat(); });
+  assemblies_.emplace(
+      EQN_TYPE::HEAT_COUPLED, [](ProblemFD2D * p) { p->assemblyHeatCoupled(); });
+}
+
+ProblemFD2D::~ProblemFD2D()
+{
+  // erase possibly added assembly
+  assemblies_.erase(EQN_TYPE::CUSTOM);
+}
+
 void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
 {
   // default values
@@ -31,9 +45,10 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
   double qValue = 1.0;
   // physical constants
   alpha_ = 0.2;
-  std::array<double, 2U> cValues{0.0, 0.0};
+  std::array<double, 2u> cValues{0.0, 0.0};
   // bcs
-  std::array<double, 4U> bcValues{0.0, 0.0, 0.0, 0.0};
+  std::array<FD_BC_TYPE, 4u> bcTypes;
+  std::array<double, 4u> bcValues{0.0, 0.0, 0.0, 0.0};
   // time
   time = 0.0;
   finalTime_ = 1.0;
@@ -121,7 +136,7 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
         for (uint k = 0U; k < 4U; k++)
         {
           bufferStream >> token;
-          bcs_[k].type = str2fdbc(token);
+          bcTypes[k] = str2fdbc(token);
           bufferStream >> bcValues[k];
         }
       }
@@ -155,7 +170,7 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
 
   // bcs
   for (uint k = 0U; k < 4U; k++)
-    bcs_[k].values.resize(n_[k % 2], bcValues[k]);
+    bcs_[k].init(bcTypes[k], n_[k % 2], bcValues[k]);
 
   // linear algebra
   m_.init(n_[0] * n_[1]);
@@ -295,15 +310,15 @@ const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, uint const side)
 //   return 0;
 // }
 
-static constexpr std::array<uint, 4U> cornerDOF(std::array<uint, 2U> const & n)
-{
-  return std::array<uint, 4U>{{
-      0U,                // bottom-left
-      n[0] - 1,          // bottom-right
-      n[0] * n[1] - 1,   // top-right
-      n[0] * (n[1] - 1), // top-left
-  }};
-}
+// static constexpr std::array<uint, 4U> cornerDOF(std::array<uint, 2U> const & n)
+// {
+//   return std::array<uint, 4U>{{
+//       0U,                // bottom-left
+//       n[0] - 1,          // bottom-right
+//       n[0] * n[1] - 1,   // top-right
+//       n[0] * (n[1] - 1), // top-left
+//   }};
+// }
 
 // static constexpr std::array<std::array<uint, 2U>, 4U> cornerSides = {{
 //     {{0, 3}}, // bottom-left
@@ -370,11 +385,8 @@ uint ProblemFD2D::solve()
   // assembly
   assemblies_.at(eqnType_)(this);
 
-  std::array<double, 4U> const hSide = {h_[1], h_[0], h_[1], h_[0]};
-  std::array<int, 4U> const sideOffset = {
-      static_cast<int>(n_[0]), -1, -static_cast<int>(n_[0]), 1};
-
   // Neumann sides
+  std::array<double, 4U> const hSide = {h_[1], h_[0], h_[1], h_[0]};
   for (uint s = 0U; s < 4U; s++)
   {
     auto const & bc = bcs_[s];
@@ -390,8 +402,7 @@ uint ProblemFD2D::solve()
         // (u_in - u_out) / 2h = A
         // u_out = u_in - 2 h A
         // u_in part implemented in assembly
-        uint const dofIn = dof + sideOffset[s];
-        rhs_[dof] += -2.0 * hSide[s] * bc.values[k] * m_.at(dof, dofIn);
+        rhs_[dof] += 2.0 * hSide[s] * bc.values[k] * bc.ghostValues[k];
       }
     }
   }
@@ -482,33 +493,54 @@ void ProblemFD2D::assemblyHeat()
       m_.add(id, id, value);
 
       // bottom
-      uint const idBottom = (j != 0U) ? id - n_[0] : id + n_[0];
       double const valueBottom = -alpha_ / (h_[1] * h_[1]) // diffusion
                                  - 0.5 * c_[1][id] / h_[1] // advection
           ;
-      m_.add(id, idBottom, valueBottom);
+      if (j > 0u)
+        m_.add(id, id - n_[0], valueBottom);
+      else
+      {
+        m_.add(id, id + n_[0], valueBottom);
+        bcs_[0].ghostValues[i] = valueBottom;
+      }
 
       // right
-      uint const idRight = (i != n_[0] - 1) ? id + 1 : id - 1;
       double const valueRight = -alpha_ / (h_[0] * h_[0]) // diffusion
                                 + 0.5 * c_[0][id] / h_[0] // advection
           ;
-      m_.add(id, idRight, valueRight);
+      if (i < n_[0] - 1)
+        m_.add(id, id + 1, valueRight);
+      else
+      {
+        m_.add(id, id - 1, valueRight);
+        bcs_[1].ghostValues[j] = valueRight;
+      }
 
       // top
-      uint const idTop = (j != n_[1] - 1) ? id + n_[0] : id - n_[0];
       double const valueTop = -alpha_ / (h_[1] * h_[1]) // diffusion
                               + 0.5 * c_[1][id] / h_[1] // advection
           ;
-      m_.add(id, idTop, valueTop);
+      if (j < n_[1] - 1)
+        m_.add(id, id + n_[0], valueTop);
+      else
+      {
+        m_.add(id, id - n_[0], valueTop);
+        bcs_[2].ghostValues[i] = valueTop;
+      }
 
       // left
-      uint const idLeft = (i != 0U) ? id - 1 : id + 1;
       double const valueLeft = -alpha_ / (h_[0] * h_[0]) // diffusion
                                - 0.5 * c_[0][id] / h_[0] // advection
           ;
-      m_.add(id, idLeft, valueLeft);
+      if (i > 0u)
+        m_.add(id, id - 1, valueLeft);
+      else
+      {
+        m_.add(id, id + 1, valueLeft);
+        bcs_[3].ghostValues[j] = valueLeft;
+      }
 
+      // rhs
       rhs_[id] = uOld_[id] / dt_ // time derivative
                  + q_[id]        // source
           ;
@@ -563,11 +595,6 @@ void ProblemFD2D::print()
 
   getField(varName_)->printVTK(time, it);
 }
-
-std::unordered_map<EQN_TYPE, ProblemFD2D::Assembly_T> ProblemFD2D::assemblies_ = {
-    {EQN_TYPE::HEAT, [](ProblemFD2D * p) { p->assemblyHeat(); }},
-    // {EQN_TYPE::HEAT_COUPLED, [](ProblemFD2D * p) { p->assemblyHeatCoupled(); }},
-};
 
 std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD2D::Matrix_T>>
     ProblemFD2D::solvers_ = {
