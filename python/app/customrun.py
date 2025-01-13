@@ -14,13 +14,13 @@ def setup(p: pc.ProblemFD1D):
     p.h = 1.0 / (p.n - 1)
 
     # coupling
-    p.couplingType = pc.COUPLING_TYPE.medcoupling
+    p.coupling_type = pc.COUPLING_TYPE.medcoupling
 
     # fields
-    p.varName = "T"
+    p.var_name = "T"
     p.u = np.ones(shape=(p.n,)) * 1.0
     # p.u = pc.VectorFD(p.n)
-    p.uOld = p.u.copy()
+    p.u_old = p.u.copy()
 
     # eqn params
     alpha = 1.0
@@ -33,16 +33,14 @@ def setup(p: pc.ProblemFD1D):
 
     # time
     p.time = 0.0
-    p.finalTime = 100.0
-    p.dt = 0.5
+    p.final_time = 10.0
+    p.dt = 1.0
 
     # la
     p.m.init(p.n)
     p.rhs = np.zeros(shape=(p.n,))
 
     # assembly
-    # p.eqnType = pc.EQN_TYPE.heat
-
     def assembly(p: pc.ProblemFD1D):
         print("custom assembly")
 
@@ -76,14 +74,13 @@ def setup(p: pc.ProblemFD1D):
         p.m.close()
         p.rhs = rhs
 
-    p.setAssemblyCustom(assembly)
+    # p.eqn_type = pc.EQN_TYPE.heat
+    p.set_custom_assembly(assembly)
 
-    # bcs
-    p.bcStart = pc.FDBC(pc.FD_BC_TYPE.dirichlet, [1.0])
-    p.bcEnd = pc.FDBC(pc.FD_BC_TYPE.neumann, [0.0])
+    print(f"assemblies: {p.assemblies}")
 
     # io
-    p.setupIO("output_custom")
+    p.setup_io("output_custom")
 
 if __name__ == "__main__":
     p = pc.ProblemFD1D()

@@ -39,7 +39,6 @@ PYBIND11_MODULE(pycocoa, m)
 
   // Problem ===========================================================
   py::class_<Problem>(m, "Problem")
-      .def_readwrite("coupling_type", &Problem::couplingType_)
       .def(
           "setup",
           [](Problem * p, py::kwargs const & kwargs)
@@ -58,22 +57,22 @@ PYBIND11_MODULE(pycocoa, m)
       .def("advance", &Problem::advance)
       .def("solve", &Problem::solve)
       .def("print", &Problem::print)
-      .def("getField", &Problem::getField, "name"_a)
-      .def("setField", &Problem::setField, "name"_a, "field"_a)
-      .def_readwrite("couplingType", &Problem::couplingType_)
+      .def("get_field", &Problem::getField, "name"_a)
+      .def("set_field", &Problem::setField, "name"_a, "field"_a)
+      .def_readwrite("coupling_type", &Problem::couplingType_)
       .def_readwrite("time", &Problem::time);
 
   // ProblemFD1D =======================================================
   py::class_<ProblemFD1D, Problem>(m, "ProblemFD1D")
       .def(py::init<>())
-      .def("initMeshCoupling", &ProblemFD1D::initMeshCoupling)
-      .def("initFieldCoupling", &ProblemFD1D::initFieldCoupling)
+      .def("init_mesh_coupling", &ProblemFD1D::initMeshCoupling)
+      .def("init_field_coupling", &ProblemFD1D::initFieldCoupling)
       .def(
-          "createOutputDir",
+          "create_output_dir",
           [](ProblemFD1D * p, std::string_view path)
           { std::filesystem::create_directories(path); })
       .def(
-          "setupIO",
+          "setup_io",
           [](ProblemFD1D * p, std::string_view path)
           {
             p->outputPrefix_ = path;
@@ -82,7 +81,7 @@ PYBIND11_MODULE(pycocoa, m)
             std::filesystem::create_directories(path);
           })
       .def(
-          "setAssemblyCustom",
+          "set_custom_assembly",
           [](ProblemFD1D * p, ProblemFD1D::Assembly_T const & f)
           {
             auto const [_, success] = p->assemblies_.emplace(EQN_TYPE::CUSTOM, f);
@@ -93,21 +92,22 @@ PYBIND11_MODULE(pycocoa, m)
       .def_readwrite("start", &ProblemFD1D::start_)
       .def_readwrite("h", &ProblemFD1D::h_)
       .def_readwrite("n", &ProblemFD1D::n_)
-      .def_readwrite("varName", &ProblemFD1D::varName_)
+      .def_readwrite("var_name", &ProblemFD1D::varName_)
       .def_readwrite("u", &ProblemFD1D::u_)
-      .def_readwrite("uOld", &ProblemFD1D::uOld_)
+      .def_readwrite("u_old", &ProblemFD1D::uOld_)
       .def_readwrite("q", &ProblemFD1D::q_)
       .def_readwrite("alpha", &ProblemFD1D::alpha_)
-      .def_readwrite("finalTime", &ProblemFD1D::finalTime_)
+      .def_readwrite("final_time", &ProblemFD1D::finalTime_)
       .def_readwrite("dt", &ProblemFD1D::dt_)
       .def_readwrite("m", &ProblemFD1D::m_)
       .def_readwrite("rhs", &ProblemFD1D::rhs_)
-      .def_readwrite("solverType", &ProblemFD1D::solverType_)
-      .def_readwrite("eqnType", &ProblemFD1D::eqnType_)
-      .def_readwrite("bcStart", &ProblemFD1D::bcStart_)
-      .def_readwrite("bcEnd", &ProblemFD1D::bcEnd_)
-      .def_readwrite("outputPrefix", &ProblemFD1D::outputPrefix_)
-      .def_readwrite("nameExt", &ProblemFD1D::nameExt_);
+      .def_readwrite("solver_type", &ProblemFD1D::solverType_)
+      .def_readwrite("eqn_type", &ProblemFD1D::eqnType_)
+      .def_readwrite("bc_start", &ProblemFD1D::bcStart_)
+      .def_readwrite("bc_end", &ProblemFD1D::bcEnd_)
+      .def_readwrite("output_prefix", &ProblemFD1D::outputPrefix_)
+      .def_readwrite("name_ext", &ProblemFD1D::nameExt_)
+      .def_readwrite("assemblies", &ProblemFD1D::assemblies_);
 
   // other derived problems ============================================
   py::class_<ProblemFD2D, Problem>(m, "ProblemFD2D").def(py::init<>());
