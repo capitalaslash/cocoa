@@ -23,7 +23,7 @@ namespace py = pybind11;
 
 using namespace py::literals;
 
-PYBIND11_MODULE(pycocoa, m)
+PYBIND11_MODULE(cocoa, m)
 {
   // enums =============================================================
   py::enum_<COUPLING_TYPE>(m, "COUPLING_TYPE")

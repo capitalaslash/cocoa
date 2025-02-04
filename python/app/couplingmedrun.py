@@ -1,23 +1,23 @@
 import math
 
-import pycocoa
+import cocoa
 
 
 def source(p):
     return math.sin(math.pi * p[1])
 
 
-p1 = pycocoa.ProblemProXPDEHeat()
+p1 = cocoa.ProblemProXPDEHeat()
 p1.setup(config_file="proxpde_heat.yaml")
 p1.set_source(source)
 
-p2 = pycocoa.ProblemProXPDEHeat()
+p2 = cocoa.ProblemProXPDEHeat()
 p2.setup(config_file="proxpde_hc.yaml")
 
 print(f"coupling type: {p1.coupling_type}")
 assert p1.coupling_type == p2.coupling_type
 
-c = pycocoa.CouplingMED()
+c = cocoa.CouplingMED()
 c.setup(problem_src=p1, problem_tgt=p2)
 
 p1.print()

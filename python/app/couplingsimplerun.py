@@ -1,15 +1,15 @@
-import pycocoa
+import cocoa
 
-p1 = pycocoa.ProblemFD1D()
+p1 = cocoa.ProblemFD1D()
 p1.setup(config_file="fd1d_heat.dat")
 p1.print()
 
-p2 = pycocoa.ProblemFD1D()
+p2 = cocoa.ProblemFD1D()
 p2.setup(config_file="fd1d_hc.dat")
 p2.print()
 
-c = pycocoa.CouplingSimple()
-# c = pycocoa.CouplingMED()
+c = cocoa.CouplingSimple()
+# c = cocoa.CouplingMED()
 c.setup(problem_src=p1, problem_tgt=p2)
 
 while p1.run() or p2.run():

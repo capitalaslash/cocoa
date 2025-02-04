@@ -1,6 +1,6 @@
-import pycocoa
+import cocoa
 
-p = pycocoa.ProblemOForg()
+p = cocoa.ProblemOForg()
 
 p.setup(case_dir="oforg1")
 p.print()

@@ -181,15 +181,17 @@ feature_summary(WHAT ALL)
 # python ===============================================================
 
 if (COCOA_ENABLE_PYTHON)
-  pybind11_add_module(pycocoa
+  pybind11_add_module(cocoa_python
     python/bindings.cpp
   )
-  target_link_libraries(pycocoa
+  set_target_properties(cocoa_python PROPERTIES OUTPUT_NAME cocoa)
+  add_library(cocoa::python ALIAS cocoa_python)
+  target_link_libraries(cocoa_python
     PRIVATE
       cocoa::cocoa
       Eigen3::Eigen
   )
-  target_include_directories(pycocoa
+  target_include_directories(cocoa_python
     PRIVATE
       ${CMAKE_CURRENT_BINARY_DIR}
   )
@@ -333,7 +335,7 @@ install(
 
 if (COCOA_ENABLE_PYTHON)
   install(
-    TARGETS pycocoa
+    TARGETS cocoa_python
     EXPORT cocoaTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
@@ -368,7 +370,7 @@ if (CLANGFORMAT)
     ${LIB_SOURCES}
     ${LIB_HEADERS}
     ${APP_FILES}
-    src/python_bindings.cpp
+    python/bindings.cpp
   )
   add_custom_target(format
     COMMAND ${CLANGFORMAT}

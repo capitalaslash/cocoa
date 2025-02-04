@@ -1,15 +1,15 @@
-import pycocoa
+import cocoa
 
-pNS = pycocoa.ProblemProXPDENS()
+pNS = cocoa.ProblemProXPDENS()
 pNS.setup(config_file="proxpde_buoyant_ns.yaml")
 
-pHeat = pycocoa.ProblemProXPDEHeat()
+pHeat = cocoa.ProblemProXPDEHeat()
 pHeat.setup(config_file="proxpde_buoyant_heat.yaml")
 
-couplingHeatToNS = pycocoa.CouplingMED()
+couplingHeatToNS = cocoa.CouplingMED()
 couplingHeatToNS.setup(problem_src=pHeat, problem_tgt=pNS)
 
-couplingNSToHeat = pycocoa.CouplingMED()
+couplingNSToHeat = cocoa.CouplingMED()
 couplingNSToHeat.setup(problem_src=pNS, problem_tgt=pHeat)
 
 pNS.print()

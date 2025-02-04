@@ -1,6 +1,6 @@
-import pycocoa
+import cocoa
 
-p = pycocoa.ProblemFD1D()
+p = cocoa.ProblemFD1D()
 
 p.setup(config_file="fd1d_heat.dat")
 p.print()

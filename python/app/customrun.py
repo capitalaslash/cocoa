@@ -2,10 +2,10 @@
 
 import numpy as np
 
-import pycocoa as pc  # type: ignore
+import cocoa  # type: ignore
 
 
-def setup(p: pc.ProblemFD1D):
+def setup(p: cocoa.ProblemFD1D):
     p.name = "fd1d_custom"
 
     # mesh
@@ -14,7 +14,7 @@ def setup(p: pc.ProblemFD1D):
     p.h = 1.0 / (p.n - 1)
 
     # coupling
-    p.coupling_type = pc.COUPLING_TYPE.medcoupling
+    p.coupling_type = cocoa.COUPLING_TYPE.medcoupling
 
     # fields
     p.var_name = "T"
@@ -28,8 +28,18 @@ def setup(p: pc.ProblemFD1D):
     p.q = np.ones(shape=(p.n,)) * q_init
 
     # bcs
-    p.bc_start = pc.FDBC(pc.FD_BC_TYPE.dirichlet, [0.0])
-    p.bc_end = pc.FDBC(pc.FD_BC_TYPE.neumann, [0.5 * q_init / alpha])
+    p.bcs = cocoa.FDBCList1D(
+        cocoa.FDBC(
+            side=cocoa.FD_BC_SIDE.left,
+            type=cocoa.FD_BC_TYPE.dirichlet,
+            value=0.0,
+        ),
+        cocoa.FDBC(
+            side=cocoa.FD_BC_SIDE.right,
+            type=cocoa.FD_BC_TYPE.neumann,
+            value=0.5 * q_init / alpha,
+        ),
+    )
 
     # time
     p.time = 0.0
@@ -41,7 +51,7 @@ def setup(p: pc.ProblemFD1D):
     p.rhs = np.zeros(shape=(p.n,))
 
     # assembly
-    def assembly(p: pc.ProblemFD1D):
+    def assembly(p: cocoa.ProblemFD1D):
         print("custom assembly")
 
         rhs = np.zeros(shape=(p.n,))
@@ -74,7 +84,7 @@ def setup(p: pc.ProblemFD1D):
         p.m.close()
         p.rhs = rhs
 
-    # p.eqn_type = pc.EQN_TYPE.heat
+    # p.eqn_type = cocoa.EQN_TYPE.heat
     p.set_custom_assembly(assembly)
 
     print(f"assemblies: {p.assemblies}")
@@ -83,7 +93,7 @@ def setup(p: pc.ProblemFD1D):
     p.setup_io("output_custom")
 
 if __name__ == "__main__":
-    p = pc.ProblemFD1D()
+    p = cocoa.ProblemFD1D()
     # fd1d_heat implementation without config file
     # setup(p)
     p.setup(config_file="fd1d_heat.dat")

@@ -1,6 +1,6 @@
-import pycocoa
+import cocoa
 
-p = pycocoa.ProblemProXPDEHeat()
+p = cocoa.ProblemProXPDEHeat()
 
 p.setup(config_file="proxpde_heat.yaml")
 p.print()
