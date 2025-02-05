@@ -230,14 +230,20 @@ if (COCOA_ENABLE_TESTS)
     endmacro()
 
     cocoa_add_test_python(fd1d fd1d_heat.dat)
+    cocoa_add_test_python(custom)
     cocoa_add_test_python(fd1d2v)
     cocoa_add_test_python(couplingsimple fd1d_heat.dat fd1d_hc.dat)
     cocoa_add_test_python(fd2d fd2d_heat.dat)
-    cocoa_add_test_python(oforg oforg1 oforg1.dat)
-    cocoa_add_test_python(proxpde proxpde_heat.yaml)
-    cocoa_add_test_python(couplingmed proxpde_heat.yaml proxpde_hc.yaml)
-    cocoa_add_test_python(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
-    cocoa_add_test_python(custom)
+    if (COCOA_ENABLE_OFORG)
+      cocoa_add_test_python(oforg oforg1 oforg1.dat)
+    endif()
+    if (COCOA_ENABLE_PROXPDE)
+      cocoa_add_test_python(proxpde proxpde_heat.yaml)
+    endif()
+    if (COCOA_ENABLE_RPOXPDE AND COCOA_ENABLE_MEDCOUPLING)
+      cocoa_add_test_python(couplingmed proxpde_heat.yaml proxpde_hc.yaml)
+      cocoa_add_test_python(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
+    endif()
 
   endif()
 endif()
@@ -290,15 +296,16 @@ cocoa_add_app(cyclic fd2d_heatpipe.dat)
 
 if (COCOA_ENABLE_PROXPDE)
   cocoa_add_app(proxpde proxpde_heat.yaml proxpde_hc.yaml)
+  cocoa_add_app(ns proxpde_ns.yaml)
 endif()
 
 if (COCOA_ENABLE_OFORG)
   cocoa_add_app(oforg oforg1)
 endif()
 
-cocoa_add_app(ns proxpde_ns.yaml)
-cocoa_add_app(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
-
+if (COCOA_ENABLE_PROXPDE AND COCOA_ENABLE_MEDCOUPLING)
+  cocoa_add_app(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
+endif()
 
 # install ==============================================================
 
