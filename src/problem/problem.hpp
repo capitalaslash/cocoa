@@ -47,8 +47,9 @@ struct Problem
   PROBLEM_TYPE type_ = PROBLEM_TYPE::NONE;
   COUPLING_TYPE couplingType_ = COUPLING_TYPE::NONE;
   double time = 0.0;
-  int it = 0;
+  uint it = 0u;
   std::unique_ptr<MeshCoupling> meshCoupling_;
   std::unordered_map<std::string, std::unique_ptr<MeshCoupling>> bcMeshCoupling_;
   std::unordered_map<std::string, std::unique_ptr<FieldCoupling>> fieldsCoupling_;
+  bool debug_ = false;
 };
