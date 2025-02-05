@@ -38,7 +38,7 @@ void FieldMED::init(
   fieldPtr_->setMesh(dynamic_cast<MeshMED *>(mesh)->meshPtr_);
 }
 
-void FieldMED::setValues(std::span<double> const & data, uint const dim)
+void FieldMED::setValues(std::span<const double> data, uint const dim)
 {
   MEDCoupling::DataArrayDouble * array = MEDCoupling::DataArrayDouble::New();
   array->alloc(data.size() / dim, dim);

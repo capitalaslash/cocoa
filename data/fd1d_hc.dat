@@ -3,15 +3,17 @@ start: -1.0
 end: 2.0
 n_elems: 20
 coupling_type: medcoupling
-var_name: u
+n_vars: 1
+var_names: u
 initial_value: 0.0
 q: 0.0
-alpha: 0.01
+params: alpha scalar 0.01
 start_time: 0.0
 final_time: 10.0
 dt: 1.0
-assembly_name: heatCoupled
-solver_type: vanka1d
-bc_start: dirichlet 0.0
-bc_end: neumann 0.0
+assembly_name: heat_coupled
+solver_type: gauss_seidel
+max_iters: 10000
+bc_left: dirichlet 0.0
+bc_right: neumann 0.0
 output_prefix: output_fd1d_hc

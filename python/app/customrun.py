@@ -5,84 +5,91 @@ import numpy as np
 import cocoa  # type: ignore
 
 
+TEMP_END = 2.0
+SOLVER_TOL = 1.0e-8
+
+
 def setup(p: cocoa.ProblemFD1D):
     p.name = "fd1d_custom"
+    p.debug = False
 
     # mesh
-    p.start = 0.0  # starting point
-    p.n = 101  # nb. of points
-    p.h = 1.0 / (p.n - 1)
+    p.mesh = cocoa.MeshFD1D(start=[0.0], end=[1.0], n=[10])
 
     # coupling
     p.coupling_type = cocoa.COUPLING_TYPE.medcoupling
 
     # fields
-    p.var_name = "T"
-    p.u = np.ones(shape=(p.n,)) * 1.0
-    # p.u = pc.VectorFD(p.n)
-    p.u_old = p.u.copy()
+    p.n_vars = 1
+    p.var_names = ["T"]
+    p.u.data = np.ones(shape=(p.mesh.n_pts,)) * 1.0
+    p.u_old.data = p.u.data.copy()
 
     # eqn params
     alpha = 1.0
     q_init = 1.0
-    p.q = np.ones(shape=(p.n,)) * q_init
+    q = np.ones(shape=(p.mesh.n_pts,)) * q_init
 
     # bcs
-    p.bcs = cocoa.FDBCList1D(
-        cocoa.FDBC(
-            side=cocoa.FD_BC_SIDE.left,
-            type=cocoa.FD_BC_TYPE.dirichlet,
-            value=0.0,
-        ),
-        cocoa.FDBC(
-            side=cocoa.FD_BC_SIDE.right,
-            type=cocoa.FD_BC_TYPE.neumann,
-            value=0.5 * q_init / alpha,
-        ),
-    )
+    p.bcs = [
+        cocoa.FDBCList1D(
+            left=cocoa.FDBC(
+                side=cocoa.FD_BC_SIDE.left,
+                type=cocoa.FD_BC_TYPE.dirichlet,
+                value=0.0,
+            ),
+            right=cocoa.FDBC(
+                side=cocoa.FD_BC_SIDE.right,
+                type=cocoa.FD_BC_TYPE.neumann,
+                value=TEMP_END - 0.5 * q_init / alpha,
+            ),
+        )
+    ]
 
     # time
     p.time = 0.0
-    p.final_time = 10.0
+    p.final_time = 20.0
     p.dt = 1.0
 
     # la
-    p.m.init(p.n)
-    p.rhs = np.zeros(shape=(p.n,))
+    p.max_iters = 10_000
+    p.tol = SOLVER_TOL
+    p.m.init(p.mesh.n_pts, 3)
+    p.rhs.resize(p.mesh.n_pts)
 
     # assembly
     def assembly(p: cocoa.ProblemFD1D):
         print("custom assembly")
 
-        rhs = np.zeros(shape=(p.n,))
+        h = p.mesh.h[0]
 
-        for k in range(p.n):
+        for k in range(p.mesh.n_pts):
+
             # diagonal
-            p.m.add(k, k, 1.0 + 2.0 * alpha * p.dt / (p.h * p.h))
+            p.m.add(k, k, 1.0 + 2.0 * alpha * p.dt / (h * h))
 
             # left
-            v_left = -alpha * p.dt / (p.h * p.h)
+            value_left = -alpha * p.dt / (h * h)
             if k > 0:
-                p.m.add(k, k - 1, v_left)
+                p.m.add(k, k - 1, value_left)
             else:
                 # bc: u_-1 = u_1 + 2 * h * bc_value
-                p.m.add(k, k + 1, v_left)
-                p.bc_start.ghost_values = [v_left]
+                p.m.add(k, k + 1, value_left)
+                p.bcs[0].left.ghost_values.set(0, value_left)
 
             # right
-            v_right = -alpha * p.dt / (p.h * p.h)
-            if k < p.n - 1:
-                p.m.add(k, k + 1, v_right)
+            value_right = -alpha * p.dt / (h * h)
+            if k < p.mesh.n_pts - 1:
+                p.m.add(k, k + 1, value_right)
             else:
                 # bc: u_n = u_n-2 + 2 * h * bc_value
-                p.m.add(k, k - 1, v_right)
-                p.bc_end.ghost_values = [v_right]
+                p.m.add(k, k - 1, value_right)
+                p.bcs[0].right.ghost_values.set(0, value_right)
 
             # rhs
-            rhs[k] = p.u_old[k] + p.q[k] * p.dt
+            p.rhs.set(k, p.u_old[k] + q[k] * p.dt)
 
         p.m.close()
-        p.rhs = rhs
 
     # p.eqn_type = cocoa.EQN_TYPE.heat
     p.set_custom_assembly(assembly)
@@ -92,11 +99,12 @@ def setup(p: cocoa.ProblemFD1D):
     # io
     p.setup_io("output_custom")
 
+
 if __name__ == "__main__":
     p = cocoa.ProblemFD1D()
+
     # fd1d_heat implementation without config file
-    # setup(p)
-    p.setup(config_file="fd1d_heat.dat")
+    setup(p)
 
     p.print()
 
@@ -108,5 +116,5 @@ if __name__ == "__main__":
         if num_iters == 0:
             break
 
-    print(f"solution at final point: {p.u[-1]:.16e}")
-    assert np.fabs(p.u[-1] - 4.6885564243136019e-06) < 1e-12
+    print(f"solution at final point: {p.u.data[-1]:.16e}")
+    assert np.fabs(p.u.data[-1] - TEMP_END) < 10 * SOLVER_TOL

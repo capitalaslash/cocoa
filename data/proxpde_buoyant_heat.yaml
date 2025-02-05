@@ -7,7 +7,7 @@ mesh:
   n: [10, 10, 0]
   flags: [NORMALS]
 
-equation_type: heatBuoyant
+equation_type: heat_buoyant
 
 init_value: 0.0
 

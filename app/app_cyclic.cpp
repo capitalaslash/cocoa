@@ -24,9 +24,18 @@ int main(int argc, char * argv[])
   p->print();
 
   auto const pDer = dynamic_cast<ProblemFD2D *>(p.get());
-  auto const dofTop = sideDOF(pDer->n_, 2 /*TOP*/);
+  auto const dofTop = sideDOF(pDer->mesh_.n_, FD_BC_SIDE::TOP);
   // TODO: do not assume constant profile on inlet
-  double const uBottomMean = pDer->bcs_[0].values[0];
+  double const uBottomMean = pDer->bcs_[0].bottom().values[0];
+
+  // // set velocity profile
+  // for (uint j = 0U; j < pDer->n_[1]; j++)
+  //   for (uint i = 0U; i < pDer->n_[0]; i++)
+  //   {
+  //     uint const id = i + pDer->n_[0] * j;
+  //     double const x = pDer->h_[0] * i;
+  //     pDer->c_[1][id] = 1.5 * (1.0 - x * x);
+  //   }
 
   while (p->run())
   {
@@ -36,30 +45,30 @@ int main(int argc, char * argv[])
 
     // cyclic bc from top to bottom
     // - get top values
-    std::vector<double> uTop(pDer->n_[0]);
+    VectorFD uTop(pDer->mesh_.n_[0]);
     for (uint k = 0U; k < uTop.size(); k++)
     {
-      uTop[k] = pDer->u_[dofTop[k]];
+      uTop.set(k, pDer->u_[dofTop[k]]);
     }
 
     // - compute mean top value
     double const uTopMean =
-        std::accumulate(uTop.begin(), uTop.end(), 0.0) / uTop.size();
+        std::accumulate(uTop.data_.begin(), uTop.data_.end(), 0.0) / uTop.size();
 
     // - scale back uTop so that its mean is equal to uBottomMean
-    std::vector<double> uBottom(uTop);
-    for (auto & value: uBottom)
+    VectorFD uBottom(uTop.size());
+    for (uint k = 0u; k < uBottom.size(); k++)
     {
-      value -= uTopMean + uBottomMean;
+      uBottom.set(k, uTop[k] - uTopMean + uBottomMean);
     }
 
     // - assign new bc values
-    pDer->bcs_[0].values = uBottom;
+    pDer->bcs_[0].bottom().values = uBottom;
 
     fmt::print("deltaTop:    {:.6e}\n", uTop[uTop.size() - 1] - uTop[0]);
     fmt::print("deltaBottom: {:.6e}\n", uBottom[uBottom.size() - 1] - uBottom[0]);
-    fmt::print("uTop:    {::+.6e}\n", uTop);
-    fmt::print("uBottom: {::+.6e}\n", uBottom);
+    fmt::print("uTop:    {}\n", uTop);
+    fmt::print("uBottom: {}\n", uBottom);
   }
 
   return 0;

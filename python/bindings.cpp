@@ -35,6 +35,8 @@ PYBIND11_MODULE(cocoa, m)
   py::enum_<EQN_TYPE>(m, "EQN_TYPE")
       .value("none", EQN_TYPE::NONE)
       .value("heat", EQN_TYPE::HEAT)
+      .value("heat_coupled", EQN_TYPE::HEAT_COUPLED)
+      .value("heat_oc", EQN_TYPE::HEAT_OC)
       .value("custom", EQN_TYPE::CUSTOM);
 
   // Problem ===========================================================
@@ -59,6 +61,7 @@ PYBIND11_MODULE(cocoa, m)
       .def("print", &Problem::print)
       .def("get_field", &Problem::getField, "name"_a)
       .def("set_field", &Problem::setField, "name"_a, "field"_a)
+      .def("get_mesh_coupling", &Problem::getMesh)
       .def_readwrite("coupling_type", &Problem::couplingType_)
       .def_readwrite("time", &Problem::time)
       .def_readwrite("it", &Problem::it)
@@ -155,12 +158,91 @@ PYBIND11_MODULE(cocoa, m)
       .value("neumann", FD_BC_TYPE::NEUMANN);
 
   py::class_<FDBC>(m, "FDBC")
-      .def(py::init<FD_BC_TYPE, std::vector<double>>())
+      .def(py::init<FD_BC_SIDE, FD_BC_TYPE, VectorFD>(), "side"_a, "type"_a, "values"_a)
+      .def(
+          py::init<FD_BC_SIDE, FD_BC_TYPE, double, size_t>(),
+          "side"_a,
+          "type"_a,
+          "value"_a,
+          "size"_a = 1u)
+      .def_readwrite("values", &FDBC::values)
       .def_readwrite("ghost_values", &FDBC::ghostValues);
+
+  py::class_<FDBCList1D>(m, "FDBCList1D")
+      .def(py::init<>())
+      .def(py::init<FDBC const &, FDBC const &>(), "left"_a, "right"_a)
+      .def_property("left", &FDBCList1D::left, &FDBCList1D::left)
+      .def_property("right", &FDBCList1D::right, &FDBCList1D::right)
+      .def_readwrite("data", &FDBCList1D::data_);
+
+  py::class_<FDBCList2D>(m, "FDBCList2D")
+      .def(py::init<>())
+      .def(
+          py::init<FDBC const &, FDBC const &, FDBC const &, FDBC const &>(),
+          "left"_a,
+          "right"_a,
+          "bottom"_a,
+          "top"_a)
+      .def_property("bottom", &FDBCList2D::bottom, &FDBCList2D::bottom)
+      .def_property("right", &FDBCList2D::right, &FDBCList2D::right)
+      .def_property("top", &FDBCList2D::top, &FDBCList2D::top)
+      .def_property("left", &FDBCList2D::left, &FDBCList2D::left)
+      .def_readwrite("data", &FDBCList2D::data_);
+
+  py::class_<MeshFD1D>(m, "MeshFD1D")
+      .def(py::init<>())
+      .def(
+          py::init<
+              MeshFD1D::Real_T const &,
+              MeshFD1D::Real_T const &,
+              MeshFD1D::Int_T const &>(),
+          "start"_a,
+          "end"_a,
+          "n"_a)
+      .def("init", &MeshFD1D::init, "start"_a, "end"_a, "n"_a)
+      .def("pt", &MeshFD1D::pt)
+      .def_property_readonly("n_pts", &MeshFD1D::nPts)
+      .def_readwrite("h", &MeshFD1D::h_);
+
+  py::class_<MeshFD2D>(m, "MeshFD2D")
+      .def(py::init<>())
+      .def(
+          py::init<
+              MeshFD2D::Real_T const &,
+              MeshFD2D::Real_T const &,
+              MeshFD2D::Int_T const &>(),
+          "start"_a,
+          "end"_a,
+          "n"_a)
+      .def("init", &MeshFD2D::init, "start"_a, "end"_a, "n"_a)
+      .def("pt", &MeshFD2D::pt)
+      .def_property_readonly("n_pts", &MeshFD2D::nPts)
+      .def_readwrite("h", &MeshFD2D::h_)
+      .def_readwrite("n", &MeshFD2D::n_);
+
+  // ParamsFD ==========================================================
+  py::enum_<FD_PARAM_TYPE>(m, "FD_PARAM_TYPE")
+      .value("integer", FD_PARAM_TYPE::INTEGER)
+      .value("scalar", FD_PARAM_TYPE::SCALAR)
+      .value("vector", FD_PARAM_TYPE::VECTOR);
+
+  py::class_<ParamsFD>(m, "ParamsFD")
+      .def(py::init<>())
+      .def("set_integer", &ParamsFD::set<uint>, "name"_a, "value"_a)
+      .def("set_scalar", &ParamsFD::set<double>, "name"_a, "value"_a)
+      .def("set_vector", &ParamsFD::set<std::vector<double>>, "name"_a, "value"_a)
+      .def("get_integer", &ParamsFD::get<FD_PARAM_TYPE::INTEGER>, "name"_a)
+      .def("get_scalar", &ParamsFD::get<FD_PARAM_TYPE::SCALAR>, "name"_a)
+      .def("get_vector", &ParamsFD::get<FD_PARAM_TYPE::VECTOR>, "name"_a);
 
   // linear algebra ====================================================
   py::class_<VectorFD>(m, "VectorFD", py::buffer_protocol())
-      .def(py::init<size_t>())
+      .def(py::init<size_t, double>(), "size"_a, "value"_a = 0.0)
+      .def(py::init<std::vector<double>>())
+      .def("resize", &VectorFD::resize, "size"_a, "value"_a = 0.0)
+      .def("__getitem__", &VectorFD::operator[], "index"_a)
+      .def("add", &VectorFD::add, "index"_a, "value"_a)
+      .def("set", &VectorFD::set, "index"_a, "value"_a)
       .def_buffer(
           [](VectorFD & v)
           {
@@ -171,7 +253,8 @@ PYBIND11_MODULE(cocoa, m)
                 1U,
                 {v.size()},
                 {sizeof(double)});
-          });
+          })
+      .def_readwrite("data", &VectorFD::data_);
 
   py::class_<MatrixTriDiag>(m, "MatrixTriDiag")
       .def(py::init<size_t>())
@@ -180,8 +263,9 @@ PYBIND11_MODULE(cocoa, m)
       .def("close", &MatrixTriDiag::close);
 
   py::class_<MatrixCSR>(m, "MatrixCSR")
-      .def(py::init<size_t>())
-      .def("init", &MatrixCSR::init, "n"_a)
+      .def(py::init<size_t, size_t>())
+      .def("init", &MatrixCSR::init, "n"_a, "nnz"_a)
       .def("add", &MatrixCSR::add, "row"_a, "clm"_a, "value"_a)
-      .def("close", &MatrixCSR::close);
+      .def("close", &MatrixCSR::close)
+      .def_readwrite("data", &MatrixCSR::data_);
 }

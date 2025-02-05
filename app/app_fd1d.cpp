@@ -17,7 +17,7 @@ int main()
 
   auto const * sol = p->getField("T");
   auto const computed = sol->at(sol->size() - 1);
-  auto const expected = 4.688556424313602e-06;
+  auto const expected = 2.3956041663411976e-06;
   if (std::fabs(computed - expected) > 1.e-12)
   {
     fmt::print(

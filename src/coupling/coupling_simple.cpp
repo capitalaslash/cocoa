@@ -20,14 +20,14 @@ void CouplingSimple::setup(Problem * pSrc, Problem * pTgt)
   pTgt_ = pTgt;
 
   // P1P1
-  m_.init(derTgt->n_, derSrc->n_);
-  for (uint row = 0; row < derTgt->n_; row++)
+  m_.init(derTgt->mesh_.nPts(), derSrc->mesh_.nPts());
+  for (uint row = 0u; row < derTgt->mesh_.nPts(); row++)
   {
-    auto const ptTgt = derTgt->start_ + row * derTgt->h_;
-    for (uint clm = 0; clm < derSrc->n_; clm++)
+    auto const ptTgt = derTgt->mesh_.pt({row})[0];
+    for (uint clm = 0u; clm < derSrc->mesh_.nPts() - 1; clm++)
     {
-      auto const startSrc = derSrc->start_ + clm * derSrc->h_;
-      auto const endSrc = startSrc + derSrc->h_;
+      auto const startSrc = derSrc->mesh_.pt({clm})[0];
+      auto const endSrc = derSrc->mesh_.pt({clm + 1})[0];
       if (ptTgt >= startSrc && ptTgt < endSrc)
       {
         m_(row, clm) = (endSrc - ptTgt) / (endSrc - startSrc);

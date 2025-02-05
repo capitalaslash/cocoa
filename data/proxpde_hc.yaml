@@ -7,7 +7,7 @@ mesh:
   n: [1, 40, 0]
   flags: [NORMALS]
 
-equation_type: heatCoupled
+equation_type: heat_coupled
 
 init_value: 0.0
 

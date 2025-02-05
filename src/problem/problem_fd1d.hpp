@@ -3,7 +3,6 @@
 // std
 #include <functional>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 
 // local
@@ -15,10 +14,10 @@
 struct ProblemFD1D: public Problem
 {
   using Assembly_T = std::function<void(ProblemFD1D *)>;
-  using Matrix_T = MatrixTriDiag;
+  using Matrix_T = MatrixCSR;
 
   ProblemFD1D();
-  virtual ~ProblemFD1D();
+  ~ProblemFD1D();
 
   void setup(Problem::ConfigList_T const & configs) override;
   bool run() override;
@@ -31,26 +30,28 @@ struct ProblemFD1D: public Problem
 
   void assemblyHeat();
   void assemblyHeatCoupled();
+  void assemblyHeatOC();
 
   std::string name_;
-  double start_;
-  double h_;
-  uint n_;
-  std::string varName_;
+  MeshFD1D mesh_;
+  uint nVars_;
+  std::vector<std::string> varNames_;
   VectorFD u_;
   VectorFD uOld_;
-  VectorFD q_;
-  double alpha_;
+  std::unordered_map<std::string, VectorFD> fields_;
+  ParamsFD params_;
   double finalTime_;
   double dt_;
   Matrix_T m_;
   VectorFD rhs_;
-  FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::TRIDIAG;
+  FD_SOLVER_TYPE solverType_ = FD_SOLVER_TYPE::GAUSS_SEIDEL;
+  uint maxIters_ = 1000u;
+  double tol_ = 1.0e-6;
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
-  FDBC bcStart_;
-  FDBC bcEnd_;
+  std::vector<FDBCList1D> bcs_;
   bool cleanOutput_ = false;
-  std::filesystem::path outputPrefix_ = "./output_fd1d";
+  uint printStep_ = 1u;
+  std::filesystem::path outputPrefix_ = "./output_fd1dmulti";
   std::string nameExt_ = "uExternal";
   std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
 

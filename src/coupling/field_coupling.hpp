@@ -38,7 +38,7 @@ struct FieldCoupling
     prefix_ = prefix;
     std::filesystem::create_directories(prefix_);
   }
-  virtual void setValues(std::span<double> const & data, uint const dim = 1U) = 0;
+  virtual void setValues(std::span<const double> data, uint const dim = 1U) = 0;
   virtual void setValues(double value, uint size, uint const dim = 1U) = 0;
   virtual void printVTK(double time, uint iter) = 0;
 
@@ -67,8 +67,8 @@ struct FieldSimple: public FieldCoupling
   double const * dataPtr() const override { return data_.data(); }
   double at(size_t k) const override { return data_[k]; }
   double operator[](size_t k) const override { return data_[k]; }
-
   // std::span<double> getData() override { return data_; }
+
   virtual void init(
       std::string_view name,
       MeshCoupling * /*mesh*/,
@@ -78,8 +78,7 @@ struct FieldSimple: public FieldCoupling
     supportType_ = supportType;
   }
   virtual void initIO(std::filesystem::path const & /*prefix*/) override {}
-  virtual void
-  setValues(std::span<double> const & data, uint const /*dim*/ = 1U) override
+  virtual void setValues(std::span<const double> data, uint const /*dim*/ = 1U) override
   {
     data_.resize(data.size());
     std::copy(data.begin(), data.end(), data_.begin());

@@ -1,4 +1,4 @@
-import cocoa
+import cocoa  # type: ignore
 
 p = cocoa.ProblemFD1D()
 

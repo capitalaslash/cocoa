@@ -23,6 +23,7 @@ ProblemFD1D::ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE}
   assemblies_.emplace(EQN_TYPE::HEAT, [](ProblemFD1D * p) { p->assemblyHeat(); });
   assemblies_.emplace(
       EQN_TYPE::HEAT_COUPLED, [](ProblemFD1D * p) { p->assemblyHeatCoupled(); });
+  assemblies_.emplace(EQN_TYPE::HEAT_OC, [](ProblemFD1D * p) { p->assemblyHeatOC(); });
 }
 
 ProblemFD1D::~ProblemFD1D()
@@ -38,16 +39,22 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
   // mesh
   double start = 0.0;
   double end = 1.0;
-  uint nElems = 10U;
+  uint nElems = 10u;
   // fields
-  double uInit = 0.0;
-  double qValue = 1.0;
-  // physical constants
-  alpha_ = 0.2;
+  nVars_ = 1u;
+  varNames_ = {"u"};
+  std::vector<double> uInit(nVars_, 0.0);
+  std::vector<double> qValue(nVars_, 1.0);
+  // bcs
+  bcs_.resize(nVars_);
   // time
   time = 0.0;
   finalTime_ = 1.0;
   dt_ = 0.1;
+  // linear algebra
+  maxIters_ = 1000u;
+  tol_ = 1.e-6;
+  uint nnz = 3u;
 
   // read configuration from file
   std::filesystem::path const configFile = configs.at("config_file");
@@ -68,69 +75,142 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
       {
         // this is a comment, consume whole line
         while (bufferStream)
-        {
           bufferStream >> token;
-        }
       }
       else if (token == "name:")
         bufferStream >> name_;
+      else if (token == "debug:")
+        bufferStream >> debug_;
+      // mesh
       else if (token == "start:")
         bufferStream >> start;
       else if (token == "end:")
         bufferStream >> end;
       else if (token == "n_elems:")
         bufferStream >> nElems;
+      // coupling
       else if (token == "coupling_type:")
       {
         bufferStream >> token;
         couplingType_ = str2coupling(token);
       }
-      else if (token == "field_external:")
-        bufferStream >> nameExt_;
-      else if (token == "var_name:")
-        bufferStream >> varName_;
+      // fields
+      else if (token == "n_vars:")
+      {
+        bufferStream >> nVars_;
+        varNames_.resize(nVars_);
+        uInit.resize(nVars_);
+        qValue.resize(nVars_);
+        bcs_.resize(nVars_);
+      }
+      else if (token == "var_names:")
+        for (uint v = 0u; v < nVars_; v++)
+          bufferStream >> varNames_[v];
       else if (token == "initial_value:")
-        bufferStream >> uInit;
+        for (uint v = 0u; v < nVars_; v++)
+          bufferStream >> uInit[v];
       else if (token == "q:")
-        bufferStream >> qValue;
-      else if (token == "alpha:")
-        bufferStream >> alpha_;
+      {
+        fields_.emplace("q", VectorFD());
+        for (uint v = 0u; v < nVars_; v++)
+          bufferStream >> qValue[v];
+      }
+      // params
+      else if (token == "params:")
+      {
+        while (bufferStream)
+        {
+          std::string name = "";
+          bufferStream >> name;
+          if (name == "")
+            break;
+          bufferStream >> token;
+          FD_PARAM_TYPE type = str2FDParamType(token);
+          switch (type)
+          {
+          case FD_PARAM_TYPE::INTEGER:
+          {
+            uint value;
+            bufferStream >> value;
+            params_.set(name, value);
+            break;
+          }
+          case FD_PARAM_TYPE::SCALAR:
+          {
+            double value;
+            bufferStream >> value;
+            params_.set(name, value);
+            break;
+          }
+          case FD_PARAM_TYPE::VECTOR:
+          {
+            uint size;
+            bufferStream >> size;
+            std::vector<double> value(size);
+            for (uint k = 0u; k < size; k++)
+              bufferStream >> value[k];
+            params_.set(name, value);
+            break;
+          }
+          default:
+            fmt::print(stderr, "param type for {} not recognized\n", name);
+            std::abort();
+          }
+        }
+      }
+      // time
       else if (token == "start_time:")
         bufferStream >> time;
       else if (token == "final_time:")
         bufferStream >> finalTime_;
       else if (token == "dt:")
         bufferStream >> dt_;
+      // assembly
       else if (token == "assembly_name:")
       {
         bufferStream >> token;
         eqnType_ = str2eqn(token);
       }
+      // la
       else if (token == "solver_type:")
       {
         bufferStream >> token;
         solverType_ = str2fdsolver(token);
       }
-      else if (token == "bc_start:")
+      else if (token == "max_iters:")
+        bufferStream >> maxIters_;
+      else if (token == "tol:")
+        bufferStream >> tol_;
+      else if (token == "nnz:")
+        bufferStream >> nnz;
+      // bcs
+      else if (token == "bc_left:")
       {
-        bufferStream >> token;
-        auto const type = str2fdbc(token);
-        double value;
-        bufferStream >> value;
-        bcStart_.init(type, {value});
+        for (uint v = 0u; v < nVars_; v++)
+        {
+          bufferStream >> token;
+          double value;
+          bufferStream >> value;
+          bcs_[v].left().init(FD_BC_SIDE::LEFT, str2FDBCType(token), value);
+        }
       }
-      else if (token == "bc_end:")
+      else if (token == "bc_right:")
       {
-        bufferStream >> token;
-        auto const type = str2fdbc(token);
-        double value;
-        bufferStream >> value;
-        bcEnd_.init(type, {value});
+        for (uint v = 0u; v < nVars_; v++)
+        {
+          bufferStream >> token;
+          double value;
+          bufferStream >> value;
+          bcs_[v].right().init(FD_BC_SIDE::RIGHT, str2FDBCType(token), value);
+        }
       }
-      else if (token == "clean_output:")
-        bufferStream >> cleanOutput_;
+      // io
+      else if (token == "print_step:")
+        bufferStream >> printStep_;
       else if (token == "output_prefix:")
         bufferStream >> outputPrefix_;
+      else if (token == "clean_output:")
+        bufferStream >> cleanOutput_;
       else
       {
         fmt::print(stderr, "key {} invalid\n", token);
@@ -139,43 +219,55 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
     }
   }
   fmt::print("{} - equation type: {}\n", name_, eqn2str(eqnType_));
-  assert(assemblies_.contains(eqnType_));
+  assert(eqnType_ == EQN_TYPE::NONE || assemblies_.contains(eqnType_));
+
+  fmt::print("parameters: {}\n", params_);
 
   // mesh
-  start_ = start;
-  h_ = (end - start) / nElems;
-  n_ = nElems + 1;
+  mesh_.init({start}, {end}, {nElems});
   initMeshCoupling();
 
   // fields
-  u_.resize(n_, uInit);
-  uOld_.resize(n_, uInit);
-  q_.resize(n_, qValue);
+  u_.resize(mesh_.nPts() * nVars_);
+  uOld_.resize(mesh_.nPts() * nVars_);
+  for (uint v = 0u; v < nVars_; v++)
+  {
+    u_.setRange(0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), uInit[v]);
+    uOld_.setRange(0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), uInit[v]);
+  }
+  if (fields_.contains("q"))
+  {
+    fields_.at("q").resize(mesh_.nPts() * nVars_);
+    for (uint v = 0u; v < nVars_; v++)
+      fields_.at("q").setRange(
+          0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), qValue[v]);
+  }
   initFieldCoupling();
 
   // linear algebra
-  m_.init(n_);
-  rhs_.resize(n_);
+  m_.init(mesh_.nPts() * nVars_, nnz);
+  rhs_.resize(mesh_.nPts() * nVars_);
 
   // io
   if (cleanOutput_)
-    std::filesystem::remove_all(outputPrefix_);
+    for (const auto & entry: std::filesystem::directory_iterator(outputPrefix_))
+      std::filesystem::remove_all(entry.path());
   std::filesystem::create_directories(outputPrefix_);
 }
 
 void ProblemFD1D::initMeshCoupling()
 {
   // coords format: x_0, y_0, z_0, x_1, ...
-  std::vector<double> coords(n_ * 3);
-  for (uint k = 0; k < n_; k++)
+  std::vector<double> coords(mesh_.nPts() * 3);
+  for (uint k = 0; k < mesh_.nPts(); k++)
   {
-    coords[3 * k] = start_ + k * h_;
+    coords[3 * k] = mesh_.pt({k})[0];
     coords[3 * k + 1] = 0.0;
     coords[3 * k + 2] = 0.0;
   }
 
   // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
-  auto const nElems = n_ - 1;
+  auto const nElems = mesh_.n_[0];
   std::vector<uint> conn(nElems * 3);
   for (uint k = 0; k < nElems; k++)
   {
@@ -193,23 +285,28 @@ void ProblemFD1D::initMeshCoupling()
   }
 
   meshCoupling_ = MeshCoupling::build(couplingType_);
-  meshCoupling_->init("mesh_fd1d", 1U, 1U, coords, conn, offsets);
+  meshCoupling_->init("mesh_fd1dmulti", 1U, 1U, coords, conn, offsets);
 }
 
 void ProblemFD1D::initFieldCoupling()
 {
-  auto [kvPairU, successU] =
-      fieldsCoupling_.emplace(varName_, FieldCoupling::build(couplingType_));
-  assert(successU);
-  kvPairU->second->init(varName_, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
-  kvPairU->second->setValues(u_);
-  kvPairU->second->initIO(outputPrefix_);
+  for (uint v = 0u; v < nVars_; v++)
+  {
+    auto [kvPairU, successU] =
+        fieldsCoupling_.emplace(varNames_[v], FieldCoupling::build(couplingType_));
+    assert(successU);
+    kvPairU->second->init(varNames_[v], meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
+    kvPairU->second->setValues(
+        {u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()}, 1u);
+    kvPairU->second->initIO(outputPrefix_);
 
-  auto [kvPairExt, successExt] =
-      fieldsCoupling_.emplace(nameExt_, FieldCoupling::build(couplingType_));
-  assert(successExt);
-  kvPairExt->second->init(nameExt_, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
-  kvPairExt->second->setValues(0.0, u_.size());
+    auto const nameExt = (nVars_ > 1u) ? fmt::format("{}{}", nameExt_, v) : nameExt_;
+    auto [kvPairExt, successExt] =
+        fieldsCoupling_.emplace(nameExt, FieldCoupling::build(couplingType_));
+    assert(successExt);
+    kvPairExt->second->init(nameExt, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
+    kvPairExt->second->setValues(0.0, mesh_.nPts(), 1u);
+  }
 }
 
 bool ProblemFD1D::run() { return time < finalTime_; }
@@ -234,84 +331,100 @@ uint ProblemFD1D::solve()
   fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
 
   // update
-  for (uint k = 0; k < u_.size(); k++)
-    uOld_[k] = u_[k];
+  uOld_ = u_;
 
   // assembly
   assemblies_.at(eqnType_)(this);
 
-  // bc start
-  switch (bcStart_.type)
+  for (uint v = 0u; v < nVars_; v++)
   {
-  case FD_BC_TYPE::DIRICHLET:
-  {
-    m_.clearRow(0);
-    m_.add(0, 0, 1.0);
-    rhs_[0] = bcStart_.values[0];
-    break;
-  }
-  case FD_BC_TYPE::NEUMANN:
-  {
-    // sign: incoming flux is positive
-    // (u_1 - u_-1) / 2h = A
-    // u_-1 = u_1 - 2 h A
-    // u_1 part implemented in assembly
-    rhs_[0] += 2.0 * h_ * bcStart_.values[0] * bcStart_.ghostValues[0];
-    break;
-  }
-  default:
-  {
-    fmt::print(stderr, "no bc start specified!\n");
-    std::abort();
-  }
-  }
+    // bc start
+    uint const idLeft = 0u + v * mesh_.nPts();
+    switch (bcs_[v].left().type)
+    {
+    case FD_BC_TYPE::DIRICHLET:
+    {
+      m_.clearRow(idLeft);
+      m_.add(idLeft, idLeft, 1.0);
+      rhs_.set(idLeft, bcs_[v].left().values[0]);
+      break;
+    }
+    case FD_BC_TYPE::NEUMANN:
+    {
+      // sign: incoming flux is positive
+      // (u_1 - u_-1) / 2h = A
+      // u_-1 = u_1 - 2 h A
+      // u_1 part implemented in assembly
+      rhs_.add(
+          idLeft,
+          -2.0 * mesh_.h_[0] * bcs_[v].left().values[0] *
+              bcs_[v].left().ghostValues[0]);
+      break;
+    }
+    default:
+    {
+      fmt::print(stderr, "no bc left specified!\n");
+      std::abort();
+    }
+    }
 
-  // bc end
-  switch (bcEnd_.type)
-  {
-  case FD_BC_TYPE::DIRICHLET:
-  {
-    m_.clearRow(n_ - 1);
-    m_.add(n_ - 1, n_ - 1, 1.0);
-    rhs_[n_ - 1] = bcEnd_.values[0];
-    break;
-  }
-  case FD_BC_TYPE::NEUMANN:
-  {
-    // sign: incoming flux is positive
-    // (u_n-2 - u_n) / 2h = A
-    // u_n = u_n-2 - 2 h A
-    // u_n-2 part implemented in assembly
-    rhs_[n_ - 1] += 2.0 * h_ * bcEnd_.values[0] * bcEnd_.ghostValues[0];
-    break;
-  }
-  default:
-  {
-    fmt::print(stderr, "no bc end specified!\n");
-    std::abort();
-  }
+    // bc end
+    uint const idEnd = mesh_.nPts() - 1 + v * mesh_.nPts();
+    switch (bcs_[v].right().type)
+    {
+    case FD_BC_TYPE::DIRICHLET:
+    {
+      m_.clearRow(idEnd);
+      m_.add(idEnd, idEnd, 1.0);
+      rhs_.set(idEnd, bcs_[v].right().values[0]);
+      break;
+    }
+    case FD_BC_TYPE::NEUMANN:
+    {
+      // sign: incoming flux is positive
+      // (u_n-2 - u_n) / 2h = A
+      // u_n = u_n-2 - 2 h A
+      // u_n-2 part implemented in assembly
+      rhs_.add(
+          idEnd,
+          -2.0 * mesh_.h_[0] * bcs_[v].right().values[0] *
+              bcs_[v].right().ghostValues[0]);
+      break;
+    }
+    default:
+    {
+      fmt::print(stderr, "no bc end specified!\n");
+      std::abort();
+    }
+    }
   }
 
   m_.close();
+  if (debug_)
+    m_.print_sparsity_pattern("fd1d_mat.dat");
 
   // solve
   auto const [numIters, residual] =
-      solvers_.at(solverType_)(m_, rhs_, u_, 1.e-6, 1000u);
+      solvers_.at(solverType_)(m_, rhs_, u_, tol_, maxIters_);
   fmt::print("num iters: {:4d}, ", numIters);
-  double const rhsNorm = std::sqrt(norm2sq(rhs_) * h_);
+  double const rhsNorm = std::sqrt(rhs_.norm2sq() * mesh_.h_[0]);
   fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
 
-  // fmt::print("matrix: {}\n", m_);
-  // fmt::print("rhs: {}\n", rhs_);
-  // fmt::print("sol: {}\n", u_);
+  if (debug_)
+  {
+    fmt::print("matrix: {}\n", m_);
+    fmt::print("rhs: {}\n", rhs_);
+    fmt::print("sol: {}\n", u_);
+  }
 
   // clean up
   m_.clear();
-  for (uint k = 0; k < rhs_.size(); k++)
-    rhs_[k] = 0.0;
+  rhs_.zero();
 
   // update coupling field
-  getField(varName_)->setValues(u_);
+  for (uint v = 0u; v < nVars_; v++)
+    getField(varNames_[v])
+        ->setValues({u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()});
 
   return numIters;
 }
@@ -319,123 +432,187 @@ uint ProblemFD1D::solve()
 void ProblemFD1D::assemblyHeat()
 {
   // eqn:
-  // du/dt - alpha * d^2u/dx^2 = q
+  // du/dt - alpha d^2u/dx^2 = q
   // discretization:
   // u_m / dt - alpha (u_l - 2 * u_m + u_r) / h^2 =
   // uold_m / dt + q_m
-  // grouping:
-  // (1 / dt + 2 * alpha / h^2) * u_m
-  // - (alpha / h^2) * u_l
-  // - (alpha / h^2) * u_r
-  // = uold_m / dt + q_m
-  for (uint k = 0u; k < n_; k++)
-  {
-    // diagonal
-    m_.add(k, k, 1. / dt_ + alpha_ * 2. / (h_ * h_));
+  // grouping and multiplying by dt:
+  // (1 + 2 alpha dt / h^2) * u_m
+  // - (alpha dt / h^2) * u_l
+  // - (alpha dt / h^2) * u_r
+  // = uold_m + q_m dt
 
-    // left
-    auto const value_left = -alpha_ / (h_ * h_);
-    if (k > 0u)
-      m_.add(k, k - 1, value_left);
-    else
+  auto const alpha = params_.get<FD_PARAM_TYPE::VECTOR>("alpha");
+  assert(alpha.size() == nVars_);
+  auto const & q = fields_.at("q");
+
+  for (uint v = 0u; v < nVars_; v++)
+    for (uint k = 0u; k < mesh_.nPts(); k++)
     {
-      m_.add(k, k + 1, value_left);
-      bcStart_.ghostValues[0] = value_left;
-    }
+      uint const id = k + v * mesh_.nPts();
+      auto const h = mesh_.h_[0];
 
-    // right
-    auto const value_right = -alpha_ / (h_ * h_);
-    if (k < n_ - 1)
-      m_.add(k, k + 1, value_right);
-    else
-    {
-      m_.add(k, k - 1, value_right);
-      bcEnd_.ghostValues[0] = value_right;
-    }
+      // diagonal
+      m_.add(id, id, 1. + 2. * alpha[v] * dt_ / (h * h));
 
-    // rhs
-    rhs_[k] = uOld_[k] / dt_ + q_[k];
-  }
+      // left
+      auto const valueLeft = -alpha[v] / (h * h);
+      if (k > 0u)
+        m_.add(id, id - 1, valueLeft);
+      else
+      {
+        m_.add(id, id + 1, valueLeft);
+        bcs_[v].left().ghostValues.set(0, valueLeft);
+      }
+
+      // right
+      auto const valueRight = -alpha[v] / (h * h);
+      if (k < mesh_.nPts() - 1)
+        m_.add(id, id + 1, valueRight);
+      else
+      {
+        m_.add(id, id - 1, valueRight);
+        bcs_[v].right().ghostValues.set(0, valueRight);
+      }
+
+      // rhs
+      rhs_.set(id, uOld_[id] + q[id] * dt_);
+    }
   m_.close();
 }
 
 void ProblemFD1D::assemblyHeatCoupled()
 {
+  assert(nVars_ == 1u);
+  auto const alpha = params_.get<FD_PARAM_TYPE::SCALAR>("alpha");
+  auto const & q = fields_.at("q");
+
+  // TODO: use VectorFD for uExt
   // std::vector<double> uExt(n_, 2.0);
-  std::vector<double> uExt(n_);
+  std::vector<double> uExt(mesh_.nPts());
   double const * dataPtr = getField(nameExt_)->dataPtr();
-  std::copy(dataPtr, dataPtr + n_, uExt.data());
+  std::copy(dataPtr, dataPtr + mesh_.nPts(), uExt.data());
 
   double const kAmpli = 10.;
-  for (uint k = 0u; k < n_; k++)
+  auto const h = mesh_.h_[0];
+  for (uint k = 0u; k < mesh_.nPts(); k++)
   {
     // diagonal
     m_.add(
         k,
         k,
-        1. / dt_                      // time
-            + alpha_ * 2. / (h_ * h_) // diffusion
+        1. / dt_                   // time
+            + alpha * 2. / (h * h) // diffusion
             + kAmpli);
 
     // left
-    auto const valueLeft = -alpha_ / (h_ * h_); // diffusion
+    auto const valueLeft = -alpha / (h * h); // diffusion
     if (k > 0u)
       m_.add(k, k - 1, valueLeft);
     else
     {
       m_.add(k, k + 1, valueLeft);
-      bcStart_.ghostValues[0] = valueLeft;
+      bcs_[0].left().ghostValues.set(0, valueLeft);
     }
 
     // right
-    auto const valueRight = -alpha_ / (h_ * h_); // diffusion
-    if (k < n_ - 1)
+    auto const valueRight = -alpha / (h * h); // diffusion
+    if (k < mesh_.nPts() - 1)
       m_.add(k, k + 1, valueRight);
     else
     {
       m_.add(k, k - 1, valueRight);
-      bcEnd_.ghostValues[0] = valueRight;
+      bcs_[0].right().ghostValues.set(0, valueRight);
     }
 
     // rhs
-    rhs_[k] = uOld_[k] / dt_     // time
-              + q_[k]            // source
-              + kAmpli * uExt[k] // feedback control
-        ;
+    rhs_.set(
+        k,
+        uOld_[k] / dt_         // time
+            + q[k]             // source
+            + kAmpli * uExt[k] // feedback control
+    );
+  }
+  m_.close();
+}
+
+void ProblemFD1D::assemblyHeatOC()
+{
+  auto const alpha = params_.get<FD_PARAM_TYPE::SCALAR>("alpha");
+  auto const beta = params_.get<FD_PARAM_TYPE::SCALAR>("beta");
+  auto const tempTarget = params_.get<FD_PARAM_TYPE::SCALAR>("tempTarget");
+  auto const targetLeft = params_.get<FD_PARAM_TYPE::SCALAR>("targetLeft");
+  auto const targetRight = params_.get<FD_PARAM_TYPE::SCALAR>("targetRight");
+
+  for (uint k = 0u; k < mesh_.nPts(); k++)
+  {
+    auto const x = mesh_.pt({k})[0];
+    auto const h = mesh_.h_[0];
+    uint const idF = k;
+    uint const idFLeft = (k != 0) ? idF - 1 : idF + 1;
+    uint const idFRight = (k != mesh_.nPts() - 1) ? idF + 1 : idF - 1;
+    uint const idA = k + mesh_.nPts();
+    uint const idALeft = (k != 0) ? idA - 1 : idA + 1;
+    uint const idARight = (k != mesh_.nPts() - 1) ? idA + 1 : idA - 1;
+
+    // forward problem
+    m_.add(idF, idF, 1.0 + 2.0 * alpha * dt_ / (h * h));
+    m_.add(idF, idFLeft, -alpha * dt_ / (h * h));
+    m_.add(idF, idFRight, -alpha * dt_ / (h * h));
+    m_.add(idF, idA, dt_ / beta);
+    rhs_.set(idF, uOld_[idF]);
+
+    // adjoint problem
+    m_.add(idA, idA, 1.0 + 2.0 * alpha * dt_ / (h * h));
+    m_.add(idA, idALeft, -alpha * dt_ / (h * h));
+    m_.add(idA, idARight, -alpha * dt_ / (h * h));
+    if (x > targetLeft && x < targetRight)
+    {
+      m_.add(idA, idF, -dt_);
+      rhs_.set(idA, -tempTarget * dt_);
+    }
   }
   m_.close();
 }
 
 void ProblemFD1D::print()
 {
-  auto const filename =
-      fmt::format("{}.{}.dat", (outputPrefix_ / varName_).string(), it);
-  std::FILE * out = std::fopen(filename.c_str(), "w");
-  for (uint k = 0; k < u_.size(); k++)
+  if (it % printStep_ == 0)
   {
-    fmt::print(out, "{:.6e} {:.6e}\n", start_ + k * h_, u_[k]);
-  }
-  std::fclose(out);
+    for (uint v = 0u; v < nVars_; v++)
+    {
+      auto const filename =
+          fmt::format("{}.{}.dat", (outputPrefix_ / varNames_[v]).string(), it);
+      std::FILE * out = std::fopen(filename.c_str(), "w");
+      for (uint k = 0u; k < mesh_.nPts(); k++)
+      {
+        uint const id = k + v * mesh_.nPts();
+        fmt::print(out, "{:.6e} {:.6e}\n", mesh_.pt({k})[0], u_[id]);
+      }
+      std::fclose(out);
 
-  getField(varName_)->printVTK(time, it);
+      getField(varNames_[v])->printVTK(time, it);
+    }
+  }
 }
 
 std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD1D::Matrix_T>>
     ProblemFD1D::solvers_ = {
-        {FD_SOLVER_TYPE::NONE,
-         [](MatrixTriDiag const & m,
-            VectorFD const & b,
-            VectorFD & x,
-            double const residual,
-            uint const maxIters) {
-           return SolverInfo{0u, 0.0};
-         }},
-        {FD_SOLVER_TYPE::JACOBI, &solveJacobi<MatrixTriDiag>},
-        {FD_SOLVER_TYPE::TRIDIAG,
-         [](MatrixTriDiag const & m,
-            VectorFD const & b,
-            VectorFD & x,
-            double const,
-            uint const) { return solveTriDiag(m, b, x); }},
-        {FD_SOLVER_TYPE::VANKA1D, &solveVanka1D},
+        // {FD_SOLVER_TYPE::NONE,
+        //  [](MatrixCSR const & m,
+        //     VectorFD const & b,
+        //     VectorFD & x,
+        //     double const residual,
+        //     uint const maxIters) {
+        //    return SolverInfo{0u, 0.0};
+        //  }},
+        {FD_SOLVER_TYPE::JACOBI, &solveJacobi<ProblemFD1D::Matrix_T>},
+        {FD_SOLVER_TYPE::GAUSS_SEIDEL, &solveGaussSeidel<ProblemFD1D::Matrix_T>},
+        // {FD_SOLVER_TYPE::TRIDIAG,
+        //  [](MatrixTriDiag const & m,
+        //     VectorFD const & b,
+        //     VectorFD & x,
+        //     double const,
+        //     uint const) { return solveTriDiag(m, b, x); }},
+        // {FD_SOLVER_TYPE::VANKA1D, &solveVanka1D},
 };

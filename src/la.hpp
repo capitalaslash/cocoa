@@ -13,42 +13,70 @@
 #include <fmt/ranges.h>
 
 // =====================================================================
-// struct VectorFD
-// {
-//   VectorFD() = default;
-//   explicit VectorFD(size_t const n): data_(n) {}
-//   ~VectorFD() = default;
-
-//   double * data() { return data_.data(); }
-
-//   std::vector<double> data_;
-// };
-using VectorFD = std::vector<double>;
-
-inline double norm2sq(VectorFD const & v)
+struct VectorFD
 {
-  double sum = 0.0;
-  for (auto const & value: v)
+  VectorFD() = default;
+  ~VectorFD() = default;
+  explicit VectorFD(size_t const n, double const value = 0.0): data_(n, value) {}
+  auto resize(size_t const n, double const value = 0.0) -> void
   {
-    sum += value * value;
+    data_.resize(n, value);
   }
-  return sum;
-}
+  explicit VectorFD(std::vector<double> const & data): data_{data} {}
+
+  auto size() const -> size_t { return data_.size(); }
+  auto data() -> double * { return data_.data(); }
+  auto operator[](uint const k) const -> double { return data_[k]; }
+
+  auto add(uint const k, double const value) -> void
+  {
+    assert(k < data_.size());
+    data_[k] += value;
+  }
+  auto set(uint const k, double const value) -> void
+  {
+    assert(k < data_.size());
+    data_[k] = value;
+  }
+  auto setRange(uint const start, uint const end, double const value)
+  {
+    assert(end - start <= data_.size());
+    std::fill(data_.begin() + start, data_.begin() + end, value);
+  }
+  auto zero() -> void { std::fill(data_.begin(), data_.end(), 0.0); }
+  auto norm2sq() const -> double;
+
+  std::vector<double> data_;
+};
+
+template <>
+struct fmt::formatter<VectorFD>
+{
+  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
+  {
+    return ctx.begin();
+  }
+
+  auto format(VectorFD const & v, format_context & ctx) const
+      -> format_context::iterator
+  {
+    return fmt::format_to(ctx.out(), "{::e}", v.data_);
+  }
+};
 
 // =====================================================================
 struct MatrixTriDiag
 {
   MatrixTriDiag() = default;
-  explicit MatrixTriDiag(size_t const n):
-      diags_{std::vector<double>(n), std::vector<double>(n), std::vector<double>(n)}
+  explicit MatrixTriDiag(size_t const n): diags_{VectorFD{n}, VectorFD{n}, VectorFD{n}}
   {}
   ~MatrixTriDiag() = default;
 
   void init(size_t n)
   {
-    diags_[0].resize(n, 0.0);
-    diags_[1].resize(n, 0.0);
-    diags_[2].resize(n, 0.0);
+    diags_[0].data_.resize(n, 0.0);
+    diags_[1].data_.resize(n, 0.0);
+    diags_[2].data_.resize(n, 0.0);
   }
 
   auto size() const -> size_t { return diags_[1].size(); }
@@ -56,13 +84,13 @@ struct MatrixTriDiag
   void set(int const row, int const clm, double const value)
   {
     assert(std::abs(clm - row) <= 1);
-    diags_[clm - row + 1][row] = value;
+    diags_[clm - row + 1].add(row, value);
   }
 
   void add(int const row, int const clm, double const value)
   {
     assert(std::abs(clm - row) <= 1);
-    diags_[clm - row + 1][row] += value;
+    diags_[clm - row + 1].add(row, value);
   }
 
   std::vector<std::pair<uint, double>> row(uint k) const
@@ -91,23 +119,23 @@ struct MatrixTriDiag
 
   void clearRow(uint const row)
   {
-    diags_[0][row] = 0.0;
-    diags_[1][row] = 0.0;
-    diags_[2][row] = 0.0;
+    diags_[0].set(row, 0.0);
+    diags_[1].set(row, 0.0);
+    diags_[2].set(row, 0.0);
   }
   void clear()
   {
     uint const n = diags_[1].size();
-    std::vector<double>(n).swap(diags_[0]);
-    std::vector<double>(n).swap(diags_[1]);
-    std::vector<double>(n).swap(diags_[2]);
+    std::vector<double>(n).swap(diags_[0].data_);
+    std::vector<double>(n).swap(diags_[1].data_);
+    std::vector<double>(n).swap(diags_[2].data_);
   }
   void close() {}
 
-  std::array<std::vector<double>, 3U> diags_;
+  std::array<VectorFD, 3U> diags_;
 };
 
-std::vector<double> operator*(MatrixTriDiag const & m, std::vector<double> const & v);
+auto operator*(MatrixTriDiag const & m, VectorFD const & v) -> VectorFD;
 
 template <>
 struct fmt::formatter<MatrixTriDiag>
@@ -138,10 +166,10 @@ struct MatrixCSR
   using Row_T = std::vector<Entry>;
 
   MatrixCSR() = default;
-  explicit MatrixCSR(size_t n): n_{n}, data_{n_, Row_T{}} {}
+  MatrixCSR(size_t n, size_t nnz);
   ~MatrixCSR() = default;
 
-  void init(size_t n);
+  void init(size_t n, size_t nnz);
 
   auto size() const -> size_t { return n_; }
 
@@ -173,12 +201,13 @@ struct MatrixCSR
   void print_sparsity_pattern(std::filesystem::path const & path);
 
   size_t n_;
+  size_t nnz_ = 0u;
   bool isClosed_ = false;
   std::vector<Triplet_T> triplets_;
   std::vector<Row_T> data_;
 };
 
-std::vector<double> operator*(MatrixCSR const & m, std::vector<double> const & v);
+auto operator*(MatrixCSR const & m, VectorFD const & v) -> VectorFD;
 
 template <>
 struct fmt::formatter<MatrixCSR::Entry>
@@ -260,16 +289,13 @@ struct MatrixDense<2U>
 // =====================================================================
 template <typename Matrix>
 double computeResidual(
-    Matrix const & m,
-    std::vector<double> const & x,
-    std::vector<double> const & b,
-    double const area)
+    Matrix const & m, VectorFD const & x, VectorFD const & b, double const area)
 {
-  std::vector<double> res(x.size());
+  VectorFD res(x.size());
   auto const tmp = m * x;
   for (uint k = 0; k < res.size(); k++)
-    res[k] = (b[k] - tmp[k]);
-  double const resNorm = std::sqrt(norm2sq(res) * area);
+    res.set(k, b[k] - tmp[k]);
+  double const resNorm = std::sqrt(res.norm2sq() * area);
   return resNorm;
 }
 
@@ -327,8 +353,8 @@ SolverInfo solveJacobi(
 {
   uint const n = b.size();
 
-  std::vector<double> uNew(x.size());
-  double const rhsNorm = std::sqrt(norm2sq(b) / n);
+  VectorFD xNew(x.size());
+  double const rhsNorm = std::sqrt(b.norm2sq() / n);
   fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
 
   for (uint i = 0; i < maxIters; i++)
@@ -355,12 +381,11 @@ SolverInfo solveJacobi(
           valueNew -= value * x[clm];
         }
       }
-      uNew[k] = valueNew / diag;
+      xNew.set(k, valueNew / diag);
     }
 
     // update current solution
-    for (uint k = 0U; k < uNew.size(); k++)
-      x[k] = uNew[k];
+    x = xNew;
   }
 
   return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
@@ -376,7 +401,7 @@ SolverInfo solveGaussSeidel(
 {
   uint const n = b.size();
 
-  double const rhsNorm = std::sqrt(norm2sq(b) / n);
+  double const rhsNorm = std::sqrt(b.norm2sq() / n);
   fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
 
   for (uint i = 0; i < maxIters; i++)
@@ -403,7 +428,7 @@ SolverInfo solveGaussSeidel(
           valueNew -= value * x[clm];
         }
       }
-      x[k] = valueNew / diag;
+      x.set(k, valueNew / diag);
     }
   }
 
@@ -411,10 +436,7 @@ SolverInfo solveGaussSeidel(
 }
 
 inline double solveLine(
-    MatrixCSR const & m,
-    std::vector<double> const & rhs,
-    std::vector<double> const & u,
-    size_t const id)
+    MatrixCSR const & m, VectorFD const & rhs, VectorFD const & u, size_t const id)
 {
   assert(m.data_[id][0].clm == id);
   double value = rhs[id];
@@ -435,7 +457,7 @@ SolverInfo solveVanka2DCB(
 {
   uint const n = b.size();
 
-  double const rhsNorm = std::sqrt(norm2sq(b) / n);
+  double const rhsNorm = std::sqrt(b.norm2sq() / n);
   fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
 
   for (uint i = 0U; i < maxIters; i++)
@@ -450,9 +472,9 @@ SolverInfo solveVanka2DCB(
 
     // checkerboard
     for (uint k = 0U; k < n; k += 2U)
-      x[k] = solveLine(m, b, x, k);
+      x.set(k, solveLine(m, b, x, k));
     for (uint k = 1U; k < n; k += 2U)
-      x[k] = solveLine(m, b, x, k);
+      x.set(k, solveLine(m, b, x, k));
   }
 
   return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};

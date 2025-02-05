@@ -12,7 +12,7 @@
 #include "plugins.hpp"
 
 // coupling enum =======================================================
-enum struct COUPLING_TYPE : int8_t
+enum struct COUPLING_TYPE : uint8_t
 {
   NONE = 0,
   SIMPLE,
@@ -36,8 +36,24 @@ inline COUPLING_TYPE str2coupling(std::string_view name)
   return COUPLING_TYPE::NONE;
 }
 
+inline std::string couplingType2str(COUPLING_TYPE const type)
+{
+  using enum COUPLING_TYPE;
+  switch (type)
+  {
+  case SIMPLE:
+    return "simple";
+  case MEDCOUPLING:
+    return "medcoupling";
+  case OFM2M:
+    return "ofm2m";
+  default:
+    return "none";
+  }
+}
+
 // problem enum ========================================================
-enum struct PROBLEM_TYPE : int8_t
+enum struct PROBLEM_TYPE : uint8_t
 {
   NONE = 0,
   FD1D,
@@ -65,12 +81,13 @@ inline PROBLEM_TYPE str2problem(std::string_view name)
 }
 
 // equation type enum ===============================================
-enum struct EQN_TYPE : int8_t
+enum struct EQN_TYPE : uint8_t
 {
   NONE = 0,
   HEAT,
   HEAT_COUPLED,
   HEAT_BUOYANT,
+  HEAT_OC,
   NS,
   NS_BOUSSINESQ,
   CUSTOM,
@@ -78,20 +95,24 @@ enum struct EQN_TYPE : int8_t
 
 inline EQN_TYPE str2eqn(std::string_view name)
 {
+  using enum EQN_TYPE;
   if (name == "heat")
-    return EQN_TYPE::HEAT;
-  else if (name == "heatCoupled")
-    return EQN_TYPE::HEAT_COUPLED;
-  else if (name == "heatBuoyant")
-    return EQN_TYPE::HEAT_BUOYANT;
+    return HEAT;
+  else if (name == "heat_coupled")
+    return HEAT_COUPLED;
+  else if (name == "heat_buoyant")
+    return HEAT_BUOYANT;
+  else if (name == "heat_oc")
+    return HEAT_OC;
   else if (name == "ns")
-    return EQN_TYPE::NS;
-  else if (name == "nsBoussinesq")
-    return EQN_TYPE::NS_BOUSSINESQ;
+    return NS;
+  else if (name == "ns_boussinesq")
+    return NS_BOUSSINESQ;
   else if (name == "none")
-    return EQN_TYPE::NONE;
-  abort();
-  return EQN_TYPE::NONE;
+    return NONE;
+  fmt::print(stderr, "equation type {} not recognized\n", name);
+  std::abort();
+  return NONE;
 }
 
 inline std::string eqn2str(EQN_TYPE type)
@@ -103,15 +124,21 @@ inline std::string eqn2str(EQN_TYPE type)
   case EQN_TYPE::HEAT:
     return "heat";
   case EQN_TYPE::HEAT_COUPLED:
-    return "heatCoupled";
+    return "heat_coupled";
   case EQN_TYPE::HEAT_BUOYANT:
-    return "heatBuoyant";
+    return "heat_buoyant";
+  case EQN_TYPE::HEAT_OC:
+    return "heat_oc";
   case EQN_TYPE::NS:
     return "ns";
   case EQN_TYPE::NS_BOUSSINESQ:
-    return "nsBoussinesq";
+    return "ns_boussinesq";
   default:
-    abort();
+    fmt::print(
+        stderr,
+        "equation type {} not recognized\n",
+        static_cast<std::underlying_type_t<EQN_TYPE>>(type));
+    std::abort();
     return "";
   }
 }
@@ -122,7 +149,7 @@ inline std::string eqn2str(EQN_TYPE type)
 #include <MCIdType.hxx>
 #include <NormalizedGeometricTypes> // missing extension!!!
 
-enum struct MED_CELL_TYPE : int8_t
+enum struct MED_CELL_TYPE : uint8_t
 {
   LINE2 = INTERP_KERNEL::NORM_SEG2,
   TRIANGLE3 = INTERP_KERNEL::NORM_TRI3,
@@ -139,7 +166,7 @@ inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)
 
 using mcIdType = std::uint32_t;
 
-enum struct MED_CELL_TYPE : int8_t
+enum struct MED_CELL_TYPE : uint8_t
 {
   LINE2 = 12,
   TRIANGLE3 = 23,

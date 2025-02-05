@@ -3,6 +3,7 @@
 
 // local
 #include "coupling/coupling_manager.hpp"
+#include "enums.hpp"
 #include "problem/problem.hpp"
 
 int main()
@@ -12,6 +13,8 @@ int main()
 
   p1->setup({{"config_file", "fd1d_heat.dat"}});
   p2->setup({{"config_file", "fd1d_hc.dat"}});
+  p1->couplingType_ = COUPLING_TYPE::SIMPLE;
+  p2->couplingType_ = COUPLING_TYPE::SIMPLE;
 
   // check that both problems have been set to use the same coupling type
   assert(p1->couplingType_ == p2->couplingType_);

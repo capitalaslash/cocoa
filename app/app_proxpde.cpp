@@ -13,7 +13,7 @@ int main()
   dynamic_cast<ProblemProXPDEHeat *>(p1.get())->q_
       << [](proxpde::Vec3 const & p) { return std::sin(M_PI * p[1]); };
 
-  auto p2 = Problem::build("proxpde", "heatCoupled");
+  auto p2 = Problem::build("proxpde", "heat_coupled");
   p2->setup({{"config_file", "proxpde_hc.yaml"}});
 
   // check that both problems have been set to use the same coupling type

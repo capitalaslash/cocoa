@@ -50,7 +50,7 @@ struct FieldMED: public FieldCoupling
   // std::vector<double> getData() override;
   void
   init(std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support) override;
-  void setValues(std::span<double> const & data, uint dim = 1U) override;
+  void setValues(std::span<const double> data, uint dim = 1U) override;
   void setValues(double value, uint size, uint dim = 1U) override;
 
   void printVTK(double time, uint iter) override;
