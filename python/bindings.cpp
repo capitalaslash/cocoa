@@ -10,6 +10,8 @@
 // local
 #include "coupling/coupling_med.hpp"
 #include "coupling/coupling_simple.hpp"
+#include "coupling/field_coupling.hpp"
+#include "coupling/field_med.hpp"
 #include "enums.hpp"
 #include "la.hpp"
 #include "problem/fdutils.hpp"
@@ -94,6 +96,8 @@ PYBIND11_MODULE(cocoa, m)
             return success;
           })
       .def_readwrite("name", &ProblemFD1D::name_)
+      .def_readwrite("mesh", &ProblemFD1D::mesh_)
+      .def_readwrite("n_vars", &ProblemFD1D::nVars_)
       .def_readwrite("var_names", &ProblemFD1D::varNames_)
       .def_readwrite("u", &ProblemFD1D::u_)
       .def_readwrite("u_old", &ProblemFD1D::uOld_)
@@ -104,6 +108,8 @@ PYBIND11_MODULE(cocoa, m)
       .def_readwrite("m", &ProblemFD1D::m_)
       .def_readwrite("rhs", &ProblemFD1D::rhs_)
       .def_readwrite("solver_type", &ProblemFD1D::solverType_)
+      .def_readwrite("max_iters", &ProblemFD1D::maxIters_)
+      .def_readwrite("tol", &ProblemFD1D::tol_)
       .def_readwrite("eqn_type", &ProblemFD1D::eqnType_)
       .def_readwrite("bcs", &ProblemFD1D::bcs_)
       .def_readwrite("clean_output", &ProblemFD1D::cleanOutput_)
@@ -112,13 +118,61 @@ PYBIND11_MODULE(cocoa, m)
       .def_readwrite("name_ext", &ProblemFD1D::nameExt_)
       .def_readwrite("assemblies", &ProblemFD1D::assemblies_);
 
-  // other derived problems ============================================
-  py::class_<ProblemFD2D, Problem>(m, "ProblemFD2D").def(py::init<>());
+  // ProblemFD2D =======================================================
+  py::class_<ProblemFD2D, Problem>(m, "ProblemFD2D")
+      .def(py::init<>())
+      .def("init_mesh_coupling", &ProblemFD2D::initMeshCoupling)
+      .def("init_field_coupling", &ProblemFD2D::initFieldCoupling)
+      .def(
+          "create_output_dir",
+          [](ProblemFD2D * p, std::string_view path)
+          { std::filesystem::create_directories(path); })
+      .def(
+          "setup_io",
+          [](ProblemFD2D * p, std::string_view path)
+          {
+            p->outputPrefix_ = path;
+            p->initMeshCoupling();
+            p->initFieldCoupling();
+            std::filesystem::create_directories(path);
+          })
+      .def(
+          "set_custom_assembly",
+          [](ProblemFD2D * p, ProblemFD2D::Assembly_T const & f)
+          {
+            auto const [_, success] = p->assemblies_.emplace(EQN_TYPE::CUSTOM, f);
+            p->eqnType_ = EQN_TYPE::CUSTOM;
+            return success;
+          })
+      .def_readwrite("name", &ProblemFD2D::name_)
+      .def_readwrite("mesh", &ProblemFD2D::mesh_)
+      .def_readwrite("n_vars", &ProblemFD2D::nVars_)
+      .def_readwrite("var_names", &ProblemFD2D::varNames_)
+      .def_readwrite("u", &ProblemFD2D::u_)
+      .def_readwrite("u_old", &ProblemFD2D::uOld_)
+      .def_readwrite("params", &ProblemFD2D::params_)
+      .def_readwrite("q", &ProblemFD2D::q_)
+      .def_readwrite("c", &ProblemFD2D::c_)
+      .def_readwrite("final_time", &ProblemFD2D::finalTime_)
+      .def_readwrite("dt", &ProblemFD2D::dt_)
+      .def_readwrite("m", &ProblemFD2D::m_)
+      .def_readwrite("rhs", &ProblemFD2D::rhs_)
+      .def_readwrite("solver_type", &ProblemFD2D::solverType_)
+      .def_readwrite("max_iters", &ProblemFD2D::maxIters_)
+      .def_readwrite("tol", &ProblemFD2D::tol_)
+      .def_readwrite("eqn_type", &ProblemFD2D::eqnType_)
+      .def_readwrite("bcs", &ProblemFD2D::bcs_)
+      .def_readwrite("print_step", &ProblemFD2D::printStep_)
+      .def_readwrite("output_prefix", &ProblemFD2D::outputPrefix_)
+      .def_readwrite("name_ext", &ProblemFD2D::nameExt_)
+      .def_readwrite("assemblies", &ProblemFD2D::assemblies_);
 
+  // ProblemOForg ======================================================
 #ifdef COCOA_ENABLE_OFORG
   py::class_<ProblemOForg, Problem>(m, "ProblemOForg").def(py::init<>());
 #endif
 
+  // ProblemProXPDE ====================================================
 #ifdef COCOA_ENABLE_PROXPDE
   py::class_<ProblemProXPDEHeat, Problem>(m, "ProblemProXPDEHeat")
       .def(py::init<>())
@@ -151,7 +205,58 @@ PYBIND11_MODULE(cocoa, m)
   py::class_<CouplingMED, CouplingManager>(m, "CouplingMED").def(py::init<>());
 #endif
 
+  py::class_<FieldCoupling>(m, "FieldCoupling")
+      // .def("init", &FieldCoupling::init, "name"_a, "mesh"_a, "support"_a)
+      .def(
+          "init",
+          [](FieldCoupling * f,
+             std::string_view name,
+             Problem * problem,
+             std::string_view support)
+          {
+            if (support == "on_nodes")
+              f->init(name, problem->getMesh(), SUPPORT_TYPE::ON_NODES);
+            else if (support == "on_cells")
+              f->init(name, problem->getMesh(), SUPPORT_TYPE::ON_CELLS);
+            else
+            {
+              fmt::print(stderr, "support type {} not recognized\n", support);
+              std::abort();
+            }
+          })
+      .def("at", &FieldCoupling::at, "pos"_a)
+      .def(
+          "set_values",
+          [](FieldCoupling * f, std::vector<double> & data, uint const dim)
+          { f->setValues(data, dim); },
+          "data"_a,
+          "dim"_a = 1u)
+      .def(
+          "set_values",
+          py::overload_cast<double, uint, uint const>(&FieldCoupling::setValues),
+          "value"_a,
+          "size"_a,
+          "dim"_a = 1u)
+      .def("init_io", &FieldCoupling::initIO, "prefix"_a)
+      .def("print_vtk", &FieldCoupling::printVTK, "time"_a, "iter"_a);
+
+#ifdef COCOA_ENABLE_MEDCOUPLING
+  py::class_<FieldMED, FieldCoupling>(m, "FieldMED").def(py::init<>());
+#endif
+
   // FD utils ==========================================================
+  py::enum_<FD_SOLVER_TYPE>(m, "FD_SOLVER_TYPE")
+      .value("jacobi", FD_SOLVER_TYPE::JACOBI)
+      .value("gauss_seidel", FD_SOLVER_TYPE::GAUSS_SEIDEL);
+
+  py::enum_<FD_BC_SIDE>(m, "FD_BC_SIDE")
+      .value("left", FD_BC_SIDE::LEFT)
+      .value("right", FD_BC_SIDE::RIGHT)
+      .value("bottom", FD_BC_SIDE::BOTTOM)
+      .value("top", FD_BC_SIDE::TOP)
+      .value("front", FD_BC_SIDE::FRONT)
+      .value("back", FD_BC_SIDE::BACK);
+
   py::enum_<FD_BC_TYPE>(m, "FD_BC_TYPE")
       .value("none", FD_BC_TYPE::NONE)
       .value("dirichlet", FD_BC_TYPE::DIRICHLET)
