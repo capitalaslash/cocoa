@@ -35,7 +35,7 @@ struct Problem
 
   virtual void setField(std::string_view name, FieldCoupling * field)
   {
-    fieldsCoupling_.at(std::string{name}).reset(field);
+    fieldsCoupling_.emplace(std::pair{std::string{name}, field});
   }
 
   MeshCoupling * getMesh() { return meshCoupling_.get(); }
