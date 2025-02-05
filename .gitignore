@@ -3,6 +3,7 @@
 build*/
 contrib/
 data/oforg*/
+postpro/*
 spack*/
 CMakeLists.txt.*
 run_cmake.bash
