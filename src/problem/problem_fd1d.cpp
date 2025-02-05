@@ -249,7 +249,7 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
   rhs_.resize(mesh_.nPts() * nVars_);
 
   // io
-  if (cleanOutput_)
+  if (cleanOutput_ && std::filesystem::exists(outputPrefix_))
     for (const auto & entry: std::filesystem::directory_iterator(outputPrefix_))
       std::filesystem::remove_all(entry.path());
   std::filesystem::create_directories(outputPrefix_);
