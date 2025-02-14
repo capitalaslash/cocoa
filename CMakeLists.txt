@@ -77,6 +77,14 @@ endif()
 
 # openfoam.org ---
 if (COCOA_ENABLE_OFORG)
+  # if the OpenFOAMorg cmake module has not been generated yet, do it now
+  if (NOT EXISTS "cmake/FindOpenFOAMorg.cmake")
+    message(STATUS "generating OpenFOAMorg.cmake")
+    execute_process(
+      COMMAND python generate_oforg_components.py
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake
+    )
+  endif()
   find_package(OpenFOAMorg REQUIRED)
   list(APPEND LIB_SOURCES
     src/problem/problem_oforg.cpp
