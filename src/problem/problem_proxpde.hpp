@@ -24,7 +24,14 @@
 
 struct ProblemProXPDE: public Problem
 {
-  ProblemProXPDE(): Problem{PROBLEM_TYPE::PROXPDE, COUPLING_TYPE::MEDCOUPLING} {}
+  struct Assembly
+  {
+    Assembly() = default;
+    virtual ~Assembly() = default;
+    virtual auto evaluate(ProblemProXPDE *, proxpde::Builder<> &) -> void = 0;
+  };
+
+  ProblemProXPDE();
   virtual ~ProblemProXPDE() = default;
 
   virtual void setup(Problem::ConfigList_T const & configs) override = 0;
@@ -50,17 +57,14 @@ struct ProblemProXPDE: public Problem
 
   std::string name_;
   EQN_TYPE equationType_;
+  std::unordered_map<EQN_TYPE, std::unique_ptr<Assembly>> assemblies_;
+
   std::vector<std::string> couplingExport_;
   std::vector<std::string> couplingImport_;
   proxpde::Vec u_;
   proxpde::Vec uOld_;
   double dt_;
   double finalTime_;
-
-  static std::unordered_map<
-      EQN_TYPE,
-      std::function<void(ProblemProXPDE *, proxpde::Builder<> & b)>>
-      equationMap_;
 
   static std::unique_ptr<Problem> build(EQN_TYPE const type);
 };
@@ -71,11 +75,13 @@ struct ProblemProXPDEHeat: public ProblemProXPDE
 {
   using Elem_T = proxpde::Quad;
   using Mesh_T = proxpde::Mesh<Elem_T>;
-  using FE_T = proxpde::LagrangeFE<Elem_T, 1U>;
+  using FE_T = proxpde::LagrangeFE<Elem_T, 1u>;
   using FESpace_T = proxpde::FESpace<Mesh_T, FE_T::RefFE_T, FE_T::RecommendedQR>;
-  using FESpaceVel_T = proxpde::FESpace<Mesh_T, FE_T::RefFE_T, FE_T::RecommendedQR, 2U>;
+  using FE0_T = proxpde::LagrangeFE<Elem_T, 0u>;
+  using FESpaceP0_T = proxpde::FESpace<Mesh_T, FE0_T::RefFE_T, FE_T::RecommendedQR>;
+  using FESpaceVel_T = proxpde::FESpace<Mesh_T, FE_T::RefFE_T, FE_T::RecommendedQR, 2u>;
 
-  ProblemProXPDEHeat() = default;
+  ProblemProXPDEHeat();
   ~ProblemProXPDEHeat() = default;
 
   void setup(Problem::ConfigList_T const & configs) override;
@@ -84,19 +90,17 @@ struct ProblemProXPDEHeat: public ProblemProXPDE
 
   virtual uint size() const override { return feSpace_.dof.size; }
 
-  void assemblyHeat(proxpde::Builder<> & b);
-  void assemblyHeatCoupled(proxpde::Builder<> & b);
-  void assemblyHeatBuoyant(proxpde::Builder<> & b);
-
   Mesh_T mesh_;
   FESpace_T feSpace_;
   proxpde::FEVar<FESpace_T> T_;
-  proxpde::FEVar<FESpace_T> q_;
-  double alpha_;
+  FESpaceP0_T feSpaceP0_;
+  std::unordered_map<std::string, double> params_;
+  std::unordered_map<std::string, proxpde::FEVar<FESpaceP0_T>> fieldsP0_;
   FESpaceVel_T feSpaceVel_;
   proxpde::FEVar<FESpaceVel_T> vel_;
   std::vector<proxpde::BCEss<FESpace_T>> bcs_;
   proxpde::IOManager<FESpace_T> io_;
+  proxpde::IOManager<FESpaceP0_T> ioP0_;
 };
 
 // =====================================================================
@@ -113,7 +117,7 @@ struct ProblemProXPDENS: public ProblemProXPDE
   using FESpaceVelQ1_T =
       proxpde::FESpace<Mesh_T, FE1_T::RefFE_T, FE2_T::RecommendedQR, 2U>;
 
-  ProblemProXPDENS() = default;
+  ProblemProXPDENS();
   ~ProblemProXPDENS() = default;
 
   void setup(Problem::ConfigList_T const & configs) override;
@@ -124,9 +128,6 @@ struct ProblemProXPDENS: public ProblemProXPDE
   {
     return 2U * feSpaceVel_.dof.size + feSpaceP_.dof.size;
   }
-
-  void assemblyNS(proxpde::Builder<> & b);
-  void assemblyNSBuoyant(proxpde::Builder<> & b);
 
   Mesh_T mesh_;
   FESpaceVel_T feSpaceVel_;

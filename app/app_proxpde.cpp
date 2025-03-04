@@ -10,7 +10,7 @@ int main()
 {
   auto p1 = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::HEAT);
   p1->setup({{"config_file", "proxpde_heat.yaml"}});
-  dynamic_cast<ProblemProXPDEHeat *>(p1.get())->q_
+  dynamic_cast<ProblemProXPDEHeat *>(p1.get())->fieldsP0_["q"]
       << [](proxpde::Vec3 const & p) { return std::sin(M_PI * p[1]); };
 
   auto p2 = Problem::build("proxpde", "heat_coupled");
