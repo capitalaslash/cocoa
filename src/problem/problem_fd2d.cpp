@@ -275,23 +275,32 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
   u_.resize(mesh_.nPts() * nVars_);
   uOld_.resize(mesh_.nPts() * nVars_);
   q_.resize(mesh_.nPts() * nVars_);
-  c_[0].resize(mesh_.nPts() * nVars_);
-  c_[1].resize(mesh_.nPts() * nVars_);
   std::vector<double> cValues(nVars_ * 2u, 0.0);
   if (params_.data_.contains("c"))
   {
     cValues = params_.get<FD_PARAM_TYPE::VECTOR>("c");
     assert(cValues.size() == nVars_ * 2u);
+    if (nVars_ == 1u)
+    {
+      fields_.emplace("cx", VectorFD{mesh_.nPts(), cValues[0]});
+      fields_.emplace("cy", VectorFD{mesh_.nPts(), cValues[1]});
+    }
+    else
+    {
+      for (uint v = 0u; v < nVars_; v++)
+      {
+        fields_.emplace(
+            "cx" + std::to_string(v), VectorFD{mesh_.nPts(), cValues[0 + 2 * v]});
+        fields_.emplace(
+            "cy" + std::to_string(v), VectorFD{mesh_.nPts(), cValues[1 + 2 * v]});
+      }
+    }
   }
   for (uint v = 0u; v < nVars_; v++)
   {
     u_.setRange(0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), uInit[v]);
     uOld_.setRange(0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), uInit[v]);
     q_.setRange(0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), qValue[v]);
-    c_[0].setRange(
-        0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), cValues[2 * v + 0]);
-    c_[1].setRange(
-        0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), cValues[2 * v + 1]);
 
     for (uint s = 0u; s < 4u; s++)
       bcs_[v].data_[s] =
@@ -304,10 +313,7 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
   rhs_.resize(mesh_.nPts() * nVars_);
 
   // io
-  if (cleanOutput_)
-    for (const auto & entry: std::filesystem::directory_iterator(outputPrefix_))
-      std::filesystem::remove_all(entry.path());
-  std::filesystem::create_directories(outputPrefix_);
+  initOutput();
 }
 
 void ProblemFD2D::initMeshCoupling()
@@ -365,13 +371,21 @@ void ProblemFD2D::initFieldCoupling()
         {u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()}, 1u);
     kvPairU->second->initIO(outputPrefix_);
 
-    auto const nameExt = (nVars_ > 1u) ? fmt::format("{}{}", nameExt_, v) : nameExt_;
+    auto const nameExt = fmt::format("{}Ext", varNames_[v]);
     auto [kvPairExt, successExt] =
         fieldsCoupling_.emplace(nameExt, FieldCoupling::build(couplingType_));
     assert(successExt);
     kvPairExt->second->init(nameExt, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
     kvPairExt->second->setValues(0.0, mesh_.nPts(), 1u);
   }
+}
+
+void ProblemFD2D::initOutput()
+{
+  if (cleanOutput_ && std::filesystem::exists(outputPrefix_))
+    for (const auto & entry: std::filesystem::directory_iterator(outputPrefix_))
+      std::filesystem::remove_all(entry.path());
+  std::filesystem::create_directories(outputPrefix_);
 }
 
 bool ProblemFD2D::run() { return time < finalTime_; }
@@ -391,7 +405,6 @@ void ProblemFD2D::advance()
 }
 
 // TODO: static constexpr std::vector<uint> requires gcc >= 12
-// TODO: enum for sides
 const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, FD_BC_SIDE const side)
 {
   std::vector<uint> dofList;
@@ -430,24 +443,6 @@ const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, FD_BC_SIDE const
 
   return dofList;
 }
-
-// static constexpr int sideOffset(std::array<uint, 2U> const & n, uint k)
-// {
-//   switch (k)
-//   {
-//   case 0U: // bottom
-//     return n[0];
-//   case 1U: // right
-//     return -1;
-//   case 2U: // top
-//     return -n[0];
-//   case 3U: // left
-//     return 1;
-//   default:
-//     std::abort();
-//   }
-//   return 0;
-// }
 
 // static constexpr std::array<uint, 4U> cornerDOF(std::array<uint, 2U> const & n)
 // {
@@ -511,10 +506,12 @@ uint ProblemFD2D::solve()
   // TODO: improve CFL evaluation by using better estimation of cell diameter
   if (computeCFL_)
   {
+    auto const cx = fields_.at("cx");
+    auto const cy = fields_.at("cy");
     double maxCFL = 0.0;
     for (uint k = 0U; k < u_.size(); k++)
     {
-      double const cLocal = std::sqrt(c_[0][k] * c_[0][k] + c_[1][k] * c_[1][k]);
+      double const cLocal = std::sqrt(cx[k] * cx[k] + cy[k] * cy[k]);
       maxCFL = std::max(cLocal * dt_ / std::min(mesh_.h_[0], mesh_.h_[1]), maxCFL);
     }
     fmt::print("maxCFL: {:.6e}\n", maxCFL);
@@ -539,7 +536,6 @@ uint ProblemFD2D::solve()
     {
       auto const & bc = bcs_[v].data_[s];
       auto const dofList = sideDOF(mesh_.n_, side2D(s));
-      // auto const offset = sideOffset(n_, k);
 
       if (bc.type == FD_BC_TYPE::NEUMANN)
       {
@@ -591,6 +587,11 @@ uint ProblemFD2D::solve()
   }
 
   m_.close();
+
+  // pre-solve
+  if (preSolveFun_)
+    (*preSolveFun_)(this);
+
   if (debug_)
     m_.print_sparsity_pattern("fd2d_mat.dat");
 
@@ -622,6 +623,8 @@ void ProblemFD2D::assemblyHeat()
 {
   auto const h = mesh_.h_;
   auto const alpha = params_.get<FD_PARAM_TYPE::SCALAR>("alpha");
+  auto const & cx = fields_.at("cx");
+  auto const & cy = fields_.at("cy");
 
   for (uint j = 0u; j < mesh_.n_[1]; j++)
     for (uint i = 0u; i < mesh_.n_[0]; i++)
@@ -650,8 +653,8 @@ void ProblemFD2D::assemblyHeat()
       m_.add(id, id, value);
 
       // bottom
-      double const valueBottom = -alpha / (h[1] * h[1])   // diffusion
-                                 - 0.5 * c_[1][id] / h[1] // advection
+      double const valueBottom = -alpha / (h[1] * h[1]) // diffusion
+                                 - 0.5 * cy[id] / h[1]  // advection
           ;
       if (j > 0u)
         m_.add(id, id - mesh_.n_[0], valueBottom);
@@ -662,8 +665,8 @@ void ProblemFD2D::assemblyHeat()
       }
 
       // right
-      double const valueRight = -alpha / (h[0] * h[0])   // diffusion
-                                + 0.5 * c_[0][id] / h[0] // advection
+      double const valueRight = -alpha / (h[0] * h[0]) // diffusion
+                                + 0.5 * cx[id] / h[0]  // advection
           ;
       if (i < mesh_.n_[0] - 1)
         m_.add(id, id + 1, valueRight);
@@ -674,8 +677,8 @@ void ProblemFD2D::assemblyHeat()
       }
 
       // top
-      double const valueTop = -alpha / (h[1] * h[1])   // diffusion
-                              + 0.5 * c_[1][id] / h[1] // advection
+      double const valueTop = -alpha / (h[1] * h[1]) // diffusion
+                              + 0.5 * cy[id] / h[1]  // advection
           ;
       if (j < mesh_.n_[1] - 1)
         m_.add(id, id + mesh_.n_[0], valueTop);
@@ -686,8 +689,8 @@ void ProblemFD2D::assemblyHeat()
       }
 
       // left
-      double const valueLeft = -alpha / (h[0] * h[0])   // diffusion
-                               - 0.5 * c_[0][id] / h[0] // advection
+      double const valueLeft = -alpha / (h[0] * h[0]) // diffusion
+                               - 0.5 * cx[id] / h[0]  // advection
           ;
       if (i > 0u)
         m_.add(id, id - 1, valueLeft);
@@ -903,6 +906,18 @@ void ProblemFD2D::print()
   }
 }
 
+void ProblemFD2D::printFields()
+{
+  for (auto const & [name, field]: fields_)
+  {
+    auto fieldMED = FieldCoupling::build(couplingType_);
+    fieldMED->init(name, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
+    fieldMED->setValues(field.data_);
+    fieldMED->initIO(outputPrefix_);
+    fieldMED->printVTK(0.0, 0);
+  }
+}
+
 void ProblemFD2D::printSetup(std::string_view filename)
 {
   std::abort();
@@ -932,8 +947,10 @@ void ProblemFD2D::printSetup(std::string_view filename)
 
 std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD2D::Matrix_T>>
     ProblemFD2D::solvers_ = {
-        {FD_SOLVER_TYPE::GAUSS_SEIDEL, &solveGaussSeidel<ProblemFD2D::Matrix_T>},
         {FD_SOLVER_TYPE::JACOBI, &solveJacobi<ProblemFD2D::Matrix_T>},
+        {FD_SOLVER_TYPE::GAUSS_SEIDEL, &solveGaussSeidel<ProblemFD2D::Matrix_T>},
+        {FD_SOLVER_TYPE::CG, &solveConjugateGradient<ProblemFD2D::Matrix_T>},
+        {FD_SOLVER_TYPE::BICGSTAB, &solveBiCGStab<ProblemFD2D::Matrix_T>},
         {FD_SOLVER_TYPE::VANKA2DCB, &solveVanka2DCB<ProblemFD2D::Matrix_T>},
         {FD_SOLVER_TYPE::VANKA2DSCI, &solveVanka2DSCI<ProblemFD2D::Matrix_T>},
 };

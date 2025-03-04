@@ -67,6 +67,7 @@ PYBIND11_MODULE(cocoa, m)
       .def_readwrite("coupling_type", &Problem::couplingType_)
       .def_readwrite("time", &Problem::time)
       .def_readwrite("it", &Problem::it)
+      .def_readwrite("print_step", &Problem::printStep_)
       .def_readwrite("debug", &Problem::debug_);
 
   // ProblemFD1D =======================================================
@@ -85,7 +86,7 @@ PYBIND11_MODULE(cocoa, m)
             p->outputPrefix_ = path;
             p->initMeshCoupling();
             p->initFieldCoupling();
-            std::filesystem::create_directories(path);
+            p->initOutput();
           })
       .def(
           "set_custom_assembly",
@@ -95,6 +96,17 @@ PYBIND11_MODULE(cocoa, m)
             p->eqnType_ = EQN_TYPE::CUSTOM;
             return success;
           })
+      .def_static(
+          "set_custom_solver",
+          [](Solver_T<ProblemFD1D::Matrix_T> const & f) -> bool
+          {
+            auto const [ptr, success] =
+                ProblemFD1D::solvers_.emplace(FD_SOLVER_TYPE::CUSTOM, f);
+            return success;
+          })
+      .def_static(
+          "release_custom_solver",
+          []() -> bool { return ProblemFD1D::solvers_.erase(FD_SOLVER_TYPE::CUSTOM); })
       .def_readwrite("name", &ProblemFD1D::name_)
       .def_readwrite("mesh", &ProblemFD1D::mesh_)
       .def_readwrite("n_vars", &ProblemFD1D::nVars_)
@@ -113,7 +125,6 @@ PYBIND11_MODULE(cocoa, m)
       .def_readwrite("eqn_type", &ProblemFD1D::eqnType_)
       .def_readwrite("bcs", &ProblemFD1D::bcs_)
       .def_readwrite("clean_output", &ProblemFD1D::cleanOutput_)
-      .def_readwrite("print_step", &ProblemFD1D::printStep_)
       .def_readwrite("output_prefix", &ProblemFD1D::outputPrefix_)
       .def_readwrite("name_ext", &ProblemFD1D::nameExt_)
       .def_readwrite("assemblies", &ProblemFD1D::assemblies_);
@@ -134,7 +145,7 @@ PYBIND11_MODULE(cocoa, m)
             p->outputPrefix_ = path;
             p->initMeshCoupling();
             p->initFieldCoupling();
-            std::filesystem::create_directories(path);
+            p->initOutput();
           })
       .def(
           "set_custom_assembly",
@@ -150,9 +161,9 @@ PYBIND11_MODULE(cocoa, m)
       .def_readwrite("var_names", &ProblemFD2D::varNames_)
       .def_readwrite("u", &ProblemFD2D::u_)
       .def_readwrite("u_old", &ProblemFD2D::uOld_)
+      .def_readwrite("fields", &ProblemFD2D::fields_)
       .def_readwrite("params", &ProblemFD2D::params_)
       .def_readwrite("q", &ProblemFD2D::q_)
-      .def_readwrite("c", &ProblemFD2D::c_)
       .def_readwrite("final_time", &ProblemFD2D::finalTime_)
       .def_readwrite("dt", &ProblemFD2D::dt_)
       .def_readwrite("m", &ProblemFD2D::m_)
@@ -162,7 +173,6 @@ PYBIND11_MODULE(cocoa, m)
       .def_readwrite("tol", &ProblemFD2D::tol_)
       .def_readwrite("eqn_type", &ProblemFD2D::eqnType_)
       .def_readwrite("bcs", &ProblemFD2D::bcs_)
-      .def_readwrite("print_step", &ProblemFD2D::printStep_)
       .def_readwrite("output_prefix", &ProblemFD2D::outputPrefix_)
       .def_readwrite("name_ext", &ProblemFD2D::nameExt_)
       .def_readwrite("assemblies", &ProblemFD2D::assemblies_);
@@ -180,7 +190,10 @@ PYBIND11_MODULE(cocoa, m)
           "set_source",
           [](ProblemProXPDEHeat * p,
              std::function<double(proxpde::Vec3 const &)> const & source)
-          { p->q_ << source; });
+          {
+            p->fieldsP0_.emplace("q", proxpde::FEVar{"q", p->feSpaceP0_});
+            p->fieldsP0_.at("q") << source;
+          });
 
   py::class_<ProblemProXPDENS, Problem>(m, "ProblemProXPDENS").def(py::init<>());
 #endif
@@ -247,7 +260,9 @@ PYBIND11_MODULE(cocoa, m)
   // FD utils ==========================================================
   py::enum_<FD_SOLVER_TYPE>(m, "FD_SOLVER_TYPE")
       .value("jacobi", FD_SOLVER_TYPE::JACOBI)
-      .value("gauss_seidel", FD_SOLVER_TYPE::GAUSS_SEIDEL);
+      .value("gauss_seidel", FD_SOLVER_TYPE::GAUSS_SEIDEL)
+      .value("cg", FD_SOLVER_TYPE::CG)
+      .value("custom", FD_SOLVER_TYPE::CUSTOM);
 
   py::enum_<FD_BC_SIDE>(m, "FD_BC_SIDE")
       .value("left", FD_BC_SIDE::LEFT)
@@ -305,7 +320,9 @@ PYBIND11_MODULE(cocoa, m)
           "end"_a,
           "n"_a)
       .def("init", &MeshFD1D::init, "start"_a, "end"_a, "n"_a)
-      .def("pt", &MeshFD1D::pt)
+      // .def("pt", py::overload_cast<MeshFD1D::Int_T const &>(&MeshFD1D::pt),
+      // "ijk"_a)
+      .def("pt", &MeshFD1D::pt, "ijk"_a)
       .def_property_readonly("n_pts", &MeshFD1D::nPts)
       .def_readwrite("h", &MeshFD1D::h_);
 
@@ -320,7 +337,10 @@ PYBIND11_MODULE(cocoa, m)
           "end"_a,
           "n"_a)
       .def("init", &MeshFD2D::init, "start"_a, "end"_a, "n"_a)
-      .def("pt", &MeshFD2D::pt)
+      // .def("pt", py::overload_cast<MeshFD2D::Int_T const &>(&MeshFD2D::pt),
+      // "ijk"_a)
+      .def("pt", &MeshFD2D::pt, "ijk"_a)
+
       .def_property_readonly("n_pts", &MeshFD2D::nPts)
       .def_readwrite("h", &MeshFD2D::h_)
       .def_readwrite("n", &MeshFD2D::n_);
@@ -367,10 +387,20 @@ PYBIND11_MODULE(cocoa, m)
       .def("add", &MatrixTriDiag::add, "row"_a, "clm"_a, "value"_a)
       .def("close", &MatrixTriDiag::close);
 
+  py::class_<MatrixCSR::Entry>(m, "CSREntry")
+      // .def("__iter__", []() {})
+      .def_readwrite("clm", &MatrixCSR::Entry::clm)
+      .def_readwrite("value", &MatrixCSR::Entry::value);
+
   py::class_<MatrixCSR>(m, "MatrixCSR")
       .def(py::init<size_t, size_t>())
       .def("init", &MatrixCSR::init, "n"_a, "nnz"_a)
       .def("add", &MatrixCSR::add, "row"_a, "clm"_a, "value"_a)
       .def("close", &MatrixCSR::close)
       .def_readwrite("data", &MatrixCSR::data_);
+
+  py::class_<SolverInfo>(m, "SolverInfo")
+      .def(py::init<uint, double>(), "n_iters"_a, "residual"_a)
+      .def_readwrite("n_iters", &SolverInfo::nIters)
+      .def_readwrite("residual", &SolverInfo::residual);
 }

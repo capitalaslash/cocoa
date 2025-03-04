@@ -11,7 +11,8 @@
 #include "problem/problem_oforg.hpp"
 #include "problem/problem_proxpde.hpp"
 
-std::unique_ptr<Problem> Problem::build(PROBLEM_TYPE problemType, EQN_TYPE eqnType)
+std::unique_ptr<Problem>
+Problem::build(PROBLEM_TYPE problemType, EQN_TYPE eqnType = EQN_TYPE::NONE)
 {
   switch (problemType)
   {

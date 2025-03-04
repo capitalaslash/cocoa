@@ -27,6 +27,7 @@ struct ProblemFD1D: public Problem
 
   void initMeshCoupling();
   void initFieldCoupling();
+  void initOutput();
 
   void assemblyHeat();
   void assemblyHeatCoupled();
@@ -50,8 +51,7 @@ struct ProblemFD1D: public Problem
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
   std::vector<FDBCList1D> bcs_;
   bool cleanOutput_ = false;
-  uint printStep_ = 1u;
-  std::filesystem::path outputPrefix_ = "./output_fd1dmulti";
+  std::filesystem::path outputPrefix_ = "./output_fd1d";
   std::string nameExt_ = "uExternal";
   std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
 

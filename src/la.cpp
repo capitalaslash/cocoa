@@ -1,16 +1,38 @@
 #include "la.hpp"
 
 // =====================================================================
-auto VectorFD::norm2sq() const -> double
+auto VectorFD::norm2sq() const -> double { return dot(*this, *this); }
+
+auto VectorFD::operator+=(VectorFD const & other) -> VectorFD &
+{
+  for (uint k = 0u; k < this->size(); k++)
+    data_[k] += other[k];
+  return *this;
+}
+
+auto VectorFD::operator-=(VectorFD const & other) -> VectorFD &
+{
+  for (uint k = 0u; k < this->size(); k++)
+    data_[k] -= other[k];
+  return *this;
+}
+
+auto VectorFD::operator*=(double const f) -> VectorFD &
+{
+  for (uint k = 0u; k < this->size(); k++)
+    data_[k] *= f;
+  return *this;
+}
+
+auto dot(VectorFD const & a, VectorFD const & b) -> double
 {
   double sum = 0.0;
-  for (auto const & value: data_)
-  {
-    sum += value * value;
-  }
+  for (uint k = 0u; k < a.size(); k++)
+    sum += a[k] * b[k];
   return sum;
 }
 
+// =====================================================================
 VectorFD operator*(MatrixTriDiag const & m, VectorFD const & v)
 {
   uint const n = m.size();
@@ -28,11 +50,23 @@ VectorFD operator*(MatrixTriDiag const & m, VectorFD const & v)
 }
 
 // =====================================================================
+void setupRows(std::vector<std::vector<MatrixCSR::Entry>> data, uint const nnz)
+{
+  // TODO: requires C++23
+  // for (auto & [i, row]: std::ranges::views::enumerate(data_))
+  for (auto i = 0u; i < data.size(); i++)
+  {
+    auto & row = data[i];
+    row.reserve(nnz);
+    // always register the diagonal term in first position
+    row.emplace_back(i, 0.0);
+  }
+}
+
 MatrixCSR::MatrixCSR(size_t n, size_t nnz): n_{n}, nnz_{nnz}, data_{n_}
 {
   fmt::print("MatrixCSR::MatrixCSR(): reserving {} positions per row\n", nnz);
-  for (auto & row: data_)
-    row.reserve(nnz_);
+  setupRows(data_, nnz_);
   triplets_.reserve(nnz_ * n_);
 }
 
@@ -43,8 +77,7 @@ void MatrixCSR::init(size_t n, size_t nnz)
   data_.resize(n, Row_T{});
 
   fmt::print("MatrixCSR::init(): reserving {} positions per row\n", nnz);
-  for (auto & row: data_)
-    row.reserve(nnz_);
+  setupRows(data_, nnz_);
   triplets_.reserve(nnz_ * n_);
 }
 
@@ -52,7 +85,9 @@ void MatrixCSR::clearRow(uint const row)
 {
   // clear store data
   Row_T{}.swap(data_[row]);
-  data_[row].reserve(5);
+  data_[row].reserve(nnz_);
+  // always register the diagonal term in first position
+  data_[row].emplace_back(row, 0.0);
 
   // clear triplet data
   triplets_.erase(
@@ -72,6 +107,7 @@ void MatrixCSR::clear()
 {
   std::vector<Triplet_T>{}.swap(triplets_);
   std::vector<Row_T>(n_).swap(data_);
+  setupRows(data_, nnz_);
   isClosed_ = false;
 }
 

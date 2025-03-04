@@ -25,9 +25,11 @@ struct ProblemFD2D: public Problem
   void advance() override;
   uint solve() override;
   void print() override;
+  void printFields();
 
   void initMeshCoupling();
   void initFieldCoupling();
+  void initOutput();
 
   void assemblyHeat();
   void assemblyHeatOC();
@@ -41,9 +43,9 @@ struct ProblemFD2D: public Problem
   std::vector<std::string> varNames_;
   VectorFD u_;
   VectorFD uOld_;
+  std::unordered_map<std::string, VectorFD> fields_;
   VectorFD q_;
   bool computeCFL_ = false;
-  std::array<VectorFD, 2u> c_;
   ParamsFD params_;
   double finalTime_;
   double dt_;
@@ -55,12 +57,32 @@ struct ProblemFD2D: public Problem
   EQN_TYPE eqnType_ = EQN_TYPE::NONE;
   std::vector<FDBCList2D> bcs_;
   bool cleanOutput_ = false;
-  uint printStep_ = 1u;
   std::filesystem::path outputPrefix_ = "./output_fd2d/";
   std::string nameExt_ = "uExternal";
   std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
+  std::unique_ptr<Assembly_T> preSolveFun_ = nullptr;
 
   static std::unordered_map<FD_SOLVER_TYPE, Solver_T<Matrix_T>> solvers_;
 };
 
 const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, FD_BC_SIDE const s);
+
+static constexpr inline uint
+sideOffset(std::array<uint, 2U> const & n, FD_BC_SIDE const s)
+{
+  switch (s)
+  {
+    using enum FD_BC_SIDE;
+  case BOTTOM:
+    return +n[0];
+  case RIGHT:
+    return -1;
+  case TOP:
+    return -n[0];
+  case LEFT:
+    return +1;
+  default:
+    std::abort();
+  }
+  return 0u;
+}

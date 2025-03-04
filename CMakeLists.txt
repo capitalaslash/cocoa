@@ -237,17 +237,24 @@ if (COCOA_ENABLE_TESTS)
 
     endmacro()
 
+    # fd
     cocoa_add_test_python(fd1d fd1d_heat.dat)
     cocoa_add_test_python(custom)
+    cocoa_add_test_python(fv)
     cocoa_add_test_python(fd1d2v)
-    cocoa_add_test_python(couplingsimple fd1d_heat.dat fd1d_hc.dat)
     cocoa_add_test_python(fd2d fd2d_heat.dat)
+
+    # coupling simple
+    cocoa_add_test_python(couplingsimple fd1d_heat.dat fd1d_hc.dat)
+
     if (COCOA_ENABLE_OFORG)
       cocoa_add_test_python(oforg oforg1 oforg1.dat)
     endif()
+
     if (COCOA_ENABLE_PROXPDE)
       cocoa_add_test_python(proxpde proxpde_heat.yaml)
     endif()
+
     if (COCOA_ENABLE_RPOXPDE AND COCOA_ENABLE_MEDCOUPLING)
       cocoa_add_test_python(couplingmed proxpde_heat.yaml proxpde_hc.yaml)
       cocoa_add_test_python(buoyant proxpde_buoyant_ns.yaml proxpde_buoyant_heat.yaml)
@@ -298,9 +305,12 @@ macro(cocoa_add_app name)
 endmacro()
 
 cocoa_add_app(fd1d fd1d_heat.dat)
+cocoa_add_app(custom)
 cocoa_add_app(fd2d fd2d_heat.dat)
 cocoa_add_app(simple fd1d_heat.dat fd1d_hc.dat)
 cocoa_add_app(cyclic fd2d_heatpipe.dat)
+cocoa_add_app(chtm)
+cocoa_add_app(chts)
 
 if (COCOA_ENABLE_PROXPDE)
   cocoa_add_app(proxpde proxpde_heat.yaml proxpde_hc.yaml)

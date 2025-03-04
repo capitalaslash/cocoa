@@ -15,6 +15,7 @@
 #include "coupling/field_coupling.hpp"
 #include "coupling/mesh_coupling.hpp"
 #include "enums.hpp"
+#include "la.hpp"
 #include "problem/fdutils.hpp"
 
 ProblemFD1D::ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE}
@@ -249,10 +250,7 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
   rhs_.resize(mesh_.nPts() * nVars_);
 
   // io
-  if (cleanOutput_ && std::filesystem::exists(outputPrefix_))
-    for (const auto & entry: std::filesystem::directory_iterator(outputPrefix_))
-      std::filesystem::remove_all(entry.path());
-  std::filesystem::create_directories(outputPrefix_);
+  initOutput();
 }
 
 void ProblemFD1D::initMeshCoupling()
@@ -267,7 +265,7 @@ void ProblemFD1D::initMeshCoupling()
   }
 
   // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
-  auto const nElems = mesh_.n_[0];
+  auto const nElems = mesh_.nElems();
   std::vector<uint> conn(nElems * 3);
   for (uint k = 0; k < nElems; k++)
   {
@@ -285,7 +283,7 @@ void ProblemFD1D::initMeshCoupling()
   }
 
   meshCoupling_ = MeshCoupling::build(couplingType_);
-  meshCoupling_->init("mesh_fd1dmulti", 1U, 1U, coords, conn, offsets);
+  meshCoupling_->init("mesh_fd1d", 1u, 1u, coords, conn, offsets);
 }
 
 void ProblemFD1D::initFieldCoupling()
@@ -307,6 +305,14 @@ void ProblemFD1D::initFieldCoupling()
     kvPairExt->second->init(nameExt, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
     kvPairExt->second->setValues(0.0, mesh_.nPts(), 1u);
   }
+}
+
+void ProblemFD1D::initOutput()
+{
+  if (cleanOutput_ && std::filesystem::exists(outputPrefix_))
+    for (const auto & entry: std::filesystem::directory_iterator(outputPrefix_))
+      std::filesystem::remove_all(entry.path());
+  std::filesystem::create_directories(outputPrefix_);
 }
 
 bool ProblemFD1D::run() { return time < finalTime_; }
@@ -608,6 +614,8 @@ std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD1D::Matrix_T>>
         //  }},
         {FD_SOLVER_TYPE::JACOBI, &solveJacobi<ProblemFD1D::Matrix_T>},
         {FD_SOLVER_TYPE::GAUSS_SEIDEL, &solveGaussSeidel<ProblemFD1D::Matrix_T>},
+        {FD_SOLVER_TYPE::CG, &solveConjugateGradient<ProblemFD1D::Matrix_T>},
+        {FD_SOLVER_TYPE::BICGSTAB, &solveBiCGStab<ProblemFD1D::Matrix_T>},
         // {FD_SOLVER_TYPE::TRIDIAG,
         //  [](MatrixTriDiag const & m,
         //     VectorFD const & b,

@@ -48,6 +48,7 @@ struct Problem
   COUPLING_TYPE couplingType_ = COUPLING_TYPE::NONE;
   double time = 0.0;
   uint it = 0u;
+  uint printStep_ = 1u;
   std::unique_ptr<MeshCoupling> meshCoupling_;
   std::unordered_map<std::string, std::unique_ptr<MeshCoupling>> bcMeshCoupling_;
   std::unordered_map<std::string, std::unique_ptr<FieldCoupling>> fieldsCoupling_;

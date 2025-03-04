@@ -132,40 +132,6 @@ using FDBCList1D = FDBCList<1u>;
 using FDBCList2D = FDBCList<2u>;
 
 // =====================================================================
-enum struct FD_SOLVER_TYPE : uint8_t
-{
-  NONE = 0,
-  GAUSS_SEIDEL,
-  JACOBI,
-  TRIDIAG,
-  VANKA1D,
-  VANKA2DCB,
-  VANKA2DSCI,
-};
-
-inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
-{
-  if (name == "gauss_seidel")
-    return FD_SOLVER_TYPE::GAUSS_SEIDEL;
-  else if (name == "jacobi")
-    return FD_SOLVER_TYPE::JACOBI;
-  else if (name == "tridiag")
-    return FD_SOLVER_TYPE::TRIDIAG;
-  else if (name == "vanka1d")
-    return FD_SOLVER_TYPE::VANKA1D;
-  else if (name == "vanka2dcb")
-    return FD_SOLVER_TYPE::VANKA2DCB;
-  else if (name == "vanka2dsci")
-    return FD_SOLVER_TYPE::VANKA2DSCI;
-  else
-  {
-    fmt::print(stderr, "solver {} not recognized\n", name);
-    std::abort();
-  }
-  return FD_SOLVER_TYPE::NONE;
-}
-
-// =====================================================================
 template <uint8_t dim>
 struct MeshFD
 {
@@ -227,6 +193,8 @@ struct MeshFD
     }
     return p;
   }
+
+  // auto pt(uint const i) const -> double { return pt({i})[0]; }
 };
 
 using MeshFD1D = MeshFD<1u>;

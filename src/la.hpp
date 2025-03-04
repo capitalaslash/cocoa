@@ -46,6 +46,10 @@ struct VectorFD
   auto zero() -> void { std::fill(data_.begin(), data_.end(), 0.0); }
   auto norm2sq() const -> double;
 
+  auto operator+=(VectorFD const & other) -> VectorFD &;
+  auto operator-=(VectorFD const & other) -> VectorFD &;
+  auto operator*=(double const f) -> VectorFD &;
+
   std::vector<double> data_;
 };
 
@@ -63,6 +67,8 @@ struct fmt::formatter<VectorFD>
     return fmt::format_to(ctx.out(), "{::e}", v.data_);
   }
 };
+
+auto dot(VectorFD const & a, VectorFD const & b) -> double;
 
 // =====================================================================
 struct MatrixTriDiag
@@ -299,6 +305,47 @@ double computeResidual(
   return resNorm;
 }
 
+// =====================================================================
+enum struct FD_SOLVER_TYPE : uint8_t
+{
+  NONE = 0,
+  GAUSS_SEIDEL,
+  JACOBI,
+  CG,
+  BICGSTAB,
+  TRIDIAG,
+  VANKA1D,
+  VANKA2DCB,
+  VANKA2DSCI,
+  CUSTOM,
+};
+
+inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
+{
+  if (name == "gauss_seidel")
+    return FD_SOLVER_TYPE::GAUSS_SEIDEL;
+  else if (name == "jacobi")
+    return FD_SOLVER_TYPE::JACOBI;
+  else if (name == "cg")
+    return FD_SOLVER_TYPE::CG;
+  else if (name == "tridiag")
+    return FD_SOLVER_TYPE::TRIDIAG;
+  else if (name == "vanka1d")
+    return FD_SOLVER_TYPE::VANKA1D;
+  else if (name == "vanka2dcb")
+    return FD_SOLVER_TYPE::VANKA2DCB;
+  else if (name == "vanka2dsci")
+    return FD_SOLVER_TYPE::VANKA2DSCI;
+  else if (name == "custom")
+    return FD_SOLVER_TYPE::CUSTOM;
+  else
+  {
+    fmt::print(stderr, "solver {} not recognized\n", name);
+    std::abort();
+  }
+  return FD_SOLVER_TYPE::NONE;
+}
+
 struct SolverInfo
 {
   uint nIters;
@@ -331,8 +378,9 @@ struct SolverInfo
 // };
 
 template <typename Matrix>
-using Solver_T = std::function<SolverInfo(
-    Matrix const &, VectorFD const &, VectorFD &, double const, uint const)>;
+using Solver_T = std::function<
+    auto(Matrix const &, VectorFD const &, VectorFD &, double const, uint const)
+        ->SolverInfo>;
 
 SolverInfo solveTriDiag(MatrixTriDiag const & m, VectorFD const & b, VectorFD & x);
 
@@ -366,7 +414,7 @@ SolverInfo solveJacobi(
       return {i, resNorm / rhsNorm};
     }
 
-    for (uint k = 0U; k < x.size(); k++)
+    for (uint k = 0u; k < n; k++)
     {
       double valueNew = b[k];
       double diag = 0.0;
@@ -413,7 +461,7 @@ SolverInfo solveGaussSeidel(
       return {i, resNorm / rhsNorm};
     }
 
-    for (uint k = 0U; k < x.size(); k++)
+    for (uint k = 0u; k < n; k++)
     {
       double valueNew = b[k];
       double diag = 0.0;
@@ -433,6 +481,117 @@ SolverInfo solveGaussSeidel(
   }
 
   return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
+}
+
+template <typename Matrix>
+SolverInfo solveConjugateGradient(
+    Matrix const & m,
+    VectorFD const & b,
+    VectorFD & x,
+    double const tolerance,
+    uint maxIters)
+{
+  // initial residual
+  auto r = b;
+  r -= m * x;
+
+  auto p = r;
+  auto rsOld = dot(r, r);
+
+  auto const iters = std::min(maxIters, static_cast<uint>(b.size()));
+
+  for (auto i = 0u; i < iters; i++)
+  {
+    auto const mp = m * p;
+    auto const alpha = rsOld / dot(p, mp);
+    auto tmp = p;
+    tmp *= alpha;
+    x += tmp;
+    tmp = mp;
+    tmp *= alpha;
+    r -= tmp;
+    auto rsNew = dot(r, r);
+
+    if (std::fabs(rsNew) < tolerance * tolerance)
+      return {i + 1, std::sqrt(rsNew)};
+
+    p *= (rsNew / rsOld);
+    p += r;
+    rsOld = rsNew;
+  }
+
+  return {iters, std::sqrt(r.norm2sq())};
+}
+
+template <typename Matrix>
+SolverInfo solveBiCGStab(
+    Matrix const & m,
+    VectorFD const & b,
+    VectorFD & x,
+    double const tolerance,
+    uint maxIters)
+{
+  // initial residual
+  auto r = b;
+  r -= m * x;
+  auto rHat = r;
+  auto rhoOld = 1.0;
+  auto alpha = 1.0;
+  auto omega = 1.0;
+
+  auto v = VectorFD(b.size(), 0.0);
+  auto p = VectorFD(b.size(), 0.0);
+
+  auto const iters = std::min(maxIters, static_cast<uint>(b.size()));
+
+  for (auto i = 0u; i < iters; i++)
+  {
+    auto rhoNew = dot(rHat, r);
+    if (std::fabs(rhoNew) < tolerance * tolerance)
+      return {i + 1, std::sqrt(r.norm2sq())};
+
+    auto const beta = (rhoNew / rhoOld) * (alpha / omega);
+    auto tmp = v;
+    tmp *= -omega;
+    tmp += p;
+    tmp *= beta;
+    tmp += r;
+    p = tmp;
+    v = m * p;
+    alpha = rhoNew / dot(rHat, v);
+    auto h = p;
+    h *= alpha;
+    h += x;
+
+    auto s = v;
+    s *= -alpha;
+    s += r;
+    auto const sNormSq = s.norm2sq();
+    if (sNormSq < tolerance * tolerance)
+    {
+      x = h;
+      return {i + 1, std::sqrt(r.norm2sq())};
+    }
+
+    auto const t = m * s;
+    omega = dot(t, s) / dot(t, t);
+    x = s;
+    x *= omega;
+    x += h;
+
+    r = t;
+    r *= -omega;
+    r += s;
+    rhoOld = rhoNew;
+
+    auto const rNormSq = r.norm2sq();
+    if ((rNormSq < tolerance * tolerance) || (std::fabs(omega) < tolerance))
+    {
+      return {i + 1, std::sqrt(rNormSq)};
+    }
+  }
+
+  return {iters, std::sqrt(r.norm2sq())};
 }
 
 inline double solveLine(
