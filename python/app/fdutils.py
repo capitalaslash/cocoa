@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Tuple
 import sys
 
 import numpy as np
@@ -16,14 +15,14 @@ class Region:
     top: float
     eps: float = 1.0e-6
 
-    def inside(self, pt: Tuple[float, float]):
+    def inside(self, pt: tuple[float, float]):
         if (self.left - self.eps < pt[0] < self.right + self.eps) and (
             self.bottom - self.eps < pt[1] < self.top + self.eps
         ):
             return True
         return False
 
-    def to_list(self) -> List[float]:
+    def to_list(self) -> list[float]:
         return [self.left, self.right, self.bottom, self.top]
 
 
@@ -137,7 +136,7 @@ class TargetFunc(Region):
 
         self.coeffs = np.linalg.solve(A, vi)
 
-    def interp(self, pt: Tuple[float, float]) -> float:
+    def interp(self, pt: tuple[float, float]) -> float:
         if not self.inside(pt):
             return 0.0
         x, y = pt
