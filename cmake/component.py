@@ -13,6 +13,7 @@ class Component:
     dependencies: list
     explicit_dependencies: list = field(default_factory=list)
 
+    ver: ClassVar[str] = "none"
     path_libbin: ClassVar[str] = "/pippo"
 
     @classmethod
@@ -24,7 +25,7 @@ class Component:
             prefix = name[:underscore_pos]
 
         # find generated lib by looking at the `files` file
-        with open(Path(path) / "Make/files", "r") as f:
+        with open(Path(path) / "Make/files") as f:
             for line in f:
                 if line[:3] == "LIB":
                     lib = os.environ["FOAM_LIBBIN"] + f"/{line.split()[2][15:]}.so"
@@ -35,7 +36,7 @@ class Component:
             exit(2)
 
         # find dependencies by looking at the `options` file
-        with open(Path(path) / "Make/options", "r") as f:
+        with open(Path(path) / "Make/options") as f:
             inc_mode = False
             lib_mode = False
             inc_list = []
@@ -100,35 +101,42 @@ class Component:
                 print(f"lib {d} not found from {self}")
 
     def write_cmake(self) -> str:
-        content = f"add_library(OpenFOAMorg::{self.name} INTERFACE IMPORTED)\n"
-        content += f"target_link_libraries(OpenFOAMorg::{self.name}\n"
+        ver = Component.ver
+        content = f"add_library(OpenFOAM{ver}::{self.name} INTERFACE IMPORTED)\n"
+        content += f"target_link_libraries(OpenFOAM{ver}::{self.name}\n"
         content += "  INTERFACE\n"
-        content += f"    {Component.path_libbin}/{os.path.basename(self.lib)}\n)\n"
-        content += f"target_include_directories(OpenFOAMorg::{self.name}\n"
+        lib_path = self.lib.replace(os.environ["FOAM_LIBBIN"], Component.path_libbin)
+        content += f"    {lib_path}\n)\n"
+        content += f"target_include_directories(OpenFOAM{ver}::{self.name}\n"
         content += "  INTERFACE\n"
-        path = self.path.replace(os.environ["WM_PROJECT_DIR"], "${OpenFOAMorg_DIR}")
+        path = self.path.replace(
+            os.environ["WM_PROJECT_DIR"], f"${{OpenFOAM{ver}_DIR}}"
+        )
         content += f"    {path}/lnInclude\n)\n\n"
         return content
 
     def write_deps_cmake(self) -> str:
+        ver = Component.ver
         content = ""
         if len(self.dependencies) > 0:
-            content += f"target_link_libraries(OpenFOAMorg::{self.name}\n"
+            content += f"target_link_libraries(OpenFOAM{ver}::{self.name}\n"
             content += "  INTERFACE\n"
             for dep in self.dependencies:
-                content += f"    OpenFOAMorg::{dep}\n"
+                content += f"    OpenFOAM{ver}::{dep}\n"
             content += ")\n"
         if len(self.explicit_dependencies) > 0:
-            content += f"target_link_libraries(OpenFOAMorg::{self.name}\n"
+            content += f"target_link_libraries(OpenFOAM{ver}::{self.name}\n"
             content += "  INTERFACE\n"
             for dep in self.explicit_dependencies:
                 content += f"    {dep}\n"
             content += ")\n"
         if len(self.includes) > 0:
-            content += f"target_include_directories(OpenFOAMorg::{self.name}\n"
+            content += f"target_include_directories(OpenFOAM{ver}::{self.name}\n"
             content += "  INTERFACE\n"
             for inc in self.includes:
-                inc = inc.replace(os.environ["WM_PROJECT_DIR"], "${OpenFOAMorg_DIR}")
+                inc = inc.replace(
+                    os.environ["WM_PROJECT_DIR"], f"${{OpenFOAM{ver}_DIR}}"
+                )
                 content += f"    {inc}\n"
             content += ")\n\n"
         else:

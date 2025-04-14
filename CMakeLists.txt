@@ -81,7 +81,7 @@ if (COCOA_ENABLE_OFORG)
   if (NOT EXISTS "cmake/FindOpenFOAMorg.cmake")
     message(STATUS "generating OpenFOAMorg.cmake")
     execute_process(
-      COMMAND python generate_oforg_components.py
+      COMMAND python generate_of_components.py org
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake
     )
   endif()
