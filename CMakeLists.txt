@@ -385,10 +385,12 @@ install(
   DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
 )
 
-install(
-  FILES ${CMAKE_CURRENT_LIST_DIR}/cmake/FindOpenFOAMorg.cmake
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
-)
+if (COCOA_ENABLE_OPENFOAMORG)
+  install(
+    FILES ${CMAKE_CURRENT_LIST_DIR}/cmake/FindOpenFOAMorg.cmake
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+  )
+endif()
 
 
 # format ===============================================================
