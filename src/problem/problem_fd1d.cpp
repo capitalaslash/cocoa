@@ -18,6 +18,9 @@
 #include "la.hpp"
 #include "problem/fdutils.hpp"
 
+namespace cocoa
+{
+
 ProblemFD1D::ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE}
 {
   // register default assemblies
@@ -624,3 +627,5 @@ std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD1D::Matrix_T>>
         //     uint const) { return solveTriDiag(m, b, x); }},
         // {FD_SOLVER_TYPE::VANKA1D, &solveVanka1D},
 };
+
+} // namespace cocoa

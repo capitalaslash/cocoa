@@ -11,6 +11,9 @@
 #include "field_coupling.hpp"
 #include "problem.hpp"
 
+namespace cocoa
+{
+
 struct ProblemFEMUS: public Problem
 {
   ProblemFEMUS: Problem{PROBLEM_TYPE::FEMUS} {}
@@ -26,5 +29,7 @@ struct ProblemFEMUS: public Problem
   // FEMUSMesh mesh_;
   // std::vector<FEMUSField> fields_;
 };
+
+} // namespace cocoa
 
 #endif

@@ -8,6 +8,8 @@
 
 int main()
 {
+  using namespace cocoa;
+
   auto p1 = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::HEAT);
   p1->setup({{"config_file", "proxpde_heat.yaml"}});
   dynamic_cast<ProblemProXPDEHeat *>(p1.get())->fieldsP0_["q"]

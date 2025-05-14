@@ -5,6 +5,8 @@ static proxpde::marker_T constexpr LEFT_BOTTOM = 101u;
 static proxpde::marker_T constexpr LEFT_TOP = 102u;
 static proxpde::marker_T constexpr INTERFACE = 201u;
 
+using namespace cocoa;
+
 struct AssemblyCHTM: public ProblemProXPDE::Assembly
 {
   auto evaluate(ProblemProXPDE * pParent, proxpde::Builder<> & b) -> void override

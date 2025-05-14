@@ -22,6 +22,9 @@
 #include "enums.hpp"
 #include "problem/problem.hpp"
 
+namespace cocoa
+{
+
 struct ProblemProXPDE: public Problem
 {
   struct Assembly
@@ -143,5 +146,7 @@ struct ProblemProXPDENS: public ProblemProXPDE
   proxpde::IOManager<FESpaceVel_T> ioVel_;
   proxpde::IOManager<FESpaceP_T> ioP_;
 };
+
+} // namespace cocoa
 
 #endif

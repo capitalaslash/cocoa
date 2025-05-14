@@ -12,6 +12,9 @@
 // local
 #include "coupling/mesh_med.hpp"
 
+namespace cocoa
+{
+
 FieldMED::~FieldMED()
 {
   if (inited_)
@@ -87,3 +90,5 @@ void FieldMED::printPVD() const
   fmt::print(out, "</VTKFile>\n");
   std::fclose(out);
 }
+
+} // namespace cocoa

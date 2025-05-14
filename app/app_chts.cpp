@@ -1,3 +1,6 @@
+// stl
+#include <algorithm>
+
 // local
 #include "enums.hpp"
 #include "la.hpp"
@@ -8,6 +11,8 @@ auto constexpr N = 80u;
 auto constexpr DT = 1e+1;
 auto constexpr FINAL_TIME = 40.0;
 auto constexpr PRINT_STEP = 1u;
+
+using namespace cocoa;
 
 auto setupFluid(ProblemFD2D * p) -> void
 {

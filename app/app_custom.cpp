@@ -4,6 +4,8 @@
 
 constexpr auto U_RIGHT = 0.0;
 
+using namespace cocoa;
+
 auto setup(ProblemFD1D * p) -> void
 {
   p->name_ = "fd1d_custom";

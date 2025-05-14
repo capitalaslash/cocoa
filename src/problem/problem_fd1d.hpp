@@ -11,6 +11,9 @@
 #include "problem/fdutils.hpp"
 #include "problem/problem.hpp"
 
+namespace cocoa
+{
+
 struct ProblemFD1D: public Problem
 {
   using Assembly_T = std::function<void(ProblemFD1D *)>;
@@ -57,3 +60,5 @@ struct ProblemFD1D: public Problem
 
   static std::unordered_map<FD_SOLVER_TYPE, Solver_T<Matrix_T>> solvers_;
 };
+
+} // namespace cocoa

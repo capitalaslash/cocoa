@@ -3,6 +3,8 @@
 
 int main()
 {
+  using namespace cocoa;
+
   auto p = Problem::build(PROBLEM_TYPE::FD1D, EQN_TYPE::HEAT);
   p->setup({{"config_file", "fd1d_heat.dat"}});
 

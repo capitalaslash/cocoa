@@ -11,6 +11,9 @@
 #include "coupling/mesh_med.hpp"
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 std::unique_ptr<MeshCoupling> MeshCoupling::build(COUPLING_TYPE type)
 {
   switch (type)
@@ -60,3 +63,5 @@ std::unique_ptr<MeshCoupling> MeshCoupling::build(std::string_view couplingType)
 {
   return MeshCoupling::build(str2coupling(couplingType));
 }
+
+} // namespace cocoa

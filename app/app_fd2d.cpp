@@ -3,6 +3,8 @@
 
 int main(int argc, char * argv[])
 {
+  using namespace cocoa;
+
   std::string configFile = "fd2d_heat.dat";
   if (argc > 1)
   {

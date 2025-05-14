@@ -12,6 +12,9 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 
+namespace cocoa
+{
+
 // =====================================================================
 struct VectorFD
 {
@@ -51,21 +54,6 @@ struct VectorFD
   auto operator*=(double const f) -> VectorFD &;
 
   std::vector<double> data_;
-};
-
-template <>
-struct fmt::formatter<VectorFD>
-{
-  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
-  {
-    return ctx.begin();
-  }
-
-  auto format(VectorFD const & v, format_context & ctx) const
-      -> format_context::iterator
-  {
-    return fmt::format_to(ctx.out(), "{::e}", v.data_);
-  }
 };
 
 auto dot(VectorFD const & a, VectorFD const & b) -> double;
@@ -143,22 +131,6 @@ struct MatrixTriDiag
 
 auto operator*(MatrixTriDiag const & m, VectorFD const & v) -> VectorFD;
 
-template <>
-struct fmt::formatter<MatrixTriDiag>
-{
-  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
-  {
-    return ctx.begin();
-  }
-
-  auto format(MatrixTriDiag const & m, format_context & ctx) const
-      -> format_context::iterator
-  {
-    return fmt::format_to(
-        ctx.out(), "down: {}\ndiag: {}\nup: {}", m.diags_[0], m.diags_[1], m.diags_[2]);
-  }
-};
-
 // =====================================================================
 struct MatrixCSR
 {
@@ -214,37 +186,6 @@ struct MatrixCSR
 };
 
 auto operator*(MatrixCSR const & m, VectorFD const & v) -> VectorFD;
-
-template <>
-struct fmt::formatter<MatrixCSR::Entry>
-{
-  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
-  {
-    return ctx.begin();
-  }
-
-  auto format(MatrixCSR::Entry const & e, format_context & ctx) const
-      -> format_context::iterator
-  {
-    return fmt::format_to(ctx.out(), "[{}, {}]", e.clm, e.value);
-  }
-};
-
-template <>
-struct fmt::formatter<MatrixCSR>
-{
-  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
-  {
-    return ctx.begin();
-  }
-
-  auto format(MatrixCSR const & m, format_context & ctx) const
-      -> format_context::iterator
-  {
-    return fmt::format_to(
-        ctx.out(), "stored entries:\n{}\npending entries:\n{}", m.data_, m.triplets_);
-  }
-};
 
 // =====================================================================
 template <size_t n>
@@ -693,3 +634,69 @@ SolverInfo solveVanka2DSCI(
 
   // return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
 }
+
+} // namespace cocoa
+
+// formatters ==========================================================
+
+template <>
+struct fmt::formatter<cocoa::VectorFD>
+{
+  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
+  {
+    return ctx.begin();
+  }
+
+  auto format(cocoa::VectorFD const & v, format_context & ctx) const
+      -> format_context::iterator
+  {
+    return fmt::format_to(ctx.out(), "{::e}", v.data_);
+  }
+};
+
+template <>
+struct fmt::formatter<cocoa::MatrixTriDiag>
+{
+  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
+  {
+    return ctx.begin();
+  }
+
+  auto format(cocoa::MatrixTriDiag const & m, format_context & ctx) const
+      -> format_context::iterator
+  {
+    return fmt::format_to(
+        ctx.out(), "down: {}\ndiag: {}\nup: {}", m.diags_[0], m.diags_[1], m.diags_[2]);
+  }
+};
+
+template <>
+struct fmt::formatter<cocoa::MatrixCSR::Entry>
+{
+  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
+  {
+    return ctx.begin();
+  }
+
+  auto format(cocoa::MatrixCSR::Entry const & e, format_context & ctx) const
+      -> format_context::iterator
+  {
+    return fmt::format_to(ctx.out(), "[{}, {}]", e.clm, e.value);
+  }
+};
+
+template <>
+struct fmt::formatter<cocoa::MatrixCSR>
+{
+  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
+  {
+    return ctx.begin();
+  }
+
+  auto format(cocoa::MatrixCSR const & m, format_context & ctx) const
+      -> format_context::iterator
+  {
+    return fmt::format_to(
+        ctx.out(), "stored entries:\n{}\npending entries:\n{}", m.data_, m.triplets_);
+  }
+};

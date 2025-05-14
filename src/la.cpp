@@ -1,5 +1,12 @@
 #include "la.hpp"
 
+// stl
+#include <algorithm>
+#include <tuple>
+
+namespace cocoa
+{
+
 // =====================================================================
 auto VectorFD::norm2sq() const -> double { return dot(*this, *this); }
 
@@ -256,3 +263,5 @@ SolverInfo solveVanka1D(
 
   return {maxIters, computeResidual(m, x, b, 1.0 / n) / rhsNorm};
 }
+
+} // namespace cocoa

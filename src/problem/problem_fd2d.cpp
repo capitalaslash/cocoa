@@ -17,6 +17,9 @@
 #include "enums.hpp"
 #include "problem/fdutils.hpp"
 
+namespace cocoa
+{
+
 ProblemFD2D::ProblemFD2D(): Problem{PROBLEM_TYPE::FD2D, COUPLING_TYPE::NONE}
 {
   // register default assemblies
@@ -954,3 +957,5 @@ std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD2D::Matrix_T>>
         {FD_SOLVER_TYPE::VANKA2DCB, &solveVanka2DCB<ProblemFD2D::Matrix_T>},
         {FD_SOLVER_TYPE::VANKA2DSCI, &solveVanka2DSCI<ProblemFD2D::Matrix_T>},
 };
+
+} // namespace cocoa

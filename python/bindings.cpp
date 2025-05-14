@@ -25,6 +25,8 @@ namespace py = pybind11;
 
 using namespace py::literals;
 
+using namespace cocoa;
+
 PYBIND11_MODULE(cocoa, m)
 {
   // enums =============================================================

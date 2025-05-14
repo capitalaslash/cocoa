@@ -11,6 +11,9 @@
 #include "problem/problem_oforg.hpp"
 #include "problem/problem_proxpde.hpp"
 
+namespace cocoa
+{
+
 std::unique_ptr<Problem>
 Problem::build(PROBLEM_TYPE problemType, EQN_TYPE eqnType = EQN_TYPE::NONE)
 {
@@ -60,3 +63,5 @@ Problem::build(std::string_view problemType, std::string_view eqnType)
 {
   return Problem::build(str2problem(problemType), str2eqn(eqnType));
 }
+
+} // namespace cocoa

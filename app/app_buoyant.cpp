@@ -4,6 +4,8 @@
 
 int main()
 {
+  using namespace cocoa;
+
   auto pNS = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::NS_BOUSSINESQ);
   pNS->setup({{"config_file", "proxpde_buoyant_ns.yaml"}});
 

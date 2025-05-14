@@ -10,6 +10,9 @@
 // local
 #include "coupling/coupling_manager.hpp"
 
+namespace cocoa
+{
+
 struct Problem;
 
 struct CouplingMED: public CouplingManager
@@ -26,5 +29,7 @@ struct CouplingMED: public CouplingManager
   // INTERP_KERNEL::IntersectionType interpType_ = INTERP_KERNEL::Geometric2D;
   INTERP_KERNEL::IntersectionType interpType_ = INTERP_KERNEL::Triangulation;
 };
+
+} // namespace cocoa
 
 #endif

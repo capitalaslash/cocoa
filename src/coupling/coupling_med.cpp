@@ -11,6 +11,9 @@
 #include "coupling/mesh_med.hpp"
 #include "problem/problem.hpp"
 
+namespace cocoa
+{
+
 void CouplingMED::setup(Problem * src, Problem * tgt)
 {
   problemSrc_ = src;
@@ -51,3 +54,5 @@ void CouplingMED::project(std::string_view srcName, std::string_view tgtName)
   // tgtField->fieldPtr_ = tmp;
   tgtField->fieldPtr_ = remapper.transferField(srcField->fieldPtr_, 0.0);
 }
+
+} // namespace cocoa

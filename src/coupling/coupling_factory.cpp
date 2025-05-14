@@ -12,6 +12,9 @@
 #include "coupling/coupling_simple.hpp"
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 std::unique_ptr<CouplingManager> CouplingManager::build(COUPLING_TYPE type)
 {
   switch (type)
@@ -62,3 +65,5 @@ CouplingManager::build(std::string_view couplingType)
 {
   return CouplingManager::build(str2coupling(couplingType));
 }
+
+} // namespace cocoa

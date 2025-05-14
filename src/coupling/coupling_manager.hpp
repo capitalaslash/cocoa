@@ -7,6 +7,9 @@
 // local
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 struct Problem;
 
 struct CouplingManager
@@ -28,3 +31,5 @@ struct CouplingManager
   Problem * pSrc_;
   Problem * pTgt_;
 };
+
+} // namespace cocoa

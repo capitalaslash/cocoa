@@ -11,6 +11,9 @@
 #include "coupling/field_coupling.hpp"
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 std::unique_ptr<Problem> ProblemProXPDE::build(EQN_TYPE const type)
 {
   switch (type)
@@ -617,3 +620,5 @@ void ProblemProXPDENS::print()
     ioP_.print({p_}, time);
   }
 }
+
+} // namespace cocoa

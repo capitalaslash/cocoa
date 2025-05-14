@@ -12,6 +12,9 @@
 // local
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 struct MeshCoupling
 {
   MeshCoupling() = default;
@@ -59,3 +62,5 @@ struct MeshSimple: public MeshCoupling
 
   bool messageVTK_ = true;
 };
+
+} // namespace cocoa

@@ -14,6 +14,9 @@
 #include "coupling/field_coupling.hpp"
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 inline MEDCoupling::TypeOfField supportType2MEDtype(SUPPORT_TYPE const support)
 {
   switch (support)
@@ -60,5 +63,7 @@ struct FieldMED: public FieldCoupling
   bool inited_ = false;
   std::vector<Frame> frames;
 };
+
+} // namespace cocoa
 
 #endif

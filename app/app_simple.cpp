@@ -8,6 +8,8 @@
 
 int main()
 {
+  using namespace cocoa;
+
   auto p1 = Problem::build(PROBLEM_TYPE::FD1D, EQN_TYPE::NONE);
   auto p2 = Problem::build("fd1d", "none");
 

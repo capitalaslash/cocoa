@@ -1,5 +1,8 @@
 #include "problem/fdutils.hpp"
 
+namespace cocoa
+{
+
 // =====================================================================
 template <>
 bool ParamsFD::set<uint>(std::string_view name, uint value)
@@ -27,3 +30,5 @@ bool ParamsFD::set<std::vector<double>>(
       data_.emplace(name, std::pair{FD_PARAM_TYPE::VECTOR, std::tuple{0u, 0.0, value}});
   return success;
 }
+
+} // namespace cocoa

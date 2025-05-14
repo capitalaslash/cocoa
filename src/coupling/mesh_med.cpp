@@ -3,6 +3,9 @@
 // medcoupling
 #include <MEDCouplingUMesh.hxx>
 
+namespace cocoa
+{
+
 MeshMED::~MeshMED()
 {
   if (inited_)
@@ -44,3 +47,5 @@ void MeshMED::printVTK(std::filesystem::path const & path)
 {
   meshPtr_->writeVTK(path.string(), false);
 }
+
+} // namespace cocoa

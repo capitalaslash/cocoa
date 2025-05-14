@@ -8,6 +8,9 @@
 #include "coupling/field_med.hpp"
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 std::unique_ptr<FieldCoupling> FieldCoupling::build(COUPLING_TYPE type)
 {
   switch (type)
@@ -56,3 +59,5 @@ std::unique_ptr<FieldCoupling> FieldCoupling::build(std::string_view couplingTyp
 {
   return FieldCoupling::build(str2coupling(couplingType));
 }
+
+} // namespace cocoa

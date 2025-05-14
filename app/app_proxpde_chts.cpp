@@ -7,6 +7,8 @@
 // local
 #include "problem/problem_proxpde.hpp"
 
+using namespace cocoa;
+
 struct AssemblySolid: public ProblemProXPDE::Assembly
 {
   using Elem_T = ProblemProXPDEHeat::Elem_T;

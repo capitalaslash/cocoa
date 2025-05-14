@@ -15,6 +15,9 @@
 // local
 #include "problem/problem.hpp"
 
+namespace cocoa
+{
+
 //- Set the initial time-step according to the solver maxDeltaT
 void setDeltaT(Foam::Time & runTime, const Foam::solver & solver);
 
@@ -54,5 +57,7 @@ struct ProblemOForg: public Problem
   std::vector<std::pair<std::string, OFFIELD_TYPE>> namesExport_;
   double lastPrint_ = 0.0;
 };
+
+} // namespace cocoa
 
 #endif

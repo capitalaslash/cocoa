@@ -3,6 +3,8 @@
 
 int main()
 {
+  using namespace cocoa;
+
   auto p = Problem::build(PROBLEM_TYPE::OFORG, EQN_TYPE::NONE);
   p->setup({
       {"case_dir", "oforg1"},

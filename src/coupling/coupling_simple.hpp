@@ -6,6 +6,9 @@
 // local
 #include "coupling/coupling_manager.hpp"
 
+namespace cocoa
+{
+
 struct CouplingSimple: public CouplingManager
 {
   struct Matrix
@@ -30,3 +33,5 @@ struct CouplingSimple: public CouplingManager
 
   Matrix m_;
 };
+
+} // namespace cocoa

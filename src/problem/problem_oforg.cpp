@@ -14,6 +14,9 @@
 // local
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 void ProblemOForg::setup(Problem::ConfigList_T const & configs)
 {
   prefix_ = configs.at("case_dir").string();
@@ -379,3 +382,5 @@ void adjustDeltaT(Foam::Time & runTime, const Foam::solver & solver)
     }
   }
 }
+
+} // namespace cocoa

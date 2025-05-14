@@ -9,6 +9,9 @@
 // local
 #include "problem/problem_fd1d.hpp"
 
+namespace cocoa
+{
+
 void CouplingSimple::setup(Problem * pSrc, Problem * pTgt)
 {
   // CouplingSimple works only with ProblemFD1D for now
@@ -109,3 +112,5 @@ void CouplingSimple::project(
   // }
   // p1Tgt.setValues(p1TgtData);
 }
+
+} // namespace cocoa

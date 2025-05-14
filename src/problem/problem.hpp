@@ -11,6 +11,9 @@
 #include "coupling/mesh_coupling.hpp"
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 struct Problem
 {
   using ConfigList_T = std::unordered_map<std::string, std::filesystem::path>;
@@ -54,3 +57,5 @@ struct Problem
   std::unordered_map<std::string, std::unique_ptr<FieldCoupling>> fieldsCoupling_;
   bool debug_ = false;
 };
+
+} // namespace cocoa

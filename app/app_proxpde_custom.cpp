@@ -3,6 +3,8 @@
 
 auto constexpr N = 20u;
 
+using namespace cocoa;
+
 struct AssemblyCustom: public ProblemProXPDE::Assembly
 {
   auto evaluate(ProblemProXPDE * pParent, proxpde::Builder<> & b) -> void override

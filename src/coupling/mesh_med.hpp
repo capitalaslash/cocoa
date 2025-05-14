@@ -16,6 +16,9 @@
 // local
 #include "coupling/mesh_coupling.hpp"
 
+namespace cocoa
+{
+
 struct MeshMED: public MeshCoupling
 {
   MeshMED(): MeshCoupling(COUPLING_TYPE::MEDCOUPLING) {}
@@ -34,5 +37,7 @@ struct MeshMED: public MeshCoupling
   MEDCoupling::MEDCouplingUMesh * meshPtr_;
   bool inited_ = false;
 };
+
+} // namespace cocoa
 
 #endif

@@ -16,6 +16,9 @@
 // local
 #include "la.hpp"
 
+namespace cocoa
+{
+
 // =====================================================================
 enum struct FD_BC_TYPE : uint8_t
 {
@@ -86,26 +89,6 @@ struct FDBC
     type = t;
     values.data_ = v.data_;
     ghostValues.data_.resize(v.size(), 0.0);
-  }
-};
-
-template <>
-struct fmt::formatter<FDBC>
-{
-  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
-  {
-    return ctx.begin();
-  }
-
-  auto format(FDBC const bc, format_context & ctx) const -> format_context::iterator
-  {
-    return fmt::format_to(
-        ctx.out(),
-        "s: {} t: {} v: {} g: {}",
-        static_cast<uint8_t>(bc.side),
-        static_cast<uint8_t>(bc.type),
-        bc.values,
-        bc.ghostValues);
   }
 };
 
@@ -242,21 +225,6 @@ inline std::string fdParamType2str(FD_PARAM_TYPE const t)
   }
 }
 
-template <>
-struct fmt::formatter<FD_PARAM_TYPE>
-{
-  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
-  {
-    return ctx.begin();
-  }
-
-  auto format(FD_PARAM_TYPE const t, format_context & ctx) const
-      -> format_context::iterator
-  {
-    return fmt::format_to(ctx.out(), "{}", fdParamType2str(t));
-  }
-};
-
 struct ParamsFD
 {
   using Param_T = std::tuple<uint, double, std::vector<double>>;
@@ -282,15 +250,55 @@ struct ParamsFD
   ParamList_T data_;
 };
 
+} // namespace cocoa
+
+// formatters ==========================================================
+
 template <>
-struct fmt::formatter<ParamsFD>
+struct fmt::formatter<cocoa::FDBC>
 {
   constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
   {
     return ctx.begin();
   }
 
-  auto format(ParamsFD const & params, format_context & ctx) const
+  auto format(cocoa::FDBC const bc, format_context & ctx) const
+      -> format_context::iterator
+  {
+    return fmt::format_to(
+        ctx.out(),
+        "s: {} t: {} v: {} g: {}",
+        static_cast<uint8_t>(bc.side),
+        static_cast<uint8_t>(bc.type),
+        bc.values,
+        bc.ghostValues);
+  }
+};
+
+template <>
+struct fmt::formatter<cocoa::FD_PARAM_TYPE>
+{
+  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
+  {
+    return ctx.begin();
+  }
+
+  auto format(cocoa::FD_PARAM_TYPE const t, format_context & ctx) const
+      -> format_context::iterator
+  {
+    return fmt::format_to(ctx.out(), "{}", fdParamType2str(t));
+  }
+};
+
+template <>
+struct fmt::formatter<cocoa::ParamsFD>
+{
+  constexpr auto parse(format_parse_context & ctx) -> format_parse_context::iterator
+  {
+    return ctx.begin();
+  }
+
+  auto format(cocoa::ParamsFD const & params, format_context & ctx) const
       -> format_context::iterator
   {
     std::string data = "\n";
@@ -299,7 +307,7 @@ struct fmt::formatter<ParamsFD>
       data += fmt::format("  {}: ", name);
       switch (value.first)
       {
-        using enum FD_PARAM_TYPE;
+        using enum cocoa::FD_PARAM_TYPE;
       case INTEGER:
       {
         auto const value = params.get<INTEGER>(name);

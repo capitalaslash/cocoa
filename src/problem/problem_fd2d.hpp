@@ -12,6 +12,9 @@
 #include "problem/fdutils.hpp"
 #include "problem/problem.hpp"
 
+namespace cocoa
+{
+
 struct ProblemFD2D: public Problem
 {
   using Assembly_T = std::function<void(ProblemFD2D *)>;
@@ -86,3 +89,5 @@ sideOffset(std::array<uint, 2U> const & n, FD_BC_SIDE const s)
   }
   return 0u;
 }
+
+} // namespace cocoa

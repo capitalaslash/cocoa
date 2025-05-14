@@ -13,6 +13,9 @@
 #include "coupling/mesh_coupling.hpp"
 #include "enums.hpp"
 
+namespace cocoa
+{
+
 enum struct SUPPORT_TYPE : uint8_t
 {
   NONE = 0,
@@ -101,3 +104,5 @@ struct FieldSimple: public FieldCoupling
   SUPPORT_TYPE supportType_;
   bool messageVTK_ = true;
 };
+
+} // namespace cocoa

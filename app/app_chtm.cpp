@@ -12,6 +12,8 @@ inline auto mean(double const a, double const b) -> double
   return 2 * a * b / (a + b);
 }
 
+using namespace cocoa;
+
 auto setup(ProblemFD2D * p) -> void
 {
   p->name_ = "chtm";

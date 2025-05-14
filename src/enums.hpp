@@ -1,15 +1,23 @@
 #pragma once
 
-// std
+#include "plugins.hpp"
+
+// stl
 #include <cstdlib>
 #include <string>
 #include <string_view>
 
-// fmtlib
+// fmt
 #include "fmt/core.h"
 
-// local
-#include "plugins.hpp"
+// medcoupling
+#ifdef COCOA_ENABLE_MEDCOUPLING
+#include <MCIdType.hxx>
+#include <NormalizedGeometricTypes> // missing extension!!!
+#endif
+
+namespace cocoa
+{
 
 // coupling enum =======================================================
 enum struct COUPLING_TYPE : uint8_t
@@ -146,15 +154,12 @@ inline std::string eqn2str(EQN_TYPE type)
 // MED_CELL_TYPE =======================================================
 #ifdef COCOA_ENABLE_MEDCOUPLING
 
-#include <MCIdType.hxx>
-#include <NormalizedGeometricTypes> // missing extension!!!
-
 enum struct MED_CELL_TYPE : uint8_t
 {
-  LINE2 = INTERP_KERNEL::NORM_SEG2,
-  TRIANGLE3 = INTERP_KERNEL::NORM_TRI3,
-  QUAD4 = INTERP_KERNEL::NORM_QUAD4,
-  HEX8 = INTERP_KERNEL::NORM_HEXA8,
+  LINE2 = INTERP_KERNEL::NormalizedCellType::NORM_SEG2,
+  TRIANGLE3 = INTERP_KERNEL::NormalizedCellType::NORM_TRI3,
+  QUAD4 = INTERP_KERNEL::NormalizedCellType::NORM_QUAD4,
+  HEX8 = INTERP_KERNEL::NormalizedCellType::NORM_HEXA8,
 };
 
 inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)
@@ -180,3 +185,5 @@ inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)
 }
 
 #endif
+
+} // namespace cocoa
