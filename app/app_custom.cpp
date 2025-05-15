@@ -99,7 +99,7 @@ auto setup(ProblemFD1D * p) -> void
 int main()
 {
   auto p = std::unique_ptr<ProblemFD1D>{new ProblemFD1D};
-  // p->setup({{"config_file", "fd1d_heat.dat"}});
+  // p->setup({{"config_file", std::filesystem::path{"fd1d_heat.dat"}}});
   setup(p.get());
 
   p->print();
