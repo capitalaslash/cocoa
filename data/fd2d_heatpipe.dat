@@ -18,4 +18,3 @@ bc_right: neumann 1.0
 bc_top: neumann 1.0
 bc_left: neumann 0.0
 output_prefix: output_fd2d_heatpipe
-

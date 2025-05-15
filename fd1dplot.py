@@ -21,7 +21,7 @@ def main(idx, filename, ax):
     finalTime = 1.0
     dt = 0.1
     outFile = "fd1d"
-    with open(filename, "r") as f:
+    with open(filename) as f:
         for line in f:
             tokens = line.split(" ")
             if tokens[0] == "start_time:":

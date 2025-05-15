@@ -22,7 +22,7 @@ namespace cocoa
 // coupling enum =======================================================
 enum struct COUPLING_TYPE : uint8_t
 {
-  NONE = 0,
+  NONE = 0u,
   SIMPLE,
   MEDCOUPLING,
   OFM2M,
@@ -63,7 +63,7 @@ inline std::string couplingType2str(COUPLING_TYPE const type)
 // problem enum ========================================================
 enum struct PROBLEM_TYPE : uint8_t
 {
-  NONE = 0,
+  NONE = 0u,
   FD1D,
   FD2D,
   FEMUS,
@@ -91,7 +91,7 @@ inline PROBLEM_TYPE str2problem(std::string_view name)
 // equation type enum ===============================================
 enum struct EQN_TYPE : uint8_t
 {
-  NONE = 0,
+  NONE = 0u,
   HEAT,
   HEAT_COUPLED,
   HEAT_BUOYANT,
@@ -173,10 +173,10 @@ using mcIdType = std::uint32_t;
 
 enum struct MED_CELL_TYPE : uint8_t
 {
-  LINE2 = 12,
-  TRIANGLE3 = 23,
-  QUAD4 = 24,
-  HEX8 = 38,
+  LINE2 = 12u,
+  TRIANGLE3 = 23u,
+  QUAD4 = 24u,
+  HEX8 = 38u,
 };
 
 inline mcIdType MEDCellTypeToIKCell(MED_CELL_TYPE t)

@@ -22,7 +22,7 @@ namespace cocoa
 // =====================================================================
 enum struct FD_BC_TYPE : uint8_t
 {
-  NONE = 0,
+  NONE = 0u,
   DIRICHLET,
   NEUMANN,
 };

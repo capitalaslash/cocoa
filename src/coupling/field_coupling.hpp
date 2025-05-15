@@ -18,7 +18,7 @@ namespace cocoa
 
 enum struct SUPPORT_TYPE : uint8_t
 {
-  NONE = 0,
+  NONE = 0u,
   ON_NODES,
   ON_CELLS,
 };

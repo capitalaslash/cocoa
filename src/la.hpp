@@ -249,7 +249,7 @@ double computeResidual(
 // =====================================================================
 enum struct FD_SOLVER_TYPE : uint8_t
 {
-  NONE = 0,
+  NONE = 0u,
   GAUSS_SEIDEL,
   JACOBI,
   CG,
