@@ -4,10 +4,11 @@
 #include "problem/problem_fd2d.hpp"
 
 // // arithmetic
-// inline auto mean(double const a, double const b) -> double { return 0.5 * (a + b); }
+// static constexpr auto mean(double const a, double const b) -> double { return 0.5 *
+// (a + b); }
 
-// // harmonic
-inline auto mean(double const a, double const b) -> double
+// harmonic
+static constexpr auto mean(double const a, double const b) -> double
 {
   return 2 * a * b / (a + b);
 }
