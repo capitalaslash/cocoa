@@ -6,7 +6,7 @@ int main()
   using namespace cocoa;
 
   auto p = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::NS);
-  p->setup({{"config_file", "proxpde_ns.yaml"}});
+  p->setup({{"config_file", std::filesystem::path{"proxpde_ns.yaml"}}});
 
   p->print();
 

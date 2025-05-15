@@ -19,12 +19,19 @@ namespace cocoa
 
 void ProblemOForg::setup(Problem::ConfigList_T const & configs)
 {
-  prefix_ = configs.at("case_dir").string();
+  // read case dir
+  // TODO: string conversion is required for python bindings, manage other variant types
+  // as errors
+  auto const & caseDirVariant = configs.at("case_dir");
+  prefix_ = std::holds_alternative<std::filesystem::path>(caseDirVariant)
+                ? std::get<std::filesystem::path>(caseDirVariant)
+                : std::filesystem::path{std::get<std::string>(caseDirVariant)};
   int argc = 3;
   char ** argv = new char *[3];
   argv[0] = (char *)"app_oforg";
   argv[1] = (char *)"-case";
-  argv[2] = prefix_.string().data();
+  argv[2] = new char[prefix_.string().size()];
+  std::strcpy(argv[2], prefix_.string().data());
 
   Foam::argList::addOption("solver", "name", "Solver name");
 
@@ -85,7 +92,11 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
   std::string outputVTK = "./output_oforg";
   if (configs.contains("config_file"))
   {
-    std::filesystem::path const configFile = configs.at("config_file").string();
+    auto const & configFileVariant = configs.at("config_file");
+    auto const configFile =
+        std::holds_alternative<std::filesystem::path>(configFileVariant)
+            ? std::get<std::filesystem::path>(configFileVariant)
+            : std::filesystem::path{std::get<std::string>(configFileVariant)};
     std::ifstream in(configFile, std::ios::in);
     if (!in)
     {

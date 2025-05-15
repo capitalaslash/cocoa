@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 // local
 #include "coupling/field_coupling.hpp"
@@ -16,7 +17,9 @@ namespace cocoa
 
 struct Problem
 {
-  using ConfigList_T = std::unordered_map<std::string, std::filesystem::path>;
+  using ConfigList_T = std::unordered_map<
+      std::string,
+      std::variant<int, std::string, std::vector<std::string>, std::filesystem::path>>;
 
   Problem() = default;
   Problem(PROBLEM_TYPE type, COUPLING_TYPE couplingType)

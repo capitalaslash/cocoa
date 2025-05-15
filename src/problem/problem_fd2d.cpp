@@ -79,7 +79,13 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
   uint nnz = 5u;
 
   // read configuration from file
-  std::filesystem::path configFile = configs.at("config_file");
+  // TODO: string conversion is required for python bindings, manage other variant types
+  // as errors
+  auto const & configFileVariant = configs.at("config_file");
+  auto const configFile =
+      std::holds_alternative<std::filesystem::path>(configFileVariant)
+          ? std::get<std::filesystem::path>(configs.at("config_file"))
+          : std::filesystem::path{std::get<std::string>(configs.at("config_file"))};
   std::ifstream in(configFile, std::ios::in);
   if (!in)
   {

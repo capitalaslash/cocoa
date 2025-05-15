@@ -7,8 +7,8 @@ int main()
 
   auto p = Problem::build(PROBLEM_TYPE::OFORG, EQN_TYPE::NONE);
   p->setup({
-      {"case_dir", "oforg1"},
-      {"config_file", "oforg1.dat"},
+      {"case_dir", std::filesystem::path{"oforg1"}},
+      {"config_file", std::filesystem::path{"oforg1.dat"}},
   });
 
   p->print();

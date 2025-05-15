@@ -13,8 +13,8 @@ int main()
   auto p1 = Problem::build(PROBLEM_TYPE::FD1D, EQN_TYPE::NONE);
   auto p2 = Problem::build("fd1d", "none");
 
-  p1->setup({{"config_file", "fd1d_heat.dat"}});
-  p2->setup({{"config_file", "fd1d_hc.dat"}});
+  p1->setup({{"config_file", std::filesystem::path{"fd1d_heat.dat"}}});
+  p2->setup({{"config_file", std::filesystem::path{"fd1d_hc.dat"}}});
   p1->couplingType_ = COUPLING_TYPE::SIMPLE;
   p2->couplingType_ = COUPLING_TYPE::SIMPLE;
 

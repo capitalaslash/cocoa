@@ -7,10 +7,10 @@ int main()
   using namespace cocoa;
 
   auto pNS = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::NS_BOUSSINESQ);
-  pNS->setup({{"config_file", "proxpde_buoyant_ns.yaml"}});
+  pNS->setup({{"config_file", std::filesystem::path{"proxpde_buoyant_ns.yaml"}}});
 
   auto pHeat = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::HEAT_BUOYANT);
-  pHeat->setup({{"config_file", "proxpde_buoyant_heat.yaml"}});
+  pHeat->setup({{"config_file", std::filesystem::path{"proxpde_buoyant_heat.yaml"}}});
 
   auto couplingHeatToNS = CouplingManager::build(COUPLING_TYPE::MEDCOUPLING);
   couplingHeatToNS->setup(pHeat.get(), pNS.get());

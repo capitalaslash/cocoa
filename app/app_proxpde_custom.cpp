@@ -96,7 +96,7 @@ auto setup(ProblemProXPDEHeat * p) -> void
   p->setDataMED("vel", p->vel_.data, p->feSpaceVel_);
 
   // assembly
-  auto const & [_, success] =
+  [[maybe_unused]] auto const & [_, success] =
       p->assemblies_.emplace(EQN_TYPE::CUSTOM, new AssemblyCustom);
   assert(success);
   p->equationType_ = EQN_TYPE::CUSTOM;

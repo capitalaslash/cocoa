@@ -11,12 +11,12 @@ int main()
   using namespace cocoa;
 
   auto p1 = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::HEAT);
-  p1->setup({{"config_file", "proxpde_heat.yaml"}});
+  p1->setup({{"config_file", std::filesystem::path{"proxpde_heat.yaml"}}});
   dynamic_cast<ProblemProXPDEHeat *>(p1.get())->fieldsP0_["q"]
       << [](proxpde::Vec3 const & p) { return std::sin(M_PI * p[1]); };
 
   auto p2 = Problem::build("proxpde", "heat_coupled");
-  p2->setup({{"config_file", "proxpde_hc.yaml"}});
+  p2->setup({{"config_file", std::filesystem::path{"proxpde_hc.yaml"}}});
 
   // check that both problems have been set to use the same coupling type
   assert(p1->couplingType_ == p2->couplingType_);

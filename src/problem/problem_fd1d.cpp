@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <unordered_map>
+#include <variant>
 
 // libfmt
 #include <fmt/core.h>
@@ -61,7 +62,13 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
   uint nnz = 3u;
 
   // read configuration from file
-  std::filesystem::path const configFile = configs.at("config_file");
+  // TODO: string conversion is required for python bindings, manage other variant types
+  // as errors
+  auto const & configFileVariant = configs.at("config_file");
+  auto const configFile =
+      std::holds_alternative<std::filesystem::path>(configFileVariant)
+          ? std::get<std::filesystem::path>(configFileVariant)
+          : std::filesystem::path{std::get<std::string>(configFileVariant)};
   std::ifstream in(configFile, std::ios::in);
   if (!in)
   {

@@ -286,8 +286,14 @@ ProblemProXPDEHeat::ProblemProXPDEHeat()
 void ProblemProXPDEHeat::setup(Problem::ConfigList_T const & configs)
 {
   // get configuration from file
-  std::string const filename = configs.at("config_file");
-  proxpde::ParameterDict config = YAML::LoadFile(filename);
+  // TODO: string conversion is required for python bindings, manage other variant types
+  // as errors
+  auto const & configFileVariant = configs.at("config_file");
+  auto const configFile =
+      std::holds_alternative<std::filesystem::path>(configFileVariant)
+          ? std::get<std::filesystem::path>(configFileVariant).string()
+          : std::get<std::string>(configFileVariant);
+  proxpde::ParameterDict config = YAML::LoadFile(configFile);
 
   name_ = config["name"].as<std::string>();
 
@@ -508,12 +514,19 @@ ProblemProXPDENS::ProblemProXPDENS()
 void ProblemProXPDENS::setup(Problem::ConfigList_T const & configs)
 {
   // get configuration from file
-  std::string const filename = configs.at("config_file");
-  proxpde::ParameterDict config = YAML::LoadFile(filename);
+  // TODO: string conversion is required for python bindings, manage other variant types
+  // as errors
+  auto const & configFileVariant = configs.at("config_file");
+  auto const configFile =
+      std::holds_alternative<std::filesystem::path>(configFileVariant)
+          ? std::get<std::filesystem::path>(configFileVariant).string()
+          : std::get<std::string>(configFileVariant);
+  proxpde::ParameterDict config = YAML::LoadFile(configFile);
+
+  name_ = config["name"].as<std::string>();
 
   // init mesh from configuration
   proxpde::readMesh(mesh_, config["mesh"]);
-  name_ = config["name"].as<std::string>();
   initMeshMED(name_, mesh_);
 
   // init coupling
