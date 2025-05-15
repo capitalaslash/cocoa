@@ -61,7 +61,7 @@ void CouplingSimple::setup(Problem * pSrc, Problem * pTgt)
   //   }
   // }
 
-  // fmt::print("m: {} x {}\n{:::.2e}\n", m_.data.size(), m_.data[0].size(), m_.data);
+  // fmt::println("m: {} x {}\n{:::.2e}", m_.data.size(), m_.data[0].size(), m_.data);
 }
 
 void CouplingSimple::project(

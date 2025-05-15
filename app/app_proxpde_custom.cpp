@@ -9,7 +9,7 @@ struct AssemblyCustom: public ProblemProXPDE::Assembly
 {
   auto evaluate(ProblemProXPDE * pParent, proxpde::Builder<> & b) -> void override
   {
-    fmt::print("proxpde custom assembly\n");
+    fmt::println("proxpde custom assembly");
     auto p = dynamic_cast<ProblemProXPDEHeat *>(pParent);
     auto const alpha = p->params_.at("alpha");
     auto const & q = p->fieldsP0_.at("q");

@@ -38,7 +38,7 @@ inline COUPLING_TYPE str2coupling(std::string_view name)
     return COUPLING_TYPE::OFM2M;
   else
   {
-    fmt::print(stderr, "Coupling type {} not recognized!\n", name);
+    fmt::println(stderr, "Coupling type {} not recognized!", name);
     std::abort();
   }
   return COUPLING_TYPE::NONE;
@@ -118,7 +118,7 @@ inline EQN_TYPE str2eqn(std::string_view name)
     return NS_BOUSSINESQ;
   else if (name == "none")
     return NONE;
-  fmt::print(stderr, "equation type {} not recognized\n", name);
+  fmt::println(stderr, "equation type {} not recognized", name);
   std::abort();
   return NONE;
 }

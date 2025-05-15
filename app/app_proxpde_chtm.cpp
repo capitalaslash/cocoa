@@ -11,7 +11,7 @@ struct AssemblyCHTM: public ProblemProXPDE::Assembly
 {
   auto evaluate(ProblemProXPDE * pParent, proxpde::Builder<> & b) -> void override
   {
-    fmt::print("proxpde chtm assembly\n");
+    fmt::println("proxpde chtm assembly");
     auto p = dynamic_cast<ProblemProXPDEHeat *>(pParent);
 
     auto & alpha = p->fieldsP0_.at("alpha");
@@ -259,8 +259,8 @@ int main(int argc, char * argv[])
         }
       }
     }
-    fmt::print("fluxSolid: {:.6e}\n", fluxSolid);
-    fmt::print("fluxFluid: {:.6e}\n", fluxFluid);
+    fmt::println("fluxSolid: {:.6e}", fluxSolid);
+    fmt::println("fluxFluid: {:.6e}", fluxFluid);
   }
 
   return 0;

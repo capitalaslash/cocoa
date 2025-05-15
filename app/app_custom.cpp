@@ -49,7 +49,7 @@ auto setup(ProblemFD1D * p) -> void
 
   auto const assembly = [](ProblemFD1D * p)
   {
-    fmt::print("custom assembly\n");
+    fmt::println("custom assembly");
 
     auto const iH2 = 1.0 / (p->mesh_.h_[0] * p->mesh_.h_[0]);
     auto const alpha = p->params_.get<FD_PARAM_TYPE::SCALAR>("alpha");

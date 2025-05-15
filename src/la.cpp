@@ -72,7 +72,7 @@ void setupRows(std::vector<std::vector<MatrixCSR::Entry>> data, uint const nnz)
 
 MatrixCSR::MatrixCSR(size_t n, size_t nnz): n_{n}, nnz_{nnz}, data_{n_}
 {
-  fmt::print("MatrixCSR::MatrixCSR(): reserving {} positions per row\n", nnz);
+  fmt::println("MatrixCSR::MatrixCSR(): reserving {} positions per row", nnz);
   setupRows(data_, nnz_);
   triplets_.reserve(nnz_ * n_);
 }
@@ -83,7 +83,7 @@ void MatrixCSR::init(size_t n, size_t nnz)
   nnz_ = nnz;
   data_.resize(n, Row_T{});
 
-  fmt::print("MatrixCSR::init(): reserving {} positions per row\n", nnz);
+  fmt::println("MatrixCSR::init(): reserving {} positions per row", nnz);
   setupRows(data_, nnz_);
   triplets_.reserve(nnz_ * n_);
 }
@@ -170,7 +170,7 @@ void MatrixCSR::print_sparsity_pattern(std::filesystem::path const & path)
     line[line.size() - 1] = '|';
     for (auto const [clm, _]: row)
       line[clm + 1] = 'o';
-    fmt::print(f, "{}\n", line);
+    fmt::println(f, "{}", line);
   }
 
   std::fclose(f);
@@ -197,7 +197,7 @@ SolverInfo solveTriDiag(MatrixTriDiag const & m, VectorFD const & b, VectorFD & 
 {
   uint const n = b.size();
   double const rhsNorm = std::sqrt(b.norm2sq() / n);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+  fmt::println("rhsNorm: {:.8e}", rhsNorm);
 
   std::vector<double> upPrime(n);
   std::vector<double> rhsPrime(n);
@@ -233,13 +233,13 @@ SolverInfo solveVanka1D(
 {
   uint const n = b.size();
   double const rhsNorm = std::sqrt(b.norm2sq() / n);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+  fmt::println("rhsNorm: {:.8e}", rhsNorm);
 
   for (uint i = 0U; i < maxIters; i++)
   {
     double const resNorm = computeResidual(m, x, b, 1.0 / n);
 
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    // fmt::println("iter: {:3d}, current residual: {:.8e}", j, resNorm);
     if (resNorm < tolerance * rhsNorm)
     {
       return {i, resNorm / rhsNorm};

@@ -235,7 +235,7 @@ PYBIND11_MODULE(cocoa, m)
               f->init(name, problem->getMesh(), SUPPORT_TYPE::ON_CELLS);
             else
             {
-              fmt::print(stderr, "support type {} not recognized\n", support);
+              fmt::println(stderr, "support type {} not recognized", support);
               std::abort();
             }
           })

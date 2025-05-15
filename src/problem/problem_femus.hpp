@@ -21,7 +21,7 @@ struct ProblemFEMUS: public Problem
 
   void setup(Probelm::ConfigList_T const & configs) override
   {
-    fmt::print("ProblemFEMUS::setup() -> init mesh\n");
+    fmt::println("ProblemFEMUS::setup() -> init mesh");
   }
   bool run() override { return false; }
   uint solve() override {}

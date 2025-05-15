@@ -89,7 +89,7 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
   std::ifstream in(configFile, std::ios::in);
   if (!in)
   {
-    fmt::print(stderr, "configuration file {} not found!\n", configFile.string());
+    fmt::println(stderr, "configuration file {} not found!", configFile.string());
     std::abort();
   }
   std::string buffer;
@@ -190,7 +190,7 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
             break;
           }
           default:
-            fmt::print(stderr, "param type for {} not recognized\n", name);
+            fmt::println(stderr, "param type for {} not recognized", name);
             std::abort();
           }
         }
@@ -266,15 +266,15 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
         bufferStream >> cleanOutput_;
       else
       {
-        fmt::print(stderr, "key {} invalid\n", token);
+        fmt::println(stderr, "key {} invalid", token);
         bufferStream >> token;
       }
     }
   }
-  fmt::print("{} - equation type: {}\n", name_, eqn2str(eqnType_));
+  fmt::println("{} - equation type: {}", name_, eqn2str(eqnType_));
   assert(eqnType_ == EQN_TYPE::NONE || assemblies_.contains(eqnType_));
 
-  fmt::print("parameters: {}\n", params_);
+  fmt::println("parameters: {}", params_);
 
   // mesh
   mesh_.init(start, end, nElems);
@@ -509,8 +509,8 @@ const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, FD_BC_SIDE const
 
 uint ProblemFD2D::solve()
 {
-  fmt::print("\n===\n");
-  fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
+  fmt::println("\n===");
+  fmt::println("{}, time = {:.6e}, dt = {:.6e}", name_, time, dt_);
 
   // TODO: improve CFL evaluation by using better estimation of cell diameter
   if (computeCFL_)
@@ -523,7 +523,7 @@ uint ProblemFD2D::solve()
       double const cLocal = std::sqrt(cx[k] * cx[k] + cy[k] * cy[k]);
       maxCFL = std::max(cLocal * dt_ / std::min(mesh_.h_[0], mesh_.h_[1]), maxCFL);
     }
-    fmt::print("maxCFL: {:.6e}\n", maxCFL);
+    fmt::println("maxCFL: {:.6e}", maxCFL);
   }
   // update
   uOld_ = u_;
@@ -531,10 +531,10 @@ uint ProblemFD2D::solve()
   // assembly
   assemblies_.at(eqnType_)(this);
 
-  // fmt::print("bc b: {}\n", bcs_[0].bottom());
-  // fmt::print("bc r: {}\n", bcs_[0].right());
-  // fmt::print("bc t: {}\n", bcs_[0].top());
-  // fmt::print("bc l: {}\n", bcs_[0].left());
+  // fmt::println("bc b: {}", bcs_[0].bottom());
+  // fmt::println("bc r: {}", bcs_[0].right());
+  // fmt::println("bc t: {}", bcs_[0].top());
+  // fmt::println("bc l: {}", bcs_[0].left());
 
   std::array<double, 4U> const hSide = {
       mesh_.h_[1], mesh_.h_[1], mesh_.h_[0], mesh_.h_[0]};
@@ -608,13 +608,13 @@ uint ProblemFD2D::solve()
   auto const [numIters, residual] =
       solvers_.at(solverType_)(m_, rhs_, u_, tol_, maxIters_);
   fmt::print("num iters: {:4d}, ", numIters);
-  fmt::print("relative residual: {:.8e}\n", residual);
+  fmt::println("relative residual: {:.8e}", residual);
 
   if (debug_)
   {
-    fmt::print("matrix: {}\n", m_);
-    fmt::print("rhs: {}\n", rhs_);
-    fmt::print("sol: {}\n", u_);
+    fmt::println("matrix: {}", m_);
+    fmt::println("rhs: {}", rhs_);
+    fmt::println("sol: {}", u_);
   }
   // clean up
   m_.clear();
@@ -906,7 +906,7 @@ void ProblemFD2D::print()
         {
           auto const id = i + j * mesh_.n_[0];
           auto const pt = mesh_.pt({i, j});
-          fmt::print(out, "{:.6e} {:.6e} {:.6e}\n", pt[0], pt[1], u_[id]);
+          fmt::println(out, "{:.6e} {:.6e} {:.6e}", pt[0], pt[1], u_[id]);
         }
       std::fclose(out);
 
@@ -932,24 +932,25 @@ void ProblemFD2D::printSetup(std::string_view filename)
   std::abort();
   std::FILE * out = std::fopen(filename.data(), "w");
 
-  fmt::print(out, "name: {}\n", name_);
-  fmt::print(out, "debug: {}\n", debug_);
-  fmt::print(out, "start: {:.6e} {:.6e}\n", mesh_.start_[0], mesh_.start_[1]);
-  fmt::print(out, "end: {:.6e} {:.6e}\n", mesh_.end()[0], mesh_.end()[1]);
-  fmt::print(out, "n_elems: {} {}\n", mesh_.n_[0] - 1, mesh_.n_[1] - 1);
-  fmt::print(out, "coupling_type: {}\n", couplingType2str(couplingType_));
-  fmt::print(out, "n_vars: {}\nvar_names: ", nVars_);
+  fmt::println(out, "name: {}", name_);
+  fmt::println(out, "debug: {}", debug_);
+  fmt::println(out, "start: {:.6e} {:.6e}", mesh_.start_[0], mesh_.start_[1]);
+  fmt::println(out, "end: {:.6e} {:.6e}", mesh_.end()[0], mesh_.end()[1]);
+  fmt::println(out, "n_elems: {} {}", mesh_.n_[0] - 1, mesh_.n_[1] - 1);
+  fmt::println(out, "coupling_type: {}", couplingType2str(couplingType_));
+  fmt::println(out, "n_vars: {}", nVars_);
+  fmt::print(out, "var_names: ");
   for (auto const & varName: varNames_)
     fmt::print(out, "{} ", varName);
   fmt::print(out, "initial_value: ");
   for (uint v = 0u; v < nVars_; v++)
     fmt::print("0.0 ");
-  fmt::print(out, "\n");
+  fmt::println(out, "");
   for (auto const & [name, param]: params_.data_)
-    fmt::print(out, "params: {}\n", name);
-  fmt::print(out, "\n");
-  fmt::print(out, "\n");
-  fmt::print(out, "\n");
+    fmt::println(out, "params: {}", name);
+  fmt::println(out, "");
+  fmt::println(out, "");
+  fmt::println(out, "");
 
   std::fclose(out);
 }

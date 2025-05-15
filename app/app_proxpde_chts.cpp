@@ -27,7 +27,7 @@ struct AssemblySolid: public ProblemProXPDE::Assembly
 
   auto evaluate(ProblemProXPDE * pParent, proxpde::Builder<> & b) -> void override
   {
-    fmt::print("cht solid assembly\n");
+    fmt::println("cht solid assembly");
     auto p = dynamic_cast<ProblemProXPDEHeat *>(pParent);
 
     auto const alpha = p->params_["alpha"];
@@ -139,7 +139,7 @@ struct AssemblyFluid: public ProblemProXPDE::Assembly
 
   auto evaluate(ProblemProXPDE * pParent, proxpde::Builder<> & b) -> void override final
   {
-    fmt::print("cht fluid assembly\n");
+    fmt::println("cht fluid assembly");
     auto p = dynamic_cast<ProblemProXPDEHeat *>(pParent);
 
     auto const alpha = p->params_["alpha"];
@@ -154,8 +154,8 @@ struct AssemblyFluid: public ProblemProXPDE::Assembly
         p->bcs_);
     b.closeMatrix();
 
-    // fmt::print("gradU min: {:.6e}\n", uGrad_.data.minCoeff());
-    // fmt::print("gradU max: {:.6e}\n", uGrad_.data.maxCoeff());
+    // fmt::println("gradU min: {:.6e}", uGrad_.data.minCoeff());
+    // fmt::println("gradU max: {:.6e}", uGrad_.data.maxCoeff());
     // assembly rhs
     b.buildRhs(
         std::tuple{
@@ -313,8 +313,8 @@ struct Mapper
         }
       }
     }
-    // fmt::print("ptMapping1to2: {}\n", ptMapping1to2_);
-    // fmt::print("elemMapping1to2: {}\n", elemMapping1to2_);
+    // fmt::println("ptMapping1to2: {}", ptMapping1to2_);
+    // fmt::println("elemMapping1to2: {}", elemMapping1to2_);
   }
 
   double const tol_ = 1.e-6;
@@ -507,7 +507,7 @@ int main(int argc, char * argv[])
       assemblyFluid->uGradBC_.data = assemblyFluid->uGrad_.data;
       // assemblyFluid->uGradBC_ << proxpde::Vec2{0.0, 1.5};
 
-      fmt::print("total flux s->f: {:.6e}\n", flux);
+      fmt::println("total flux s->f: {:.6e}", flux);
       if (std::fabs(flux) > 10.)
         std::abort();
 
@@ -525,11 +525,11 @@ int main(int argc, char * argv[])
 
       // compute flux from solid
       auto const currentFluxSolid = fluxSolid.compute(pSolid->T_.data);
-      fmt::print("fluxSolid: {:.6e}\n", currentFluxSolid);
+      fmt::println("fluxSolid: {:.6e}", currentFluxSolid);
 
       // compute flux to fluid
       auto const currentFluxFluid = fluxFluid.compute(pFluid->T_.data);
-      fmt::print("fluxFluid: {:.6e}\n", currentFluxFluid);
+      fmt::println("fluxFluid: {:.6e}", currentFluxFluid);
     }
 
     pFluid->print();

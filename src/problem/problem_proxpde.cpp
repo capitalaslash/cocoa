@@ -135,7 +135,7 @@ bool ProblemProXPDE::run() { return time < finalTime_; }
 
 uint ProblemProXPDE::solve()
 {
-  fmt::print("{} - time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
+  fmt::println("{} - time = {:.6e}, dt = {:.6e}", name_, time, dt_);
 
   // update old values
   uOld_ = u_;

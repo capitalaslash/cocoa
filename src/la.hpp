@@ -153,7 +153,7 @@ struct MatrixCSR
 
   void set(int const /*row*/, int const /*clm*/, double const /*value*/)
   {
-    fmt::print(stderr, "set() is not supported in MatrixCSR!\n");
+    fmt::println(stderr, "set() is not supported in MatrixCSR!");
     std::abort();
   }
 
@@ -281,7 +281,7 @@ inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
     return FD_SOLVER_TYPE::CUSTOM;
   else
   {
-    fmt::print(stderr, "solver {} not recognized\n", name);
+    fmt::println(stderr, "solver {} not recognized", name);
     std::abort();
   }
   return FD_SOLVER_TYPE::NONE;
@@ -344,12 +344,12 @@ SolverInfo solveJacobi(
 
   VectorFD xNew(x.size());
   double const rhsNorm = std::sqrt(b.norm2sq() / n);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+  fmt::println("rhsNorm: {:.8e}", rhsNorm);
 
   for (uint i = 0; i < maxIters; i++)
   {
     double const resNorm = computeResidual(m, x, b, 1.0 / n);
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    // fmt::println("iter: {:3d}, current residual: {:.8e}", j, resNorm);
     if (resNorm < tolerance * rhsNorm)
     {
       return {i, resNorm / rhsNorm};
@@ -391,12 +391,12 @@ SolverInfo solveGaussSeidel(
   uint const n = b.size();
 
   double const rhsNorm = std::sqrt(b.norm2sq() / n);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+  fmt::println("rhsNorm: {:.8e}", rhsNorm);
 
   for (uint i = 0; i < maxIters; i++)
   {
     double const resNorm = computeResidual(m, x, b, 1.0 / n);
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    // fmt::println("iter: {:3d}, current residual: {:.8e}", j, resNorm);
     if (resNorm < tolerance * rhsNorm)
     {
       return {i, resNorm / rhsNorm};
@@ -558,13 +558,13 @@ SolverInfo solveVanka2DCB(
   uint const n = b.size();
 
   double const rhsNorm = std::sqrt(b.norm2sq() / n);
-  fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+  fmt::println("rhsNorm: {:.8e}", rhsNorm);
 
   for (uint i = 0U; i < maxIters; i++)
   {
     double const resNorm = computeResidual(m, x, b, 1.0 / n);
 
-    // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+    // fmt::println("iter: {:3d}, current residual: {:.8e}", j, resNorm);
     if (resNorm < tolerance * rhsNorm)
     {
       return {i, resNorm / rhsNorm};
@@ -588,20 +588,20 @@ SolverInfo solveVanka2DSCI(
     double const /*tolerance*/,
     uint /*maxIters*/)
 {
-  fmt::print(stderr, "solveVanka2DSCI not implemented\n");
+  fmt::println(stderr, "solveVanka2DSCI not implemented");
   std::abort();
   return {0u, 0.0};
 
   // uint const n = b.size();
 
   // double const rhsNorm = std::sqrt(norm2sq(b)  / n);
-  // fmt::print("rhsNorm: {:.8e}\n", rhsNorm);
+  // fmt::println("rhsNorm: {:.8e}", rhsNorm);
 
   // for (uint i = 0U; i < maxIters; i++)
   // {
   //   double const resNorm = computeResidual(m, x, b, 1.0 / n);
 
-  //   // fmt::print("iter: {:3d}, current residual: {:.8e}\n", j, resNorm);
+  //   // fmt::println("iter: {:3d}, current residual: {:.8e}", j, resNorm);
   //   if (resNorm < tolerance * rhsNorm)
   //   {
   //     return {i, resNorm / rhsNorm};

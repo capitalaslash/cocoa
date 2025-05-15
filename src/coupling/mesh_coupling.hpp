@@ -55,7 +55,7 @@ struct MeshSimple: public MeshCoupling
   {
     if (messageVTK_)
     {
-      fmt::print(stderr, "VTK print is not implemented in MeshSimple.\n");
+      fmt::println(stderr, "VTK print is not implemented in MeshSimple.");
       messageVTK_ = false;
     }
   }

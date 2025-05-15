@@ -29,7 +29,7 @@ std::unique_ptr<FieldCoupling> FieldCoupling::build(COUPLING_TYPE type)
 #else
   case COUPLING_TYPE::MEDCOUPLING:
   {
-    fmt::print(stderr, "MED coupling not available, reverting to Simple coupling\n");
+    fmt::println(stderr, "MED coupling not available, reverting to Simple coupling");
     return std::unique_ptr<FieldCoupling>{new FieldSimple};
     break;
   }
@@ -43,7 +43,7 @@ std::unique_ptr<FieldCoupling> FieldCoupling::build(COUPLING_TYPE type)
 #else
   case COUPLING_TYPE::OFM2M:
   {
-    fmt::print(stderr, "OFM2M coupling not available, reverting to Simple coupling\n");
+    fmt::println(stderr, "OFM2M coupling not available, reverting to Simple coupling");
     return std::unique_ptr<FieldCoupling>{new FieldSimple};
     break;
   }

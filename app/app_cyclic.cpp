@@ -67,10 +67,10 @@ int main(int argc, char * argv[])
     // - assign new bc values
     pDer->bcs_[0].bottom().values = uBottom;
 
-    fmt::print("deltaTop:    {:.6e}\n", uTop[uTop.size() - 1] - uTop[0]);
-    fmt::print("deltaBottom: {:.6e}\n", uBottom[uBottom.size() - 1] - uBottom[0]);
-    fmt::print("uTop:    {}\n", uTop);
-    fmt::print("uBottom: {}\n", uBottom);
+    fmt::println("deltaTop:    {:.6e}", uTop[uTop.size() - 1] - uTop[0]);
+    fmt::println("deltaBottom: {:.6e}", uBottom[uBottom.size() - 1] - uBottom[0]);
+    fmt::println("uTop:    {}", uTop);
+    fmt::println("uBottom: {}", uBottom);
   }
 
   return 0;

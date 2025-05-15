@@ -100,7 +100,7 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
     std::ifstream in(configFile, std::ios::in);
     if (!in)
     {
-      fmt::print(stderr, "configuration file {} not found!\n", configFile.string());
+      fmt::println(stderr, "configuration file {} not found!", configFile.string());
       std::abort();
     }
     std::string buffer;
@@ -124,7 +124,7 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
           bufferStream >> outputVTK;
         else
         {
-          fmt::print(stderr, "key {} invalid\n", token);
+          fmt::println(stderr, "key {} invalid", token);
           bufferStream >> token;
         }
       }
@@ -348,7 +348,7 @@ void ProblemOForg::print()
   }
   else
   {
-    fmt::print(stderr, "writeControl {} not supported\n", writeStyle);
+    fmt::println(stderr, "writeControl {} not supported", writeStyle);
   }
 
   if (writeVTK)

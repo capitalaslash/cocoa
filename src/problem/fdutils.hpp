@@ -33,7 +33,7 @@ inline FD_BC_TYPE str2FDBCType(std::string_view name)
     return FD_BC_TYPE::DIRICHLET;
   if (name == "neumann")
     return FD_BC_TYPE::NEUMANN;
-  fmt::print(stderr, "boundary condition type not recognized: {}\n", name);
+  fmt::println(stderr, "boundary condition type not recognized: {}", name);
   std::abort();
   return FD_BC_TYPE::NONE;
 }
@@ -200,7 +200,7 @@ inline FD_PARAM_TYPE str2FDParamType(std::string_view name)
     return SCALAR;
   else if (name == "vector")
     return VECTOR;
-  fmt::print(stderr, "param type {} not recognized\n", name);
+  fmt::println(stderr, "param type {} not recognized", name);
   std::abort();
   return INTEGER;
 }
@@ -240,7 +240,7 @@ struct ParamsFD
     // TODO: assert that the type corresponds
     if (!data_.contains(std::string(name)))
     {
-      fmt::print(stderr, "parameter {} not available\n", name);
+      fmt::println(stderr, "parameter {} not available", name);
       std::abort();
     }
     using UT = std::underlying_type_t<FD_PARAM_TYPE>;

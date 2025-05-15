@@ -95,7 +95,7 @@ struct FieldSimple: public FieldCoupling
   {
     if (messageVTK_)
     {
-      fmt::print(stderr, "VTK print is not implemented in FieldSimple.\n");
+      fmt::println(stderr, "VTK print is not implemented in FieldSimple.");
       messageVTK_ = false;
     }
   }

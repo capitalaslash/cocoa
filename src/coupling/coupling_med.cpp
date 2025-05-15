@@ -26,7 +26,7 @@ void CouplingMED::setup(Problem * src, Problem * tgt)
   remapper.prepare(meshSrc->meshPtr_, meshTgt->meshPtr_, "P1P1");
 
   auto const matrix = remapper.getCrudeMatrix();
-  // fmt::print("remapper matrix:\n{}\n", matrix);
+  // fmt::println("remapper matrix:\n{}", matrix);
 
   auto mask = std::vector<double>(matrix.size());
   for (uint k = 0; k < matrix.size(); k++)

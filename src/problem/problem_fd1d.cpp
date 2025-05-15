@@ -72,7 +72,7 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
   std::ifstream in(configFile, std::ios::in);
   if (!in)
   {
-    fmt::print(stderr, "configuration file {} not found!\n", configFile.string());
+    fmt::println(stderr, "configuration file {} not found!", configFile.string());
     std::abort();
   }
   std::string buffer;
@@ -164,7 +164,7 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
             break;
           }
           default:
-            fmt::print(stderr, "param type for {} not recognized\n", name);
+            fmt::println(stderr, "param type for {} not recognized", name);
             std::abort();
           }
         }
@@ -224,15 +224,15 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
         bufferStream >> cleanOutput_;
       else
       {
-        fmt::print(stderr, "key {} invalid\n", token);
+        fmt::println(stderr, "key {} invalid", token);
         bufferStream >> token;
       }
     }
   }
-  fmt::print("{} - equation type: {}\n", name_, eqn2str(eqnType_));
+  fmt::println("{} - equation type: {}", name_, eqn2str(eqnType_));
   assert(eqnType_ == EQN_TYPE::NONE || assemblies_.contains(eqnType_));
 
-  fmt::print("parameters: {}\n", params_);
+  fmt::println("parameters: {}", params_);
 
   // mesh
   mesh_.init({start}, {end}, {nElems});
@@ -343,8 +343,8 @@ void ProblemFD1D::advance()
 
 uint ProblemFD1D::solve()
 {
-  fmt::print("\n===\n");
-  fmt::print("{}, time = {:.6e}, dt = {:.6e}\n", name_, time, dt_);
+  fmt::println("\n===");
+  fmt::println("{}, time = {:.6e}, dt = {:.6e}", name_, time, dt_);
 
   // update
   uOld_ = u_;
@@ -379,7 +379,7 @@ uint ProblemFD1D::solve()
     }
     default:
     {
-      fmt::print(stderr, "no bc left specified!\n");
+      fmt::println(stderr, "no bc left specified!");
       std::abort();
     }
     }
@@ -409,7 +409,7 @@ uint ProblemFD1D::solve()
     }
     default:
     {
-      fmt::print(stderr, "no bc end specified!\n");
+      fmt::println(stderr, "no bc end specified!");
       std::abort();
     }
     }
@@ -424,13 +424,13 @@ uint ProblemFD1D::solve()
       solvers_.at(solverType_)(m_, rhs_, u_, tol_, maxIters_);
   fmt::print("num iters: {:4d}, ", numIters);
   double const rhsNorm = std::sqrt(rhs_.norm2sq() * mesh_.h_[0]);
-  fmt::print("relative residual: {:.8e}\n", residual / rhsNorm);
+  fmt::println("relative residual: {:.8e}", residual / rhsNorm);
 
   if (debug_)
   {
-    fmt::print("matrix: {}\n", m_);
-    fmt::print("rhs: {}\n", rhs_);
-    fmt::print("sol: {}\n", u_);
+    fmt::println("matrix: {}", m_);
+    fmt::println("rhs: {}", rhs_);
+    fmt::println("sol: {}", u_);
   }
 
   // clean up
@@ -603,7 +603,7 @@ void ProblemFD1D::print()
       for (uint k = 0u; k < mesh_.nPts(); k++)
       {
         uint const id = k + v * mesh_.nPts();
-        fmt::print(out, "{:.6e} {:.6e}\n", mesh_.pt({k})[0], u_[id]);
+        fmt::println(out, "{:.6e} {:.6e}", mesh_.pt({k})[0], u_[id]);
       }
       std::fclose(out);
 

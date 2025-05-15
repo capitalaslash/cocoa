@@ -26,7 +26,7 @@ inline MEDCoupling::TypeOfField supportType2MEDtype(SUPPORT_TYPE const support)
   case SUPPORT_TYPE::ON_CELLS:
     return MEDCoupling::ON_CELLS;
   default:
-    fmt::print(stderr, "field type not recognized\n");
+    fmt::println(stderr, "field type not recognized");
     return MEDCoupling::ON_NODES; // no default option available in MEDCoupling
   }
 }

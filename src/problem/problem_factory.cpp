@@ -52,7 +52,7 @@ Problem::build(PROBLEM_TYPE problemType, EQN_TYPE eqnType = EQN_TYPE::NONE)
 #endif
   default:
   {
-    fmt::print(stderr, "problem type not recognized\n");
+    fmt::println(stderr, "problem type not recognized");
     std::abort();
   }
   }

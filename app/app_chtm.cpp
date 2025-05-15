@@ -105,7 +105,7 @@ auto setup(ProblemFD2D * p) -> void
 
   auto const assembly = [](ProblemFD2D * p)
   {
-    fmt::print("cht assembly\n");
+    fmt::println("cht assembly");
 
     auto const nx = p->mesh_.n_[0];
     auto const ny = p->mesh_.n_[1];
@@ -226,7 +226,7 @@ auto setup(ProblemFD2D * p) -> void
 
   auto const fixBC = [](ProblemFD2D * p)
   {
-    fmt::print("fixing bcs\n");
+    fmt::println("fixing bcs");
     for (uint j = 0u; j < p->mesh_.n_[1]; j++)
     {
       auto const id = 0u + j * p->mesh_.n_[0];
