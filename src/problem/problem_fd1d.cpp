@@ -466,13 +466,13 @@ void ProblemFD1D::assemblyHeat()
     for (uint k = 0u; k < mesh_.nPts(); k++)
     {
       uint const id = k + v * mesh_.nPts();
-      auto const h = mesh_.h_[0];
+      auto const iH2 = 1.0 / (mesh_.h_[0] * mesh_.h_[0]);
 
       // diagonal
-      m_.add(id, id, 1. + 2. * alpha[v] * dt_ / (h * h));
+      m_.add(id, id, 1.0 + 2.0 * alpha[v] * dt_ * iH2);
 
       // left
-      auto const valueLeft = -alpha[v] / (h * h);
+      auto const valueLeft = -alpha[v] * dt_ * iH2;
       if (k > 0u)
         m_.add(id, id - 1, valueLeft);
       else
@@ -482,7 +482,7 @@ void ProblemFD1D::assemblyHeat()
       }
 
       // right
-      auto const valueRight = -alpha[v] / (h * h);
+      auto const valueRight = -alpha[v] * dt_ * iH2;
       if (k < mesh_.nPts() - 1)
         m_.add(id, id + 1, valueRight);
       else
@@ -510,19 +510,20 @@ void ProblemFD1D::assemblyHeatCoupled()
   std::copy(dataPtr, dataPtr + mesh_.nPts(), uExt.data());
 
   double const kAmpli = 10.;
-  auto const h = mesh_.h_[0];
+  auto const iH2 = 1.0 / (mesh_.h_[0] * mesh_.h_[0]);
   for (uint k = 0u; k < mesh_.nPts(); k++)
   {
     // diagonal
     m_.add(
         k,
         k,
-        1. / dt_                   // time
-            + alpha * 2. / (h * h) // diffusion
-            + kAmpli);
+        1. / dt_               // time
+            + alpha * 2. * iH2 // diffusion
+            + kAmpli           // feedback control
+    );
 
     // left
-    auto const valueLeft = -alpha / (h * h); // diffusion
+    auto const valueLeft = -alpha * iH2; // diffusion
     if (k > 0u)
       m_.add(k, k - 1, valueLeft);
     else
@@ -532,7 +533,7 @@ void ProblemFD1D::assemblyHeatCoupled()
     }
 
     // right
-    auto const valueRight = -alpha / (h * h); // diffusion
+    auto const valueRight = -alpha * iH2; // diffusion
     if (k < mesh_.nPts() - 1)
       m_.add(k, k + 1, valueRight);
     else
