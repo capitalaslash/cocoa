@@ -19,9 +19,9 @@ struct Problem
   using ConfigList_T = std::unordered_map<std::string, std::filesystem::path>;
 
   Problem() = default;
-  Problem(PROBLEM_TYPE type, COUPLING_TYPE couplingType):
-      type_{type},
-      couplingType_{couplingType}
+  Problem(PROBLEM_TYPE type, COUPLING_TYPE couplingType)
+      : type_{type}
+      , couplingType_{couplingType}
   {}
   virtual ~Problem() = default;
 

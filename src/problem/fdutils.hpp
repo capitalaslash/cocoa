@@ -59,18 +59,18 @@ struct FDBC
   FDBC() = default;
   ~FDBC() = default;
 
-  FDBC(FD_BC_SIDE s, FD_BC_TYPE const t, double const value, size_t const size = 1u):
-      side{s},
-      type{t},
-      values(size, value),
-      ghostValues(size, 0.0)
+  FDBC(FD_BC_SIDE s, FD_BC_TYPE const t, double const value, size_t const size = 1u)
+      : side{s}
+      , type{t}
+      , values(size, value)
+      , ghostValues(size, 0.0)
   {}
 
-  FDBC(FD_BC_SIDE s, FD_BC_TYPE const t, VectorFD const & v):
-      side{s},
-      type{t},
-      values{v},
-      ghostValues(v.size(), 0.0)
+  FDBC(FD_BC_SIDE s, FD_BC_TYPE const t, VectorFD const & v)
+      : side{s}
+      , type{t}
+      , values{v}
+      , ghostValues(v.size(), 0.0)
   {}
 
   auto

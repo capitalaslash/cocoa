@@ -74,9 +74,8 @@ auto setup(ProblemProXPDEHeat * p) -> void
   p->fieldsP0_.at("q") << 0.0;
   p->feSpaceVel_.init(p->mesh_);
   p->vel_.init("vel", p->feSpaceVel_);
-  p->vel_ << [](proxpde::Vec3 const & p) {
-    return proxpde::Vec2{4.0 * p[1] * (0.75 - p[1]), 0.0};
-  };
+  p->vel_ << [](proxpde::Vec3 const & p)
+  { return proxpde::Vec2{4.0 * p[1] * (0.75 - p[1]), 0.0}; };
 
   // bcs
   p->bcs_ = std::vector{

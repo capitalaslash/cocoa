@@ -30,8 +30,8 @@ std::unique_ptr<Problem> ProblemProXPDE::build(EQN_TYPE const type)
   }
 }
 
-ProblemProXPDE::ProblemProXPDE():
-    Problem{PROBLEM_TYPE::PROXPDE, COUPLING_TYPE::MEDCOUPLING}
+ProblemProXPDE::ProblemProXPDE()
+    : Problem{PROBLEM_TYPE::PROXPDE, COUPLING_TYPE::MEDCOUPLING}
 {}
 
 template <typename Mesh>
