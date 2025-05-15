@@ -51,12 +51,21 @@ set(LIB_DEPENDENCIES
 # options ==============================================================
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." OFF)
 option(COCOA_ENABLE_OFORG "Enable OpenFOAM (org version)." OFF)
 option(COCOA_ENABLE_MEDCOUPLING "Enable MEDCoupling coupling." OFF)
 option(COCOA_ENABLE_PROXPDE "Enable ProXPDE library." OFF)
 option(COCOA_ENABLE_PYTHON "Enable python bindings." OFF)
 option(COCOA_ENABLE_TESTS "Enable tests." ON)
 option(COCOA_FETCH_FMT "Get libfmt from the web" OFF)
+
+if (${FORCE_COLORED_OUTPUT})
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    add_compile_options (-fdiagnostics-color=always)
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    add_compile_options (-fcolor-diagnostics)
+  endif ()
+endif ()
 
 
 # external dependencies ================================================
