@@ -269,6 +269,8 @@ inline FD_SOLVER_TYPE str2fdsolver(std::string_view name)
     return FD_SOLVER_TYPE::JACOBI;
   else if (name == "cg")
     return FD_SOLVER_TYPE::CG;
+  else if (name == "bicgstab")
+    return FD_SOLVER_TYPE::BICGSTAB;
   else if (name == "tridiag")
     return FD_SOLVER_TYPE::TRIDIAG;
   else if (name == "vanka1d")
