@@ -438,6 +438,11 @@ SolverInfo solveConjugateGradient(
   auto r = b;
   r -= m * x;
 
+  // if residual is already below tolerance, exit early
+  auto const rNorm2 = r.norm2sq();
+  if (rNorm2 < tolerance * tolerance)
+    return {0u, std::sqrt(rNorm2)};
+
   auto p = r;
   auto rsOld = dot(r, r);
 
@@ -477,6 +482,12 @@ SolverInfo solveBiCGStab(
   // initial residual
   auto r = b;
   r -= m * x;
+
+  // if residual is already below tolerance, exit early
+  auto const rNorm2 = r.norm2sq();
+  if (rNorm2 < tolerance * tolerance)
+    return {0u, std::sqrt(rNorm2)};
+
   auto rHat = r;
   auto rhoOld = 1.0;
   auto alpha = 1.0;
