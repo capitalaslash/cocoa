@@ -24,7 +24,7 @@ struct ProblemFD2D: public Problem
   virtual ~ProblemFD2D();
 
   void setup(Problem::ConfigList_T const & configs) override;
-  bool run() override;
+  bool run() const override;
   void advance() override;
   uint solve() override;
   void print() override;

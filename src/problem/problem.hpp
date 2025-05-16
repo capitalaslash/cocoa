@@ -29,7 +29,7 @@ struct Problem
   virtual ~Problem() = default;
 
   virtual void setup(ConfigList_T const & configs) = 0;
-  virtual bool run() = 0;
+  virtual bool run() const = 0;
   virtual void advance() = 0;
   virtual uint solve() = 0;
   virtual void print() = 0;

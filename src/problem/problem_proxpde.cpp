@@ -131,7 +131,7 @@ void ProblemProXPDE::advance()
   it++;
 }
 
-bool ProblemProXPDE::run() { return time < finalTime_; }
+bool ProblemProXPDE::run() const { return time < finalTime_; }
 
 uint ProblemProXPDE::solve()
 {

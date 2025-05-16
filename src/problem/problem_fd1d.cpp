@@ -325,7 +325,7 @@ void ProblemFD1D::initOutput()
   std::filesystem::create_directories(outputPrefix_);
 }
 
-bool ProblemFD1D::run() { return time < finalTime_; }
+bool ProblemFD1D::run() const { return time < finalTime_; }
 
 void ProblemFD1D::advance()
 {

@@ -39,7 +39,7 @@ struct ProblemProXPDE: public Problem
 
   virtual void setup(Problem::ConfigList_T const & configs) override = 0;
   void advance() override final;
-  bool run() override final;
+  bool run() const override final;
   virtual uint solve() override;
   virtual void print() override = 0;
 

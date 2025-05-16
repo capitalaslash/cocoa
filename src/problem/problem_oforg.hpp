@@ -37,7 +37,7 @@ struct ProblemOForg: public Problem
   ~ProblemOForg() { Foam::Info << "End\n" << Foam::endl; }
 
   void setup(Problem::ConfigList_T const & configs) override;
-  bool run() override;
+  bool run() const override;
   void advance() override;
   uint solve() override;
   void print() override;

@@ -255,7 +255,7 @@ void ProblemOForg::setDataMED(std::string_view fieldName, Field const & field)
   }
 }
 
-bool ProblemOForg::run() { return pimple_->run(*runTime_); }
+bool ProblemOForg::run() const { return pimple_->run(*runTime_); }
 
 void ProblemOForg::advance()
 {

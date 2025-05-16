@@ -23,7 +23,7 @@ struct ProblemFD1D: public Problem
   ~ProblemFD1D();
 
   void setup(Problem::ConfigList_T const & configs) override;
-  bool run() override;
+  bool run() const override;
   void advance() override;
   uint solve() override;
   void print() override;

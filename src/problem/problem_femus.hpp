@@ -23,7 +23,7 @@ struct ProblemFEMUS: public Problem
   {
     fmt::println("ProblemFEMUS::setup() -> init mesh");
   }
-  bool run() override { return false; }
+  bool run() const override { return false; }
   uint solve() override {}
 
   // FEMUSMesh mesh_;
