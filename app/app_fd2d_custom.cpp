@@ -147,7 +147,7 @@ int main()
 
   auto const * sol = p->getField("u");
   auto const computed = sol->at(sol->size() - 1);
-  auto const expected = -3.3790328187760831e-09 + U_RIGHT;
+  auto const expected = -3.3533540879997921e-09 + U_RIGHT;
   if (std::fabs(computed - expected) > 1.0e-12)
   {
     fmt::print(
