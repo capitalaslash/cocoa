@@ -6,7 +6,7 @@ endif()
 
 project(cocoa
   VERSION 0.1
-  LANGUAGES CXX
+  LANGUAGES CXX C
 )
 
 message(STATUS "Version: ${PROJECT_VERSION}")
@@ -123,6 +123,14 @@ endif()
 
 # medcoupling ---
 if (COCOA_ENABLE_MEDCOUPLING)
+  find_package(HDF5 REQUIRED)
+  if (TARGET hdf5::hdf5-shared)
+    message(STATUS "hdf5::hdf5-shared found")
+  elseif (TARGET hdf5::hdf5)
+    add_library(hdf5::hdf5-shared ALIAS hdf5::hdf5)
+  else()
+    message(FATAL_ERROR "hdf5::hdf5-shared not found")
+  endif()
   find_package(MEDCoupling REQUIRED
     PATHS
       ${CMAKE_SOURCE_DIR}/contrib/medcoupling/cmake_files
