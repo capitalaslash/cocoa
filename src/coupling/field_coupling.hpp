@@ -23,6 +23,19 @@ enum struct SUPPORT_TYPE : uint8_t
   ON_CELLS,
 };
 
+static constexpr SUPPORT_TYPE str2SupportType(std::string_view type)
+{
+  using enum SUPPORT_TYPE;
+  if (type == "on_nodes")
+    return ON_NODES;
+  else if (type == "on_cells")
+    return ON_CELLS;
+  fmt::println(stderr, "support type {} not recognized", std::string{type});
+  std::abort();
+
+  return NONE;
+}
+
 struct FieldCoupling
 {
   FieldCoupling() = default;
@@ -35,7 +48,7 @@ struct FieldCoupling
   virtual double at(size_t k) const = 0;
   // virtual std::vector<double> getData() = 0;
   virtual void
-  init(std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support) = 0;
+  init(std::string_view name, MeshCoupling const * mesh, SUPPORT_TYPE support) = 0;
   virtual void initIO(std::filesystem::path const & prefix)
   {
     prefix_ = prefix;
@@ -74,8 +87,8 @@ struct FieldSimple: public FieldCoupling
 
   virtual void init(
       std::string_view name,
-      MeshCoupling * /*mesh*/,
-      SUPPORT_TYPE const supportType) override
+      MeshCoupling const * /*mesh*/,
+      SUPPORT_TYPE supportType) override
   {
     name_ = name;
     supportType_ = supportType;

@@ -21,3 +21,5 @@ vel: [0.0, 0.0]
 bcs:
   - label: 1
     value: 0.0
+
+output: output_proxpde_heat

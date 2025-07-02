@@ -24,9 +24,6 @@ auto setup(ProblemFD2D * p) -> void
   // mesh
   p->mesh_ = MeshFD2D({0.0, 0.0}, {1.0, 1.0}, {80u, 80u});
 
-  // coupling
-  p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-
   // fields
   p->nVars_ = 1u;
   p->varNames_ = {"u"};
@@ -36,8 +33,6 @@ auto setup(ProblemFD2D * p) -> void
 
   // io setup
   p->outputPrefix_ = "output_chtm";
-  p->initMeshCoupling();
-  p->initFieldCoupling();
   std::filesystem::create_directories(p->outputPrefix_);
 
   // parameters

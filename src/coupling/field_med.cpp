@@ -26,7 +26,7 @@ FieldMED::~FieldMED()
 // std::vector<double> FieldMED::getData() override { return data_; }
 
 void FieldMED::init(
-    std::string_view name, MeshCoupling * mesh, SUPPORT_TYPE const support)
+    std::string_view name, MeshCoupling const * mesh, SUPPORT_TYPE support)
 {
   name_ = name;
   fieldPtr_ = MEDCoupling::MEDCouplingFieldDouble::New(
@@ -38,7 +38,7 @@ void FieldMED::init(
   fieldPtr_->setName(std::string{name});
   fieldPtr_->setTimeUnit("s");
   fieldPtr_->setTime(0.0, 0, -1);
-  fieldPtr_->setMesh(dynamic_cast<MeshMED *>(mesh)->meshPtr_);
+  fieldPtr_->setMesh(dynamic_cast<MeshMED const *>(mesh)->meshPtr_);
 }
 
 void FieldMED::setValues(std::span<const double> data, uint const dim)
@@ -61,10 +61,10 @@ void FieldMED::setValues(double value, uint size, uint const dim)
 
 void FieldMED::printVTK(double time, uint iter)
 {
-  auto const filename = fmt::format("{}_med.{}", (prefix_ / name_).string(), iter);
+  auto const filename = fmt::format("{}.{}", (prefix_ / name_).string(), iter);
   frames.push_back(Frame{iter, time});
   fieldPtr_->setTime(time, iter, -1);
-  fieldPtr_->writeVTK(filename, false);
+  fieldPtr_->writeVTK(filename, /*binary*/ false);
   printPVD();
 }
 
@@ -72,22 +72,22 @@ void FieldMED::printPVD() const
 {
   auto const filenamePVD = fmt::format("{}.pvd", (prefix_ / name_).string());
   std::FILE * out = std::fopen(filenamePVD.c_str(), "w");
-  fmt::print(
+  fmt::println(
       out,
       "<VTKFile type=\"Collection\" version=\"1.0\" byte_order=\"LittleEndian\" "
-      "header_type=\"UInt64\">\n");
-  fmt::print(out, "  <Collection>\n");
+      "header_type=\"UInt64\">");
+  fmt::println(out, "  <Collection>");
   for (auto const & frame: frames)
   {
-    auto const filename = fmt::format("{}_med.{}.vtu", name_, frame.iter);
-    fmt::print(
+    auto const filename = fmt::format("{}.{}.vtu", name_, frame.iter);
+    fmt::println(
         out,
-        "    <DataSet timestep=\"{:.6e}\" part=\"0\" file=\"{}\"/>\n",
+        "    <DataSet timestep=\"{:.6e}\" part=\"0\" file=\"{}\"/>",
         frame.time,
         filename);
   }
-  fmt::print(out, "  </Collection>\n");
-  fmt::print(out, "</VTKFile>\n");
+  fmt::println(out, "  </Collection>");
+  fmt::println(out, "</VTKFile>");
   std::fclose(out);
 }
 

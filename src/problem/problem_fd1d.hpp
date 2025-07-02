@@ -3,6 +3,7 @@
 // std
 #include <functional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 // local
@@ -28,8 +29,15 @@ struct ProblemFD1D: public Problem
   uint solve() override;
   void print() override;
 
-  void initMeshCoupling();
-  void initFieldCoupling();
+  std::vector<std::string> varNames() override { return varNames_; }
+  Marker findRegion(std::string_view name) override;
+
+  std::unique_ptr<MeshCoupling> initMeshCoupling(COUPLING_TYPE type) override;
+  std::unique_ptr<FieldCoupling> initFieldCoupling(
+      COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh) override;
+  void setFieldData(FieldCoupling * field) override;
+  void getFieldData(FieldCoupling const & field) override;
+
   void initOutput();
 
   void assemblyHeat();
@@ -55,7 +63,6 @@ struct ProblemFD1D: public Problem
   std::vector<FDBCList1D> bcs_;
   bool cleanOutput_ = false;
   std::filesystem::path outputPrefix_ = "./output_fd1d";
-  std::string nameExt_ = "uExternal";
   std::unordered_map<EQN_TYPE, Assembly_T> assemblies_;
 
   static std::unordered_map<FD_SOLVER_TYPE, Solver_T<Matrix_T>> solvers_;

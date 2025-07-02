@@ -19,6 +19,10 @@
 namespace cocoa
 {
 
+// Marker ============================================================
+using Marker = std::uint32_t;
+static constexpr Marker markerNotSet = -1;
+
 // coupling enum =======================================================
 enum struct COUPLING_TYPE : uint8_t
 {
@@ -28,20 +32,34 @@ enum struct COUPLING_TYPE : uint8_t
   OFM2M,
 };
 
-inline COUPLING_TYPE str2coupling(std::string_view name)
+enum struct COUPLING_SCOPE : uint8_t
 {
+  NONE = 0u,
+  VOLUME,
+  BOUNDARY,
+};
+
+enum struct COUPLING_SIDE : uint8_t
+{
+  SRC = 0u,
+  TGT = 1u,
+};
+
+inline COUPLING_TYPE str2couplingType(std::string_view name)
+{
+  using enum COUPLING_TYPE;
   if (name == "simple")
-    return COUPLING_TYPE::SIMPLE;
+    return SIMPLE;
   else if (name == "medcoupling")
-    return COUPLING_TYPE::MEDCOUPLING;
+    return MEDCOUPLING;
   else if (name == "ofm2m")
-    return COUPLING_TYPE::OFM2M;
+    return OFM2M;
   else
   {
     fmt::println(stderr, "Coupling type {} not recognized!", name);
     std::abort();
   }
-  return COUPLING_TYPE::NONE;
+  return NONE;
 }
 
 inline std::string couplingType2str(COUPLING_TYPE const type)
@@ -58,6 +76,21 @@ inline std::string couplingType2str(COUPLING_TYPE const type)
   default:
     return "none";
   }
+}
+
+inline COUPLING_SCOPE str2couplingScope(std::string_view name)
+{
+  using enum COUPLING_SCOPE;
+  if (name == "volume")
+    return VOLUME;
+  else if (name == "boundary")
+    return BOUNDARY;
+  else
+  {
+    fmt::println(stderr, "Coupling scope {} not recognized!", name);
+    std::abort();
+  }
+  return NONE;
 }
 
 // problem enum ========================================================

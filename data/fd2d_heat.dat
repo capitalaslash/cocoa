@@ -2,7 +2,6 @@ name: fd2d_heat
 start: 0.0 0.0
 end: 1.0 1.0
 n_elems: 10 10
-coupling_type: simple
 n_vars: 1
 var_names: u
 initial_value: 1.0

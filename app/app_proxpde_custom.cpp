@@ -51,10 +51,6 @@ auto setup(ProblemProXPDEHeat * p) -> void
 
   // mesh
   proxpde::readMesh(p->mesh_, config["mesh"]);
-  p->initMeshMED(p->name_, p->mesh_);
-
-  // coupling
-  p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
 
   // time
   p->time = 0.0;
@@ -86,14 +82,6 @@ auto setup(ProblemProXPDEHeat * p) -> void
   // io
   p->io_.init(p->feSpace_, "output_" + p->name_ + "/T");
   p->ioP0_.init(p->feSpaceP0_, "output_" + p->name_ + "/fields");
-
-  // coupling - again
-  p->couplingExport_.push_back("Tcfd");
-  p->initFieldMED(p->couplingExport_[0], "output_" + p->name_);
-  p->setDataMED(p->couplingExport_[0], p->T_.data, p->feSpace_);
-
-  p->initFieldMED("vel", "output_" + p->name_);
-  p->setDataMED("vel", p->vel_.data, p->feSpaceVel_);
 
   // assembly
   [[maybe_unused]] auto const & [_, success] =

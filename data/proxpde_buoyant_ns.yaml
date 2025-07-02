@@ -17,6 +17,8 @@ final_time: 2.0
 
 viscosity: 0.1
 
+additional_fields_p1: [T]
+
 bcs:
   - label: 1
     value: [0.0, 0.0]
@@ -26,3 +28,5 @@ bcs:
     value: [0.0, 0.0]
   - label: 4
     value: [0.0, 0.0]
+
+output: output_buoyant_ns

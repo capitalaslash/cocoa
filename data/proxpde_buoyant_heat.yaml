@@ -17,10 +17,11 @@ final_time: 2.0
 alpha: 0.5
 q: 0.0
 vel: [0.0, 0.0]
-import_names: [vel]
 
 bcs:
   - label: 2
     value: 0.0
   - label: 4
     value: 1.0
+
+output: output_buoyant_heat

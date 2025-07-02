@@ -61,7 +61,7 @@ std::unique_ptr<MeshCoupling> MeshCoupling::build(COUPLING_TYPE type)
 
 std::unique_ptr<MeshCoupling> MeshCoupling::build(std::string_view couplingType)
 {
-  return MeshCoupling::build(str2coupling(couplingType));
+  return MeshCoupling::build(str2couplingType(couplingType));
 }
 
 } // namespace cocoa

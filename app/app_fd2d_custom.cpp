@@ -14,10 +14,6 @@ auto setup(ProblemFD2D * p) -> void
   // mesh
   p->mesh_ = MeshFD2D({0.0, 0.0}, {1.0, 1.0}, {20u, 20u});
 
-  // coupling
-  // p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-  p->couplingType_ = COUPLING_TYPE::SIMPLE;
-
   // fields
   p->nVars_ = 1u;
   p->varNames_ = {"u"};
@@ -125,8 +121,6 @@ auto setup(ProblemFD2D * p) -> void
   p->eqnType_ = EQN_TYPE::CUSTOM;
 
   p->outputPrefix_ = "output_fd2d_custom";
-  p->initMeshCoupling();
-  p->initFieldCoupling();
   p->cleanOutput_ = true;
   p->initOutput();
 }
@@ -145,8 +139,9 @@ int main()
     p->print();
   }
 
-  auto const * sol = p->getField("u");
-  auto const computed = sol->at(sol->size() - 1);
+  auto pDer = dynamic_cast<ProblemFD2D *>(p.get());
+  auto const & sol = pDer->u_;
+  auto const computed = sol[sol.size() - 1];
   auto const expected = -3.3533540879997921e-09 + U_RIGHT;
   if (std::fabs(computed - expected) > 1.0e-12)
   {

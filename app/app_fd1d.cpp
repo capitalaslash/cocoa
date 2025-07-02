@@ -1,5 +1,6 @@
 // local
 #include "problem/problem.hpp"
+#include "problem/problem_fd1d.hpp"
 
 int main()
 {
@@ -17,8 +18,9 @@ int main()
     p->print();
   }
 
-  auto const * sol = p->getField("T");
-  auto const computed = sol->at(sol->size() - 1);
+  auto pDer = dynamic_cast<ProblemFD1D *>(p.get());
+  auto const & sol = pDer->u_;
+  auto const computed = sol[sol.size() - 1];
   auto const expected = -2.5330183695843534e-06;
   if (std::fabs(computed - expected) > 1.e-12)
   {

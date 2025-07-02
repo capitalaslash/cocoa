@@ -10,9 +10,6 @@ def setup(p: cocoa.ProblemFD2D):
     # mesh
     p.mesh = cocoa.MeshFD2D((0.0, 0.0), (1.0, 1.0), (10, 10))
 
-    # coupling
-    p.coupling_type = cocoa.COUPLING_TYPE.medcoupling
-
     # fields
     p.n_vars = 1
     size = p.mesh.n_pts * p.n_vars

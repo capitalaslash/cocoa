@@ -14,9 +14,6 @@ auto setup(ProblemFD1D * p) -> void
   // mesh
   p->mesh_ = MeshFD1D({0.0}, {1.0}, {100});
 
-  // coupling
-  p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-
   // fields
   p->nVars_ = 1u;
   p->varNames_ = {"u"};
@@ -91,8 +88,6 @@ auto setup(ProblemFD1D * p) -> void
   p->eqnType_ = EQN_TYPE::CUSTOM;
 
   p->outputPrefix_ = "output_fd1d_custom";
-  p->initMeshCoupling();
-  p->initFieldCoupling();
   std::filesystem::create_directories(p->outputPrefix_);
 }
 
@@ -111,9 +106,10 @@ int main()
     p->print();
   }
 
-  auto const * sol = p->getField("u");
-  auto const computed = sol->at(sol->size() - 1);
-  auto const expected = U_RIGHT - 8.1645061956362504e-09;
+  auto pDer = dynamic_cast<ProblemFD1D *>(p.get());
+  auto const & sol = pDer->u_;
+  auto const computed = sol[sol.size() - 1];
+  auto const expected = U_RIGHT - 8.1273865822693304e-09;
   if (std::fabs(computed - expected) > 1.e-12)
   {
     fmt::print(

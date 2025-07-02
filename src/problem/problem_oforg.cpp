@@ -17,6 +17,8 @@
 namespace cocoa
 {
 
+bool ProblemOForg::argInit = true;
+
 void ProblemOForg::setup(Problem::ConfigList_T const & configs)
 {
   // read case dir
@@ -35,7 +37,10 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
 
   Foam::argList::addOption("solver", "name", "Solver name");
 
-  Foam::argList args(argc, argv);
+  Foam::argList args(
+      argc, argv, /*checkArgs*/ true, /*checkOpts*/ true, /*initialize*/ argInit);
+  // default argList options should be initialized only once
+  argInit = false;
 
   if (!args.checkRootCase())
   {
@@ -77,8 +82,6 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
       *runTime_,
       Foam::IOobject::MUST_READ}});
 
-  initMeshMED("mesh_oforg");
-
   // Instantiate the selected solver
   solverPtr_ = Foam::solver::New(solverName_, *mesh_);
   // Foam::solver & solver = solverPtr();
@@ -89,7 +92,8 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
   // Set the initial time-step
   setDeltaT(*runTime_, *solverPtr_);
 
-  std::string outputVTK = "./output_oforg";
+  std::vector<std::pair<std::string, OFFIELD_TYPE>> namesExport = {};
+  outputVTK_ = "./output_oforg";
   if (configs.contains("config_file"))
   {
     auto const & configFileVariant = configs.at("config_file");
@@ -113,15 +117,15 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
         if (token == "scalar_vars:")
           while (std::getline(bufferStream, token, ' '))
           {
-            namesExport_.emplace_back(token, OFFIELD_TYPE::SCALAR);
+            namesExport.emplace_back(token, OFFIELD_TYPE::SCALAR);
           }
         else if (token == "vector_vars:")
           while (std::getline(bufferStream, token, ' '))
           {
-            namesExport_.emplace_back(token, OFFIELD_TYPE::VECTOR);
+            namesExport.emplace_back(token, OFFIELD_TYPE::VECTOR);
           }
         else if (token == "output_vtk:")
-          bufferStream >> outputVTK;
+          bufferStream >> outputVTK_;
         else
         {
           fmt::println(stderr, "key {} invalid", token);
@@ -131,29 +135,13 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
     }
   }
 
-  for (auto const & [name, type]: namesExport_)
+  meshExport_ = initMeshCoupling(COUPLING_TYPE::MEDCOUPLING);
+
+  for (auto const & [name, type]: namesExport)
   {
-    initFieldMED(name, outputVTK + "/" + name);
-    switch (type)
-    {
-    case OFFIELD_TYPE::SCALAR:
-    {
-      Foam::volScalarField const & field =
-          mesh_->lookupObject<Foam::volScalarField>(name);
-      setDataMED(name, field);
-      break;
-    }
-    case OFFIELD_TYPE::VECTOR:
-    {
-      Foam::volVectorField const & field =
-          mesh_->lookupObject<Foam::volVectorField>(name);
-      setDataMED(name, field);
-      break;
-    }
-    default:
-      std::abort();
-    }
-    getField(name)->printVTK(0.0, 0);
+    auto const & [it, success] = fieldsExport_.emplace(
+        name, initFieldCoupling(COUPLING_TYPE::MEDCOUPLING, name, meshExport_.get()));
+    assert(success);
   }
 
   // field_.reset(new Foam::volScalarField{
@@ -175,8 +163,10 @@ static std::unordered_map<uint8_t, std::array<uint, 8U>> connOF2MED = {
     {8U, {0U, 1U, 3U, 2U, 4U, 5U, 7U, 6U}}, // HEX8
 };
 
-void ProblemOForg::initMeshMED(std::string_view meshName)
+std::unique_ptr<MeshCoupling> ProblemOForg::initMeshCoupling(COUPLING_TYPE type)
 {
+  assert(type == COUPLING_TYPE::MEDCOUPLING);
+
   // // boundary
   //   Foam::label patchId = mesh_->boundaryMesh().findPatchID("name");
   //   const Foam::polyPatch & namePolyPatch = mesh_->boundaryMesh()[patchId];
@@ -210,50 +200,49 @@ void ProblemOForg::initMeshMED(std::string_view meshName)
   offsets[0] = 0;
   forAll(mesh_->cells(), cellId) { offsets[cellId + 1] = offsets[cellId] + 8 + 1; }
 
-  couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-  meshCoupling_ = MeshCoupling::build(couplingType_);
-  meshCoupling_->init(meshName, 3U, 3U, coords, conn, offsets);
-  meshCoupling_->printVTK(prefix_ / "mesh_oforg");
+  auto mesh = MeshCoupling::build(type);
+  mesh->init("mesh_oforg", 3u, 3u, coords, conn, offsets);
+  // mesh->printVTK(prefix_ / "mesh_oforg");
+
+  return mesh;
 }
 
-// TODO: move to Problem since it does not require any specific knowledge of the
-// specific type
-void ProblemOForg::initFieldMED(std::string_view name, std::filesystem::path prefix)
+std::unique_ptr<FieldCoupling> ProblemOForg::initFieldCoupling(
+    COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh)
 {
-  auto [kvPair, success] =
-      fieldsCoupling_.emplace(name, FieldCoupling::build(COUPLING_TYPE::MEDCOUPLING));
-  assert(success);
-  kvPair->second->init(name, meshCoupling_.get(), SUPPORT_TYPE::ON_CELLS);
-  kvPair->second->initIO(prefix);
+  auto field = FieldCoupling::build(type);
+  field->init(name, mesh, SUPPORT_TYPE::ON_CELLS);
+  setFieldData(field.get());
+  field->initIO(outputVTK_);
+  return field;
 }
 
-template <typename Field>
-void ProblemOForg::setDataMED(std::string_view fieldName, Field const & field)
+void ProblemOForg::setFieldData(FieldCoupling * fieldTgt)
 {
-  // static_assert(std::is_same_v<Field, Foam::GeometricField>);
-  std::vector<double> data;
-  if constexpr (std::is_same_v<typename Field::value_type, Foam::scalar>)
+  if (fieldTgt->name_ == "U")
   {
-    data.resize(field.size());
-    forAll(mesh_->cells(), cellId) { data[cellId] = field[cellId]; }
-    getField(fieldName)->setValues(data, 1U);
-  }
-  else if constexpr (std::is_same_v<typename Field::value_type, Foam::vector>)
-  {
-    std::vector<double> data(field.size() * 3U);
+    Foam::volVectorField const & fieldSrc =
+        mesh_->lookupObject<Foam::volVectorField>(fieldTgt->name_);
+    std::vector<double> data(fieldSrc.size() * 3U);
     forAll(mesh_->cells(), cellId)
     {
-      data[3 * cellId + 0] = field[cellId][0];
-      data[3 * cellId + 1] = field[cellId][1];
-      data[3 * cellId + 2] = field[cellId][2];
+      data[3 * cellId + 0] = fieldSrc[cellId][0];
+      data[3 * cellId + 1] = fieldSrc[cellId][1];
+      data[3 * cellId + 2] = fieldSrc[cellId][2];
     }
-    getField(fieldName)->setValues(data, 3U);
+    fieldTgt->setValues(data, 3u);
   }
   else
   {
-    std::abort();
+    Foam::volScalarField const & fieldSrc =
+        mesh_->lookupObject<Foam::volScalarField>(fieldTgt->name_);
+    std::vector<double> data(fieldSrc.size());
+    forAll(mesh_->cells(), cellId) { data[cellId] = fieldSrc[cellId]; }
+    fieldTgt->setValues(data, 1u);
   }
 }
+
+void ProblemOForg::getFieldData(FieldCoupling const & field) { std::abort(); }
 
 bool ProblemOForg::run() const { return pimple_->run(*runTime_); }
 
@@ -292,29 +281,6 @@ uint ProblemOForg::solve()
   time += runTime_->deltaTValue();
   it++;
 
-  for (auto const & [name, type]: namesExport_)
-  {
-    switch (type)
-    {
-    case OFFIELD_TYPE::SCALAR:
-    {
-      Foam::volScalarField const & field =
-          mesh_->lookupObject<Foam::volScalarField>(name);
-      setDataMED(name, field);
-      break;
-    }
-    case OFFIELD_TYPE::VECTOR:
-    {
-      Foam::volVectorField const & field =
-          mesh_->lookupObject<Foam::volVectorField>(name);
-      setDataMED(name, field);
-      break;
-    }
-    default:
-      std::abort();
-    }
-  }
-
   // TODO: extract the number of iterations
   return 0u;
 }
@@ -327,14 +293,16 @@ void ProblemOForg::print()
              << "  ClockTime = " << runTime_->elapsedClockTime() << " s" << Foam::nl
              << Foam::endl;
 
-  bool writeVTK = false;
   Foam::word const writeStyle = runTime_->controlDict().lookup("writeControl");
   if (writeStyle == "timeStep")
   {
     Foam::label writeInterval =
         runTime_->controlDict().lookupOrDefault("writeInterval", 1);
+
     if (it % writeInterval == 0)
-      writeVTK = true;
+    {
+      printVTK();
+    }
   }
   else if (writeStyle == "runTime")
   {
@@ -342,20 +310,39 @@ void ProblemOForg::print()
         runTime_->controlDict().lookupOrDefault("writeInterval", 1.0);
     if (lastPrint_ + dtWrite > time - 1.e-12)
     {
-      writeVTK = true;
       lastPrint_ = time;
+      printVTK();
     }
   }
   else
   {
     fmt::println(stderr, "writeControl {} not supported", writeStyle);
   }
+}
 
-  if (writeVTK)
-    for (auto const & [name, type]: namesExport_)
+void ProblemOForg::printVTK()
+{
+  for (auto const & [name, field]: fieldsExport_)
+  {
+    setFieldData(field.get());
+    field->printVTK(time, it);
+  }
+}
+
+Marker ProblemOForg::findRegion(std::string_view name)
+{
+  const Foam::fvPatchList & patches = mesh_->boundary();
+  for (auto const & patch: patches)
+  {
+    if (patch.name() == name)
     {
-      getField(name)->printVTK(time, it);
+      return patch.index();
     }
+  }
+
+  fmt::println("region {} not recognized", name);
+  std::abort();
+  return markerNotSet;
 }
 
 void setDeltaT(Foam::Time & runTime, const Foam::solver & solver)

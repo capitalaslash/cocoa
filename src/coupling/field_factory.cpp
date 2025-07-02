@@ -57,7 +57,7 @@ std::unique_ptr<FieldCoupling> FieldCoupling::build(COUPLING_TYPE type)
 
 std::unique_ptr<FieldCoupling> FieldCoupling::build(std::string_view couplingType)
 {
-  return FieldCoupling::build(str2coupling(couplingType));
+  return FieldCoupling::build(str2couplingType(couplingType));
 }
 
 } // namespace cocoa

@@ -14,9 +14,6 @@ p1.set_source(source)
 p2 = cocoa.ProblemProXPDEHeat()
 p2.setup(config_file="proxpde_hc.yaml")
 
-print(f"coupling type: {p1.coupling_type}")
-assert p1.coupling_type == p2.coupling_type
-
 c = cocoa.CouplingMED()
 c.setup(problem_src=p1, problem_tgt=p2)
 

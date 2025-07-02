@@ -73,11 +73,6 @@ auto setupSolid(ProblemProXPDEHeat * p, proxpde::ParameterDict & config) -> void
   // mesh
   proxpde::readMesh(p->mesh_, config["mesh"]);
 
-  p->initMeshMED(p->name_, p->mesh_);
-
-  // coupling
-  p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-
   // time
   p->time = 0.0;
   p->dt_ = config["dt"].as<double>();
@@ -191,10 +186,6 @@ auto setupFluid(ProblemProXPDEHeat * p, proxpde::ParameterDict & config) -> void
 
   // mesh
   proxpde::readMesh(p->mesh_, config["mesh"]);
-  p->initMeshMED(p->name_, p->mesh_);
-
-  // coupling
-  p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
 
   // time
   p->time = 0.0;
@@ -230,9 +221,6 @@ auto setupFluid(ProblemProXPDEHeat * p, proxpde::ParameterDict & config) -> void
   // io
   p->io_.init(p->feSpace_, "output_" + p->name_ + "/TFluid");
   p->ioP0_.init(p->feSpaceP0_, "output_" + p->name_ + "/fieldsFluid");
-
-  p->initFieldMED("vel", "output_" + p->name_);
-  p->setDataMED("vel", p->vel_.data, p->feSpaceVel_);
 
   // assembly
   auto const & [assemblyIt, successEqn] =

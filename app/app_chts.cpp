@@ -23,9 +23,6 @@ auto setupFluid(ProblemFD2D * p) -> void
   // mesh
   p->mesh_ = MeshFD2D({0.0, 0.0}, {1.0, 0.75}, {N, 3 * N / 4});
 
-  // coupling
-  p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-
   // fields
   p->nVars_ = 1u;
   p->varNames_ = {"uf"};
@@ -35,8 +32,6 @@ auto setupFluid(ProblemFD2D * p) -> void
 
   // io setup
   p->outputPrefix_ = "output_chts";
-  p->initMeshCoupling();
-  p->initFieldCoupling();
   std::filesystem::create_directories(p->outputPrefix_);
 
   // parameters
@@ -187,9 +182,6 @@ auto setupSolid(ProblemFD2D * p) -> void
   // mesh
   p->mesh_ = MeshFD2D({0.0, 0.75}, {1.0, 1.0}, {N, N / 4});
 
-  // coupling
-  p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-
   // fields
   p->nVars_ = 1u;
   p->varNames_ = {"us"};
@@ -199,8 +191,6 @@ auto setupSolid(ProblemFD2D * p) -> void
 
   // io setup
   p->outputPrefix_ = "output_chts";
-  p->initMeshCoupling();
-  p->initFieldCoupling();
   std::filesystem::create_directories(p->outputPrefix_);
 
   // parameters

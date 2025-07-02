@@ -100,11 +100,6 @@ auto setup(ProblemProXPDEHeat * p, proxpde::ParameterDict & config) -> void
     }
   }
 
-  p->initMeshMED(p->name_, p->mesh_);
-
-  // coupling
-  p->couplingType_ = COUPLING_TYPE::MEDCOUPLING;
-
   // time
   p->time = 0.0;
   p->dt_ = config["dt"].as<double>();
@@ -162,9 +157,6 @@ auto setup(ProblemProXPDEHeat * p, proxpde::ParameterDict & config) -> void
   // io
   p->io_.init(p->feSpace_, "output_" + p->name_ + "/T");
   p->ioP0_.init(p->feSpaceP0_, "output_" + p->name_ + "/fields");
-
-  p->initFieldMED("vel", "output_" + p->name_);
-  p->setDataMED("vel", p->vel_.data, p->feSpaceVel_);
 
   auto const & [_, successEqn] =
       p->assemblies_.emplace(EQN_TYPE::CUSTOM, new AssemblyCHTM);

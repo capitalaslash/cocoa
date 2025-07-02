@@ -15,14 +15,15 @@ int main()
 
   p1->setup({{"config_file", std::filesystem::path{"fd1d_heat.dat"}}});
   p2->setup({{"config_file", std::filesystem::path{"fd1d_hc.dat"}}});
-  p1->couplingType_ = COUPLING_TYPE::SIMPLE;
-  p2->couplingType_ = COUPLING_TYPE::SIMPLE;
 
-  // check that both problems have been set to use the same coupling type
-  assert(p1->couplingType_ == p2->couplingType_);
-
-  auto coupling12 = CouplingManager::build(p1->couplingType_);
-  coupling12->setup(p1.get(), p2.get());
+  auto coupling12 =
+      CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
+  coupling12->setup(
+      {p1.get(), markerNotSet, {"T"}}, {p2.get(), markerNotSet, {"Tcfd"}});
+  auto coupling21 =
+      CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
+  coupling21->setup(
+      {p2.get(), markerNotSet, p2->varNames()}, {p2.get(), markerNotSet, {}});
 
   // MEDManager coupling21;
   // coupling21.setup(p2.get(), p1.get());
@@ -37,10 +38,14 @@ int main()
     p1->solve();
     p1->print();
 
-    coupling12->project("T", "uExternal");
+    coupling12->project("T", "Tcfd");
     p2->advance();
     p2->solve();
     p2->print();
+
+    coupling12->printVTK();
+    coupling21->updateFields();
+    coupling21->printVTK();
   }
 
   return 0;

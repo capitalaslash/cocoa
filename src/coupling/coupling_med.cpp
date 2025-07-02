@@ -14,19 +14,21 @@
 namespace cocoa
 {
 
-void CouplingMED::setup(Problem * src, Problem * tgt)
+void CouplingMED::setup(CouplingInterface interfaceSrc, CouplingInterface interfaceTgt)
 {
-  problemSrc_ = src;
-  problemTgt_ = tgt;
+  interfaces_[0] = interfaceSrc;
+  interfaces_[1] = interfaceTgt;
 
-  remapper.setPrecision(1.e-12);
-  remapper.setIntersectionType(interpType_);
-  auto meshSrc = dynamic_cast<MeshMED *>(problemSrc_->meshCoupling_.get());
-  auto meshTgt = dynamic_cast<MeshMED *>(problemTgt_->meshCoupling_.get());
-  remapper.prepare(meshSrc->meshPtr_, meshTgt->meshPtr_, "P1P1");
+  remapper_.setPrecision(1.e-12);
+  remapper_.setIntersectionType(interpType_);
+  meshes_[0] = interfaces_[0].ptr->initMeshCoupling(COUPLING_TYPE::MEDCOUPLING);
+  meshes_[1] = interfaces_[1].ptr->initMeshCoupling(COUPLING_TYPE::MEDCOUPLING);
+  auto * meshSrc = dynamic_cast<MeshMED *>(meshes_[0].get());
+  auto * meshTgt = dynamic_cast<MeshMED *>(meshes_[1].get());
+  remapper_.prepare(meshSrc->meshPtr_, meshTgt->meshPtr_, "P1P1");
 
-  auto const matrix = remapper.getCrudeMatrix();
-  // fmt::println("remapper matrix:\n{}", matrix);
+  auto const matrix = remapper_.getCrudeMatrix();
+  // fmt::println(stderr, "remapper_ matrix:\n{}", matrix);
 
   auto mask = std::vector<double>(matrix.size());
   for (uint k = 0; k < matrix.size(); k++)
@@ -39,20 +41,35 @@ void CouplingMED::setup(Problem * src, Problem * tgt)
     mask[k] = (sum > 1.e-12) ? 1.0 : 0.0;
   }
 
-  auto [kvPair, success] = problemTgt_->fieldsCoupling_.emplace("mask", new FieldMED);
-  assert(success);
-  kvPair->second->init("mask", meshTgt, SUPPORT_TYPE::ON_NODES);
-  kvPair->second->setValues(mask);
+  mask_.init("mask", meshTgt, SUPPORT_TYPE::ON_NODES);
+  mask_.setValues(mask);
+
+  initFieldCoupling();
 }
 
-void CouplingMED::project(std::string_view srcName, std::string_view tgtName)
+void CouplingMED::initFieldCoupling()
 {
-  auto srcField = dynamic_cast<FieldMED *>(problemSrc_->getField(srcName));
-  auto tgtField = dynamic_cast<FieldMED *>(problemTgt_->getField(tgtName));
-  // MEDCoupling::MEDCouplingFieldDouble * tmp =
-  //     remapper.transferField(srcField->fieldPtr_, 0.0);
-  // tgtField->fieldPtr_ = tmp;
-  tgtField->fieldPtr_ = remapper.transferField(srcField->fieldPtr_, 0.0);
+  for (auto k = 0u; k < 2u; k++)
+  {
+    for (auto const & fieldName: interfaces_[k].fieldNames)
+    {
+      auto field =
+          interfaces_[k].ptr->initFieldCoupling(type_, fieldName, meshes_[k].get());
+      auto [_, success] = fields_[k].emplace(fieldName, field.release());
+      assert(success);
+    }
+  }
+}
+
+void CouplingMED::project(std::string_view nameSrc, std::string_view nameTgt)
+{
+  getField(nameSrc);
+  auto srcField = dynamic_cast<FieldMED *>(fields_[0].at(std::string{nameSrc}).get());
+  // srcField->fieldPtr_->writeVTK("./src", false);
+  auto tgtField = dynamic_cast<FieldMED *>(fields_[1].at(std::string{nameTgt}).get());
+  tgtField->fieldPtr_ = remapper_.transferField(srcField->fieldPtr_, /*default*/ 0.0);
+  // tgtField->fieldPtr_->writeVTK("./tgt", false);
+  setField(nameTgt);
 }
 
 } // namespace cocoa

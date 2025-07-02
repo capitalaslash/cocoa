@@ -12,9 +12,6 @@ def setup(p: cocoa.ProblemFD1D):
     # mesh
     p.mesh = cocoa.MeshFD1D(start=[0.0], end=[1.0], n=[10])
 
-    # coupling
-    p.coupling_type = cocoa.COUPLING_TYPE.medcoupling
-
     # fields
     p.n_vars = 1
     p.var_names = ["u"]

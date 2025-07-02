@@ -20,7 +20,7 @@
 namespace cocoa
 {
 
-ProblemFD2D::ProblemFD2D(): Problem{PROBLEM_TYPE::FD2D, COUPLING_TYPE::NONE}
+ProblemFD2D::ProblemFD2D(): Problem{PROBLEM_TYPE::FD2D}
 {
   // register default assemblies
   assemblies_.emplace(EQN_TYPE::HEAT, [](ProblemFD2D * p) { p->assemblyHeat(); });
@@ -124,12 +124,6 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
       {
         bufferStream >> nElems[0];
         bufferStream >> nElems[1];
-      }
-      // coupling
-      else if (token == "coupling_type:")
-      {
-        bufferStream >> token;
-        couplingType_ = str2coupling(token);
       }
       // fields
       else if (token == "n_vars:")
@@ -278,7 +272,6 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
 
   // mesh
   mesh_.init(start, end, nElems);
-  initMeshCoupling();
 
   // fields
   u_.resize(mesh_.nPts() * nVars_);
@@ -315,7 +308,6 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
       bcs_[v].data_[s] =
           FDBC(side2D(s), bcTypes[v][s], bcValues[v][s], mesh_.n_[1 - s / 2]);
   }
-  initFieldCoupling();
 
   // linear algebra
   m_.init(mesh_.nPts() * nVars_, nnz);
@@ -325,7 +317,7 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
   initOutput();
 }
 
-void ProblemFD2D::initMeshCoupling()
+std::unique_ptr<MeshCoupling> ProblemFD2D::initMeshCoupling(COUPLING_TYPE type)
 {
   // coords format: x_0, y_0, z_0, x_1, ...
   std::vector<double> coords(mesh_.nPts() * 3);
@@ -363,30 +355,72 @@ void ProblemFD2D::initMeshCoupling()
     offsets[k + 1] = offsets[k] + (1 + 4);
   }
 
-  meshCoupling_ = MeshCoupling::build(couplingType_);
-  meshCoupling_->init("mesh_fd2d", 2U, 2U, coords, conn, offsets);
-  // meshCoupling_->printVTK(outputPrefix_ / "mesh_fd2d");
+  auto mesh = MeshCoupling::build(type);
+  mesh->init("mesh_fd2d", 2u, 2u, coords, conn, offsets);
+  // mesh->printVTK(outputPrefix_ / "mesh_fd2d");
+
+  return mesh;
 }
 
-void ProblemFD2D::initFieldCoupling()
+std::unique_ptr<FieldCoupling> ProblemFD2D::initFieldCoupling(
+    COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh)
 {
+  auto field = FieldCoupling::build(type);
   for (uint v = 0u; v < nVars_; v++)
   {
-    auto [kvPairU, successU] =
-        fieldsCoupling_.emplace(varNames_[v], FieldCoupling::build(couplingType_));
-    assert(successU);
-    kvPairU->second->init(varNames_[v], meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
-    kvPairU->second->setValues(
-        {u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()}, 1u);
-    kvPairU->second->initIO(outputPrefix_);
-
-    auto const nameExt = fmt::format("{}Ext", varNames_[v]);
-    auto [kvPairExt, successExt] =
-        fieldsCoupling_.emplace(nameExt, FieldCoupling::build(couplingType_));
-    assert(successExt);
-    kvPairExt->second->init(nameExt, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
-    kvPairExt->second->setValues(0.0, mesh_.nPts(), 1u);
+    if (varNames_[v] == name)
+    {
+      field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+      field->setValues(
+          {u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()}, 1u);
+      field->initIO(outputPrefix_);
+      return field;
+    }
   }
+  // check if the coupling field is an additional field
+  if (fields_.contains(std::string{name}))
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->setValues(fields_.at(std::string{name}).data_, 1u);
+    return field;
+  }
+
+  fmt::println(stderr, "coupling field {} not found", name);
+  std::abort();
+  return field;
+}
+
+void ProblemFD2D::setFieldData(FieldCoupling * field)
+{
+  // check if the field maps a variable
+  for (auto v = 0u; v < nVars_; v++)
+  {
+    if (varNames_[v] == field->name_)
+    {
+      auto const start = u_.data() + v * mesh_.nPts();
+      field->setValues({start, start + mesh_.nPts()});
+      return;
+    }
+  }
+  // otherwise, it must be stored in the additional fields
+  field->setValues(fields_.at(field->name_).data_);
+}
+
+void ProblemFD2D::getFieldData(FieldCoupling const & field)
+{
+  // check if the field maps a variable
+  for (auto v = 0u; v < nVars_; v++)
+  {
+    if (varNames_[v] == field.name_)
+    {
+      auto const start = u_.data() + v * mesh_.nPts();
+      std::copy(field.dataPtr(), field.dataPtr() + field.size(), start);
+      return;
+    }
+  }
+  // otherwise, it must be stored in the additional fields
+  std::copy(
+      field.dataPtr(), field.dataPtr() + field.size(), fields_.at(field.name_).data());
 }
 
 void ProblemFD2D::initOutput()
@@ -488,8 +522,8 @@ const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, FD_BC_SIDE const
 //   return 0;
 // }
 
-// static constexpr std::pair<uint, uint> cornerEnd(std::array<uint, 2U> const & n, uint
-// k)
+// static constexpr std::pair<uint, uint> cornerEnd(std::array<uint, 2U> const & n,
+// uint k)
 // {
 //   switch (k)
 //   {
@@ -619,11 +653,6 @@ uint ProblemFD2D::solve()
   // clean up
   m_.clear();
   rhs_.zero();
-
-  // update coupling field
-  for (uint v = 0u; v < nVars_; v++)
-    getField(varNames_[v])
-        ->setValues({u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()});
 
   return numIters;
 }
@@ -909,18 +938,17 @@ void ProblemFD2D::print()
           fmt::println(out, "{:.6e} {:.6e} {:.6e}", pt[0], pt[1], u_[id]);
         }
       std::fclose(out);
-
-      getField(varNames_[v])->printVTK(time, it);
     }
   }
 }
 
 void ProblemFD2D::printFields()
 {
+  auto const mesh = initMeshCoupling(COUPLING_TYPE::MEDCOUPLING);
   for (auto const & [name, field]: fields_)
   {
-    auto fieldMED = FieldCoupling::build(couplingType_);
-    fieldMED->init(name, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
+    auto fieldMED = FieldCoupling::build(COUPLING_TYPE::MEDCOUPLING);
+    fieldMED->init(name, mesh.get(), SUPPORT_TYPE::ON_NODES);
     fieldMED->setValues(field.data_);
     fieldMED->initIO(outputPrefix_);
     fieldMED->printVTK(0.0, 0);
@@ -937,7 +965,6 @@ void ProblemFD2D::printSetup(std::string_view filename)
   fmt::println(out, "start: {:.6e} {:.6e}", mesh_.start_[0], mesh_.start_[1]);
   fmt::println(out, "end: {:.6e} {:.6e}", mesh_.end()[0], mesh_.end()[1]);
   fmt::println(out, "n_elems: {} {}", mesh_.n_[0] - 1, mesh_.n_[1] - 1);
-  fmt::println(out, "coupling_type: {}", couplingType2str(couplingType_));
   fmt::println(out, "n_vars: {}", nVars_);
   fmt::print(out, "var_names: ");
   for (auto const & varName: varNames_)
@@ -953,6 +980,24 @@ void ProblemFD2D::printSetup(std::string_view filename)
   fmt::println(out, "");
 
   std::fclose(out);
+}
+
+Marker ProblemFD2D::findRegion(std::string_view name)
+{
+  if (name == "left")
+    return 0u;
+  else if (name == "right")
+    return 1u;
+  else if (name == "bottom")
+    return 2u;
+  else if (name == "top")
+    return 3u;
+  else
+  {
+    fmt::println("region {} not recognized", name);
+    std::abort();
+  }
+  return markerNotSet;
 }
 
 std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD2D::Matrix_T>>

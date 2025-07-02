@@ -1,4 +1,4 @@
-name: proxpde2
+name: proxpde_heatcoupled
 
 mesh:
   type: STRUCTURED
@@ -18,6 +18,10 @@ alpha: 0.1
 q: 0.0
 vel: [0.0, 0.5]
 
+additional_fields_p1: [Tcfd]
+
 bcs:
   - label: 1
     value: 0.0
+
+output: output_proxpde_hc

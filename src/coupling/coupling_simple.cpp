@@ -7,20 +7,26 @@
 #include <fmt/ranges.h>
 
 // local
+#include "enums.hpp"
 #include "problem/problem_fd1d.hpp"
 
 namespace cocoa
 {
 
-void CouplingSimple::setup(Problem * pSrc, Problem * pTgt)
+void CouplingSimple::setup(
+    CouplingInterface interfaceSrc, CouplingInterface interfaceTgt)
 {
   // CouplingSimple works only with ProblemFD1D for now
-  auto derSrc = dynamic_cast<ProblemFD1D *>(pSrc);
+  auto derSrc = dynamic_cast<ProblemFD1D *>(interfaceSrc.ptr);
   assert(derSrc != nullptr);
-  auto derTgt = dynamic_cast<ProblemFD1D *>(pTgt);
+  auto derTgt = dynamic_cast<ProblemFD1D *>(interfaceTgt.ptr);
   assert(derTgt != nullptr);
-  pSrc_ = pSrc;
-  pTgt_ = pTgt;
+  interfaces_[0] = interfaceSrc;
+  interfaces_[1] = interfaceTgt;
+
+  meshes_[0] = interfaces_[0].ptr->initMeshCoupling(COUPLING_TYPE::SIMPLE);
+  meshes_[1] = interfaces_[1].ptr->initMeshCoupling(COUPLING_TYPE::SIMPLE);
+  initFieldCoupling();
 
   // P1P1
   m_.init(derTgt->mesh_.nPts(), derSrc->mesh_.nPts());
@@ -64,24 +70,35 @@ void CouplingSimple::setup(Problem * pSrc, Problem * pTgt)
   // fmt::println("m: {} x {}\n{:::.2e}", m_.data.size(), m_.data[0].size(), m_.data);
 }
 
+void CouplingSimple::initFieldCoupling()
+{
+  for (auto k = 0u; k < 2u; k++)
+  {
+    for (auto const & fieldName: interfaces_[k].fieldNames)
+    {
+      auto field =
+          interfaces_[k].ptr->initFieldCoupling(type_, fieldName, meshes_[k].get());
+      auto [_, success] = fields_[k].emplace(fieldName, field.release());
+      assert(success);
+    }
+  }
+}
+
 void CouplingSimple::project(
     std::string_view fieldNameSrc, std::string_view fieldNameTgt)
 {
-  auto derSrc = dynamic_cast<ProblemFD1D *>(pSrc_);
-  auto derTgt = dynamic_cast<ProblemFD1D *>(pTgt_);
-
+  getField(fieldNameSrc);
   // interpolate P1P1
-  FieldCoupling const & p1Src = *derSrc->getField(fieldNameSrc);
-  FieldCoupling & p1Tgt = *derTgt->getField(fieldNameTgt);
+  FieldCoupling const & p1Src = *(fields_[0].at(std::string{fieldNameSrc}));
+  FieldCoupling & p1Tgt = *(fields_[1].at(std::string{fieldNameTgt}));
   std::vector<double> dataTgt(p1Tgt.size());
   for (uint i = 0; i < p1Tgt.size(); i++)
-  {
     for (uint j = 0; j < p1Src.size(); j++)
     {
       dataTgt[i] += m_(i, j) * p1Src[j];
     }
-  }
   p1Tgt.setValues(dataTgt);
+  setField(fieldNameTgt);
 
   // // convert P1 to P0
   // FieldCoupling const & p1Src = *derSrc->getField(fieldNameSrc);

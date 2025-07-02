@@ -13,7 +13,6 @@
 #include <fmt/ranges.h>
 
 // local
-#include "coupling/field_coupling.hpp"
 #include "coupling/mesh_coupling.hpp"
 #include "enums.hpp"
 #include "la.hpp"
@@ -22,7 +21,7 @@
 namespace cocoa
 {
 
-ProblemFD1D::ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D, COUPLING_TYPE::NONE}
+ProblemFD1D::ProblemFD1D(): Problem{PROBLEM_TYPE::FD1D}
 {
   // register default assemblies
   assemblies_.emplace(EQN_TYPE::HEAT, [](ProblemFD1D * p) { p->assemblyHeat(); });
@@ -99,12 +98,6 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
         bufferStream >> end;
       else if (token == "n_elems:")
         bufferStream >> nElems;
-      // coupling
-      else if (token == "coupling_type:")
-      {
-        bufferStream >> token;
-        couplingType_ = str2coupling(token);
-      }
       // fields
       else if (token == "n_vars:")
       {
@@ -125,6 +118,21 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
         fields_.emplace("q", VectorFD());
         for (uint v = 0u; v < nVars_; v++)
           bufferStream >> qValue[v];
+      }
+      else if (token == "additional_fields:")
+      {
+        while (bufferStream)
+        {
+          std::string name = "";
+          bufferStream >> name;
+          if (name == "")
+            break;
+          fields_.emplace(name, VectorFD());
+        }
+        fmt::print("additional fields: ");
+        for (auto const & [k, v]: fields_)
+          fmt::print("{} ", k);
+        fmt::println("");
       }
       // params
       else if (token == "params:")
@@ -236,7 +244,6 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
 
   // mesh
   mesh_.init({start}, {end}, {nElems});
-  initMeshCoupling();
 
   // fields
   u_.resize(mesh_.nPts() * nVars_);
@@ -246,14 +253,14 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
     u_.setRange(0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), uInit[v]);
     uOld_.setRange(0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), uInit[v]);
   }
-  if (fields_.contains("q"))
+  for (auto & [name, data]: fields_)
   {
-    fields_.at("q").resize(mesh_.nPts() * nVars_);
-    for (uint v = 0u; v < nVars_; v++)
-      fields_.at("q").setRange(
-          0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), qValue[v]);
+    data.resize(mesh_.nPts() * nVars_);
+    if (name == "q")
+      for (uint v = 0u; v < nVars_; v++)
+        fields_.at("q").setRange(
+            0u + v * mesh_.nPts(), mesh_.nPts() + v * mesh_.nPts(), qValue[v]);
   }
-  initFieldCoupling();
 
   // linear algebra
   m_.init(mesh_.nPts() * nVars_, nnz);
@@ -263,7 +270,7 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
   initOutput();
 }
 
-void ProblemFD1D::initMeshCoupling()
+std::unique_ptr<MeshCoupling> ProblemFD1D::initMeshCoupling(COUPLING_TYPE type)
 {
   // coords format: x_0, y_0, z_0, x_1, ...
   std::vector<double> coords(mesh_.nPts() * 3);
@@ -292,29 +299,72 @@ void ProblemFD1D::initMeshCoupling()
     offsets[k + 1] = offsets[k] + 3;
   }
 
-  meshCoupling_ = MeshCoupling::build(couplingType_);
-  meshCoupling_->init("mesh_fd1d", 1u, 1u, coords, conn, offsets);
+  auto meshCoupling = MeshCoupling::build(type);
+  meshCoupling->init("mesh_fd1d", 1u, 1u, coords, conn, offsets);
+  return meshCoupling;
 }
 
-void ProblemFD1D::initFieldCoupling()
+std::unique_ptr<FieldCoupling> ProblemFD1D::initFieldCoupling(
+    COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh)
 {
-  for (uint v = 0u; v < nVars_; v++)
+  auto field = FieldCoupling::build(type);
+  // check if the coupling field is a variable
+  for (auto v = 0u; v < nVars_; v++)
+    if (varNames_[v] == name)
+    {
+      field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+      auto start = u_.data() + v * mesh_.nPts();
+      field->setValues({start, start + mesh_.nPts()}, 1u);
+      field->initIO(outputPrefix_);
+      dataPtr_.emplace(name, start);
+      return field;
+    }
+  // check if the coupling field is an additional field
+  if (fields_.contains(std::string{name}))
   {
-    auto [kvPairU, successU] =
-        fieldsCoupling_.emplace(varNames_[v], FieldCoupling::build(couplingType_));
-    assert(successU);
-    kvPairU->second->init(varNames_[v], meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
-    kvPairU->second->setValues(
-        {u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()}, 1u);
-    kvPairU->second->initIO(outputPrefix_);
-
-    auto const nameExt = (nVars_ > 1u) ? fmt::format("{}{}", nameExt_, v) : nameExt_;
-    auto [kvPairExt, successExt] =
-        fieldsCoupling_.emplace(nameExt, FieldCoupling::build(couplingType_));
-    assert(successExt);
-    kvPairExt->second->init(nameExt, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
-    kvPairExt->second->setValues(0.0, mesh_.nPts(), 1u);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->setValues(fields_.at(std::string{name}).data_, 1u);
+    field->initIO(outputPrefix_);
+    dataPtr_.emplace(name, fields_.at(std::string{name}).data());
+    return field;
   }
+
+  fmt::println(stderr, "coupling field {} not found", name);
+  std::abort();
+  return field;
+}
+
+void ProblemFD1D::setFieldData(FieldCoupling * field)
+{
+  // check if the field maps a variable
+  for (auto v = 0u; v < nVars_; v++)
+  {
+    if (varNames_[v] == field->name_)
+    {
+      auto const start = u_.data() + v * mesh_.nPts();
+      field->setValues({start, start + mesh_.nPts()});
+      return;
+    }
+  }
+  // otherwise, it must be stored in the additional fields
+  field->setValues(fields_.at(field->name_).data_);
+}
+
+void ProblemFD1D::getFieldData(FieldCoupling const & field)
+{
+  // check if the field maps a variable
+  for (auto v = 0u; v < nVars_; v++)
+  {
+    if (varNames_[v] == field.name_)
+    {
+      auto const start = u_.data() + v * mesh_.nPts();
+      std::copy(field.dataPtr(), field.dataPtr() + field.size(), start);
+      return;
+    }
+  }
+  // otherwise, it must be stored in the additional fields
+  std::copy(
+      field.dataPtr(), field.dataPtr() + field.size(), fields_.at(field.name_).data());
 }
 
 void ProblemFD1D::initOutput()
@@ -425,6 +475,11 @@ uint ProblemFD1D::solve()
   fmt::print("num iters: {:4d}, ", numIters);
   double const rhsNorm = std::sqrt(rhs_.norm2sq() * mesh_.h_[0]);
   fmt::println("relative residual: {:.8e}", residual / rhsNorm);
+  if (std::isnan(residual))
+  {
+    fmt::println("non-scaled residual: {:.8e}", residual);
+    std::abort();
+  }
 
   if (debug_)
   {
@@ -436,11 +491,6 @@ uint ProblemFD1D::solve()
   // clean up
   m_.clear();
   rhs_.zero();
-
-  // update coupling field
-  for (uint v = 0u; v < nVars_; v++)
-    getField(varNames_[v])
-        ->setValues({u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()});
 
   return numIters;
 }
@@ -505,9 +555,7 @@ void ProblemFD1D::assemblyHeatCoupled()
 
   // TODO: use VectorFD for uExt
   // std::vector<double> uExt(n_, 2.0);
-  std::vector<double> uExt(mesh_.nPts());
-  double const * dataPtr = getField(nameExt_)->dataPtr();
-  std::copy(dataPtr, dataPtr + mesh_.nPts(), uExt.data());
+  VectorFD const & uExt = fields_["Tcfd"];
 
   double const kAmpli = 10.;
   auto const iH2 = 1.0 / (mesh_.h_[0] * mesh_.h_[0]);
@@ -607,10 +655,22 @@ void ProblemFD1D::print()
         fmt::println(out, "{:.6e} {:.6e}", mesh_.pt({k})[0], u_[id]);
       }
       std::fclose(out);
-
-      getField(varNames_[v])->printVTK(time, it);
     }
   }
+}
+
+Marker ProblemFD1D::findRegion(std::string_view name)
+{
+  if (name == "left")
+    return 0u;
+  else if (name == "right")
+    return 1u;
+  else
+  {
+    fmt::println("region {} not recognized", name);
+    std::abort();
+  }
+  return markerNotSet;
 }
 
 std::unordered_map<FD_SOLVER_TYPE, Solver_T<ProblemFD1D::Matrix_T>>

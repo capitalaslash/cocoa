@@ -8,7 +8,6 @@
 #include <proxpde/builder.hpp>
 
 // local
-#include "coupling/field_coupling.hpp"
 #include "enums.hpp"
 
 namespace cocoa
@@ -30,18 +29,15 @@ std::unique_ptr<Problem> ProblemProXPDE::build(EQN_TYPE const type)
   }
 }
 
-ProblemProXPDE::ProblemProXPDE()
-    : Problem{PROBLEM_TYPE::PROXPDE, COUPLING_TYPE::MEDCOUPLING}
-{}
+ProblemProXPDE::ProblemProXPDE(): Problem{PROBLEM_TYPE::PROXPDE} {}
 
-template <typename Mesh>
-void ProblemProXPDE::initMeshMED(std::string_view name, Mesh const & mesh)
+std::unique_ptr<MeshCoupling> ProblemProXPDE::initMeshCoupling(COUPLING_TYPE type)
 {
-  using Elem_T = Mesh::Elem_T;
+  using Elem_T = Mesh_T::Elem_T;
 
   // coords format: x_0, y_0, z_0, x_1, ...
-  std::vector<double> coords(mesh.pointList.size() * 3);
-  for (auto const & p: mesh.pointList)
+  std::vector<double> coords(mesh_.pointList.size() * 3);
+  for (auto const & p: mesh_.pointList)
   {
     coords[3 * p.id] = p.coord[0];
     coords[3 * p.id + 1] = p.coord[1];
@@ -49,8 +45,8 @@ void ProblemProXPDE::initMeshMED(std::string_view name, Mesh const & mesh)
   }
 
   // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
-  std::vector<uint> conn(mesh.elementList.size() * (Elem_T::numPts + 1));
-  for (auto const & elem: mesh.elementList)
+  std::vector<uint> conn(mesh_.elementList.size() * (Elem_T::numPts + 1));
+  for (auto const & elem: mesh_.elementList)
   {
     conn[(Elem_T::numPts + 1) * elem.id] = MEDCellTypeToIKCell(MED_CELL_TYPE::QUAD4);
     for (uint p = 0; p < Elem_T::numPts; p++)
@@ -60,61 +56,17 @@ void ProblemProXPDE::initMeshMED(std::string_view name, Mesh const & mesh)
   }
 
   // offsets format: sum_0^k elemk_numpts + 1,
-  std::vector<uint> offsets(mesh.elementList.size() + 1);
+  std::vector<uint> offsets(mesh_.elementList.size() + 1);
   offsets[0] = 0;
-  for (uint e = 0; e < mesh.elementList.size(); e++)
+  for (uint e = 0; e < mesh_.elementList.size(); e++)
   {
     offsets[e + 1] = offsets[e] + (Elem_T::numPts + 1);
   }
 
-  meshCoupling_ = MeshCoupling::build(couplingType_);
-  meshCoupling_->init(name, Elem_T::dim, 3U, coords, conn, offsets);
-}
+  auto mesh = MeshCoupling::build(type);
+  mesh->init("mesh_proxpde", Elem_T::dim, 3u, coords, conn, offsets);
 
-void ProblemProXPDE::initFieldMED(std::string_view fieldName, std::string_view prefix)
-{
-  auto [kvPair, success] = fieldsCoupling_.emplace(
-      fieldName, FieldCoupling::build(COUPLING_TYPE::MEDCOUPLING));
-  assert(success);
-  kvPair->second->init(fieldName, meshCoupling_.get(), SUPPORT_TYPE::ON_NODES);
-  kvPair->second->initIO(prefix);
-}
-
-template <typename FESpace>
-void ProblemProXPDE::setDataMED(
-    std::string_view fieldName, proxpde::Vec const & u, FESpace const & feSpace)
-{
-  std::vector<double> data(u.size());
-  for (auto const & e: feSpace.mesh->elementList)
-  {
-    for (uint k = 0; k < FESpace::RefFE_T::numDOFs; ++k)
-    {
-      for (uint d = 0; d < FESpace::dim; d++)
-      {
-        data[FESpace::dim * e.pts[k]->id + d] = u[feSpace.dof.getId(e.id, k, d)];
-      }
-    }
-  }
-  getField(fieldName)->setValues(data, feSpace.dim);
-}
-
-template <typename FESpace>
-void ProblemProXPDE::getDataMED(
-    std::string_view fieldName, proxpde::Vec & u, FESpace const & feSpace)
-{
-  FieldCoupling const & field = *getField(fieldName);
-  u.resize(field.size());
-
-  for (auto const & e: feSpace.mesh->elementList)
-  {
-    for (uint k = 0; k < FESpace::RefFE_T::numDOFs; ++k)
-    {
-      for (uint d = 0; d < FESpace::dim; d++)
-      {
-        u[feSpace.dof.getId(e.id, k, d)] = field[FESpace::dim * e.pts[k]->id + d];
-      }
-    }
-  }
+  return mesh;
 }
 
 void ProblemProXPDE::advance()
@@ -153,6 +105,24 @@ uint ProblemProXPDE::solve()
   return 0u;
 }
 
+Marker ProblemProXPDE::findRegion(std::string_view name)
+{
+  if (name == "left")
+    return 0u;
+  else if (name == "right")
+    return 1u;
+  else if (name == "bottom")
+    return 2u;
+  else if (name == "top")
+    return 3u;
+  else
+  {
+    fmt::println("region {} not recognized", name);
+    std::abort();
+  }
+  return markerNotSet;
+}
+
 // =====================================================================
 
 struct AssemblyHeat: public ProblemProXPDE::Assembly
@@ -161,7 +131,7 @@ struct AssemblyHeat: public ProblemProXPDE::Assembly
   {
     auto p = dynamic_cast<ProblemProXPDEHeat *>(pParent);
     // update coupling
-    // getDataMED("vel", vel_.data, *vel_.feSpace);
+    // setData("vel", p->vel_.data, *p->vel_.feSpace);
     auto const alpha = p->params_.at("alpha");
     auto const q = p->fieldsP0_.at("q");
 
@@ -173,13 +143,19 @@ struct AssemblyHeat: public ProblemProXPDE::Assembly
             proxpde::AssemblyAdvection{p->vel_, p->feSpace_},
         },
         p->bcs_);
+    // fmt::println(stderr, "triplets");
+    // for (auto const & t: b._triplets)
+    // {
+    //   fmt::println(stderr, "{}, {} -> {}", t.row(), t.col(), t.value());
+    // }
     b.closeMatrix();
 
     // assembly rhs
     b.buildRhs(
         std::tuple{
             proxpde::AssemblyProjection{1. / p->dt_, p->uOld_, p->feSpace_},
-            proxpde::AssemblyProjection{1., q.data, p->feSpaceP0_, p->feSpace_}},
+            proxpde::AssemblyProjection{1., q.data, p->feSpaceP0_, p->feSpace_},
+        },
         p->bcs_);
   }
 };
@@ -192,8 +168,8 @@ struct AssemblyHeatCoupled: public ProblemProXPDE::Assembly
     auto const alpha = p->params_.at("alpha");
     auto const q = p->fieldsP0_.at("q");
 
-    // update coupling
-    p->getDataMED("vel", p->vel_.data, *p->vel_.feSpace);
+    // // update coupling
+    // p->getDataMED("vel", p->vel_.data, *p->vel_.feSpace);
 
     // lhs terms
     auto timeDer = proxpde::AssemblyMass{1. / p->dt_, p->feSpace_};
@@ -201,7 +177,7 @@ struct AssemblyHeatCoupled: public ProblemProXPDE::Assembly
     auto advection = proxpde::AssemblyAdvection{p->vel_, p->feSpace_};
 
     proxpde::Vec mask(p->feSpace_.dof.size);
-    p->getDataMED("mask", mask, p->feSpace_);
+    // p->getDataMED("mask", mask, p->feSpace_);
     auto const kAmpli = 20.;
     proxpde::FEVar kAmpliVec("kAmpli", p->feSpace_);
     kAmpliVec.data = kAmpli * mask;
@@ -212,7 +188,7 @@ struct AssemblyHeatCoupled: public ProblemProXPDE::Assembly
     auto source = proxpde::AssemblyProjection{1., q.data, p->feSpaceP0_, p->feSpace_};
 
     proxpde::Vec Tcfd(p->feSpace_.dof.size);
-    p->getDataMED("T", Tcfd, p->feSpace_);
+    // p->getDataMED("T", Tcfd, p->feSpace_);
     Tcfd.array() *= mask.array();
     auto feedbackRhs = proxpde::AssemblyProjection{kAmpli, Tcfd, p->feSpace_};
 
@@ -231,7 +207,7 @@ struct AssemblyHeatBuoyant: public ProblemProXPDE::Assembly
     auto const alpha = p->params_.at("alpha");
 
     // update coupling
-    p->getDataMED("vel", p->vel_.data, *p->vel_.feSpace);
+    // p->getDataMED("vel", p->vel_.data, *p->vel_.feSpace);
     // p->vel_ << [](proxpde::Vec3 const & pt) {
     //   return proxpde::Vec2{pt[1] - 0.5, 0.5 - pt[0]};
     // };
@@ -299,13 +275,6 @@ void ProblemProXPDEHeat::setup(Problem::ConfigList_T const & configs)
 
   // init mesh from configuration
   proxpde::readMesh(mesh_, config["mesh"]);
-  initMeshMED(name_, mesh_);
-
-  // for (auto const bd: mesh_.facetList)
-
-  // init coupling
-  // TODO: set from file when more coupling strategies are available
-  couplingType_ = COUPLING_TYPE::MEDCOUPLING;
 
   // init equation
   equationType_ = str2eqn(config["equation_type"].as<std::string>());
@@ -335,6 +304,30 @@ void ProblemProXPDEHeat::setup(Problem::ConfigList_T const & configs)
   vel_.init("vel", feSpaceVel_);
   vel_ << config["vel"].as<proxpde::Vec2>();
 
+  // init additional fields
+  if (config["additional_fields_p1"])
+  {
+    for (auto const & name:
+         config["additional_fields_p1"].as<std::vector<std::string>>())
+    {
+      auto const & [it, success] =
+          fieldsP1_.emplace(name, proxpde::FEVar<FESpace_T>{name, feSpace_});
+      assert(success);
+      it->second.data = proxpde::Vec::Zero(feSpace_.dof.size);
+    }
+  }
+  if (config["additional_fields_p0"])
+  {
+    for (auto const & name:
+         config["additional_fields_p0"].as<std::vector<std::string>>())
+    {
+      auto const & [it, success] =
+          fieldsP0_.emplace(name, proxpde::FEVar<FESpaceP0_T>{name, feSpaceP0_});
+      assert(success);
+      it->second.data = proxpde::Vec::Zero(feSpaceP0_.dof.size);
+    }
+  }
+
   // init bcs
   for (auto const & bc: config["bcs"])
   {
@@ -345,8 +338,12 @@ void ProblemProXPDEHeat::setup(Problem::ConfigList_T const & configs)
   }
 
   // init io
-  io_.init(feSpace_, "output_" + name_ + "/T");
-  ioP0_.init(feSpaceP0_, "output_" + name_ + "/fields");
+  if (config["output"])
+  {
+    outputPrefix_ = config["output"].as<std::string>();
+  }
+  io_.init(feSpace_, outputPrefix_ / "T");
+  ioP0_.init(feSpaceP0_, outputPrefix_ / "fields");
 
   // coupling
   switch (equationType_)
@@ -372,20 +369,6 @@ void ProblemProXPDEHeat::setup(Problem::ConfigList_T const & configs)
   default:
     abort();
   }
-  initFieldMED(couplingExport_[0], "output_" + name_);
-  setDataMED(couplingExport_[0], T_.data, feSpace_);
-
-  for (auto const & name: couplingImport_)
-  {
-    if (name != "vel")
-    {
-      initFieldMED(name, "output_" + name_);
-      setDataMED(name, T_.data, feSpace_);
-    }
-  }
-
-  initFieldMED("vel", "output_" + name_);
-  setDataMED("vel", vel_.data, feSpaceVel_);
 }
 
 uint ProblemProXPDEHeat::solve()
@@ -395,12 +378,6 @@ uint ProblemProXPDEHeat::solve()
   // update local var
   T_.data = u_;
 
-  // update coupling var
-  if (couplingExport_.size() > 0u)
-    setDataMED(couplingExport_[0], T_.data, feSpace_);
-  if (fieldsCoupling_.contains("vel"))
-    setDataMED("vel", vel_.data, *vel_.feSpace);
-
   return numIters;
 }
 
@@ -408,21 +385,159 @@ void ProblemProXPDEHeat::print()
 {
   if (it % printStep_ == 0)
   {
-    // print med first to avoid iter update
-    if (couplingExport_.size() > 0u)
-      getField(couplingExport_[0])->printVTK(time, io_.iter);
-    if (fieldsCoupling_.contains("vel"))
-      getField("vel")->printVTK(time, io_.iter);
-
-    io_.print({T_}, time);
     // TODO: fix print of fields
-    std::vector<proxpde::FEVar<FESpaceP0_T>> fields;
+    std::vector<proxpde::FEVar<FESpace_T>> fieldsP1 = {T_};
+    for (auto & [_, value]: fieldsP1_)
+    {
+      fieldsP1.push_back(value);
+    }
+    io_.print(fieldsP1, time);
+    std::vector<proxpde::FEVar<FESpaceP0_T>> fieldsP0;
     for (auto & [_, value]: fieldsP0_)
     {
-      fields.push_back(value);
+      fieldsP0.push_back(value);
     }
-    ioP0_.print(fields, time);
+    ioP0_.print(fieldsP0, time);
   }
+}
+
+namespace
+{
+template <typename FESpace>
+std::vector<double> getData(proxpde::Vec const & u, FESpace const & feSpace)
+{
+  std::vector<double> data(u.size());
+  for (auto const & e: feSpace.mesh->elementList)
+    for (uint k = 0; k < FESpace::RefFE_T::numDOFs; ++k)
+      for (uint d = 0; d < FESpace::dim; d++)
+      {
+        auto const id = FESpace::dim * e.pts[k]->id + d;
+        data[id] = u[feSpace.dof.getId(e.id, k, d)];
+      }
+  return data;
+}
+
+template <typename FESpace>
+void setData(FieldCoupling const & field, proxpde::Vec & u, FESpace const & feSpace)
+{
+  u.resize(field.size());
+  for (auto const & e: feSpace.mesh->elementList)
+    for (uint k = 0; k < FESpace::RefFE_T::numDOFs; ++k)
+      for (uint d = 0; d < FESpace::dim; d++)
+        u[feSpace.dof.getId(e.id, k, d)] = field[FESpace::dim * e.pts[k]->id + d];
+}
+} // namespace
+
+std::unique_ptr<FieldCoupling> ProblemProXPDEHeat::initFieldCoupling(
+    COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh)
+{
+  auto field = FieldCoupling::build(type);
+  // check if the coupling field is the variable, T
+  if (name == "T")
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    auto const data = getData(T_.data, feSpace_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    field->initIO(outputPrefix_);
+    return field;
+  }
+  // check if we are coupling the velocity
+  if (name == "vel")
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    auto const data = getData(vel_.data, feSpaceVel_);
+    field->setValues({data.data(), data.data() + data.size()}, FESpaceVel_T::dim);
+    field->initIO(outputPrefix_);
+    return field;
+  }
+  // otherwise, it can be in fieldsP1_
+  if (fieldsP1_.contains(std::string{name}))
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    auto const data = getData(fieldsP1_.at(std::string{name}).data, feSpace_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    field->initIO(outputPrefix_);
+    return field;
+  }
+  // otherwise, it can be in fieldsP0_
+  if (fieldsP0_.contains(std::string{name}))
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_CELLS);
+    auto const data = getData(fieldsP0_.at(std::string{name}).data, feSpaceP0_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    field->initIO(outputPrefix_);
+    return field;
+  }
+
+  fmt::println(stderr, "field {} not found", name);
+  std::abort();
+  return field;
+}
+
+void ProblemProXPDEHeat::setFieldData(FieldCoupling * field)
+{
+  // check if the coupling field is the variable, T
+  if (field->name_ == "T")
+  {
+    auto const data = getData(T_.data, feSpace_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    return;
+  }
+  // check if we are coupling the velocity
+  if (field->name_ == "vel")
+  {
+    auto const data = getData(vel_.data, feSpaceVel_);
+    field->setValues({data.data(), data.data() + data.size()}, FESpaceVel_T::dim);
+    return;
+  }
+  // otherwise, it can be in fieldsP1_
+  if (fieldsP1_.contains(std::string{field->name_}))
+  {
+    auto const data = getData(fieldsP1_.at(std::string{field->name_}).data, feSpace_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    return;
+  }
+  // otherwise, it can be in fieldsP0_
+  if (fieldsP0_.contains(std::string{field->name_}))
+  {
+    auto const data = getData(fieldsP0_.at(std::string{field->name_}).data, feSpaceP0_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    return;
+  }
+
+  fmt::println(stderr, "variable {} not found", field->name_);
+  std::abort();
+}
+
+void ProblemProXPDEHeat::getFieldData(FieldCoupling const & field)
+{
+  // check if the coupling field is the variable, T
+  if (field.name_ == "T")
+  {
+    setData(field, T_.data, feSpace_);
+    return;
+  }
+  // check if the coupling field is the velocity
+  if (field.name_ == "vel")
+  {
+    setData(field, vel_.data, feSpaceVel_);
+    return;
+  }
+  // otherwise, it can be in fieldsP1_
+  if (fieldsP1_.contains(std::string{field.name_}))
+  {
+    setData(field, fieldsP1_.at(std::string{field.name_}).data, feSpace_);
+    return;
+  }
+  // otherwise, it can be in fieldsP0_
+  if (fieldsP0_.contains(std::string{field.name_}))
+  {
+    setData(field, fieldsP0_.at(std::string{field.name_}).data, feSpaceP0_);
+    return;
+  }
+
+  fmt::println(stderr, "variable {} not found", field.name_);
+  std::abort();
 }
 
 // =====================================================================
@@ -463,7 +578,7 @@ struct AssemblyNSBuoyant: public ProblemProXPDE::Assembly
     auto p = dynamic_cast<ProblemProXPDENS *>(pParent);
     // update coupling
     proxpde::Vec T{p->feSpaceP_.dof.size};
-    p->getDataMED("T", T, p->feSpaceP_);
+    // p->getDataMED("T", T, p->feSpaceP_);
 
     // lhs terms
     auto const timeDer = proxpde::AssemblyMass{1. / p->dt_, p->feSpaceVel_};
@@ -527,11 +642,6 @@ void ProblemProXPDENS::setup(Problem::ConfigList_T const & configs)
 
   // init mesh from configuration
   proxpde::readMesh(mesh_, config["mesh"]);
-  initMeshMED(name_, mesh_);
-
-  // init coupling
-  // TODO: set from file when more coupling strategies are available
-  couplingType_ = COUPLING_TYPE::MEDCOUPLING;
 
   // init equation
   equationType_ = str2eqn(config["equation_type"].as<std::string>());
@@ -558,6 +668,30 @@ void ProblemProXPDENS::setup(Problem::ConfigList_T const & configs)
   // init physical constants and source
   viscosity_ = config["viscosity"].as<double>();
 
+  // init additional fields
+  if (config["additional_fields_p1"])
+  {
+    for (auto const & name:
+         config["additional_fields_p1"].as<std::vector<std::string>>())
+    {
+      auto const & [it, success] =
+          fieldsP1_.emplace(name, proxpde::FEVar<FESpaceP_T>{name, feSpaceP_});
+      assert(success);
+      it->second.data = proxpde::Vec::Zero(feSpaceP_.dof.size);
+    }
+  }
+  if (config["additional_fields_p0"])
+  {
+    for (auto const & name:
+         config["additional_fields_p0"].as<std::vector<std::string>>())
+    {
+      auto const & [it, success] =
+          fieldsP0_.emplace(name, proxpde::FEVar<FESpaceP0_T>{name, feSpaceP0_});
+      assert(success);
+      it->second.data = proxpde::Vec::Zero(feSpaceP0_.dof.size);
+    }
+  }
+
   // init bcs
   for (auto const & bc: config["bcs"])
   {
@@ -578,8 +712,6 @@ void ProblemProXPDENS::setup(Problem::ConfigList_T const & configs)
   velQ1_.init("velQ1", feSpaceVelQ1_);
   velQ1_.data = projectorQ2Q1_.apply();
   couplingExport_.push_back("vel");
-  initFieldMED("vel", "output_" + name_);
-  setDataMED("vel", velQ1_.data, feSpaceVelQ1_);
 
   switch (equationType_)
   {
@@ -589,9 +721,9 @@ void ProblemProXPDENS::setup(Problem::ConfigList_T const & configs)
   }
   case EQN_TYPE::NS_BOUSSINESQ:
   {
-    couplingImport_.push_back("T");
-    initFieldMED("T", "output_" + name_ + "/");
-    getField("T")->setValues(0.0, feSpaceP_.dof.size);
+    // couplingImport_.push_back("T");
+    // initFieldMED("T", "output_" + name_ + "/");
+    // getField("T")->setValues(0.0, feSpaceP_.dof.size);
     break;
   }
   default:
@@ -610,7 +742,6 @@ uint ProblemProXPDENS::solve()
   // update coupling vars
   projectorQ2Q1_.setRhs(vel_.data);
   velQ1_.data = projectorQ2Q1_.apply();
-  setDataMED("vel", velQ1_.data, feSpaceVelQ1_);
 
   return numIters;
 }
@@ -619,19 +750,118 @@ void ProblemProXPDENS::print()
 {
   if (it % printStep_ == 0)
   {
-    // print med first to avoid iter update
-    for (auto const & name: couplingExport_)
-    {
-      getField(name)->printVTK(time, ioVel_.iter);
-    }
-    for (auto const & name: couplingImport_)
-    {
-      getField(name)->printVTK(time, ioVel_.iter);
-    }
-
     ioVel_.print({vel_}, time);
     ioP_.print({p_}, time);
   }
+}
+
+std::unique_ptr<FieldCoupling> ProblemProXPDENS::initFieldCoupling(
+    COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh)
+{
+  auto field = FieldCoupling::build(type);
+  // check if the coupling field is the variable p
+  if (name == "p")
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    auto const data = getData(p_.data, feSpaceP_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    field->initIO(outputPrefix_);
+    return field;
+  }
+  // check if the coupling field is the velocity
+  if (name == "vel")
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    auto const data = getData(velQ1_.data, feSpaceVelQ1_);
+    field->setValues({data.data(), data.data() + data.size()}, FESpaceVel_T::dim);
+    field->initIO(outputPrefix_);
+    return field;
+  }
+  // otherwise, it can be in fieldsP1_
+  if (fieldsP1_.contains(std::string{name}))
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    auto const data = getData(fieldsP1_.at(std::string{name}).data, feSpaceP_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    field->initIO(outputPrefix_);
+    return field;
+  }
+  // otherwise, it can be in fieldsP0_
+  if (fieldsP0_.contains(std::string{name}))
+  {
+    field->init(name, mesh, SUPPORT_TYPE::ON_CELLS);
+    auto const data = getData(fieldsP0_.at(std::string{name}).data, feSpaceP0_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    field->initIO(outputPrefix_);
+    return field;
+  }
+
+  fmt::println(stderr, "field {} not found", name);
+  std::abort();
+  return field;
+}
+
+void ProblemProXPDENS::setFieldData(FieldCoupling * field)
+{ // check if the coupling field is the variable p
+  if (field->name_ == "p")
+  {
+    auto const data = getData(p_.data, feSpaceP_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    return;
+  }
+  // check if the coupling field is the velocity
+  if (field->name_ == "vel")
+  {
+    auto const data = getData(velQ1_.data, feSpaceVelQ1_);
+    field->setValues({data.data(), data.data() + data.size()}, FESpaceVel_T::dim);
+    return;
+  }
+  // otherwise, it can be in fieldsP1_
+  if (fieldsP1_.contains(std::string{field->name_}))
+  {
+    auto const data = getData(fieldsP1_.at(std::string{field->name_}).data, feSpaceP_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    return;
+  }
+  // otherwise, it can be in fieldsP0_
+  if (fieldsP0_.contains(std::string{field->name_}))
+  {
+    auto const data = getData(fieldsP0_.at(std::string{field->name_}).data, feSpaceP0_);
+    field->setValues({data.data(), data.data() + data.size()}, 1u);
+    return;
+  }
+
+  fmt::println(stderr, "variable {} not found", field->name_);
+  std::abort();
+}
+void ProblemProXPDENS::getFieldData(FieldCoupling const & field)
+{ // check if the coupling field is the variable p
+  if (field.name_ == "p")
+  {
+    setData(field, p_.data, feSpaceP_);
+    return;
+  }
+  // check if the coupling field is the velocity
+  if (field.name_ == "vel")
+  {
+    setData(field, vel_.data, feSpaceVel_);
+    return;
+  }
+  // otherwise, it can be in fieldsP1_
+  if (fieldsP1_.contains(std::string{field.name_}))
+  {
+    setData(field, fieldsP1_.at(std::string{field.name_}).data, feSpaceP_);
+    return;
+  }
+  // otherwise, it can be in fieldsP0_
+  if (fieldsP0_.contains(std::string{field.name_}))
+  {
+    setData(field, fieldsP0_.at(std::string{field.name_}).data, feSpaceP0_);
+    return;
+  }
+
+  fmt::println(stderr, "variable {} not found", field.name_);
+  std::abort();
 }
 
 } // namespace cocoa

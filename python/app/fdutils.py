@@ -159,7 +159,6 @@ def test_interp():
     p.name = "fd2d_test_target"
 
     p.mesh = cocoa.MeshFD2D(start=(0.0, 0.0), end=(1.0, 1.0), n=(40, 40))
-    p.coupling_type = cocoa.COUPLING_TYPE.medcoupling
     p.n_vars = 0
     p.setup_io("output_fd2d_custom")
 

@@ -1,5 +1,6 @@
 // local
 #include "coupling/coupling_manager.hpp"
+#include "enums.hpp"
 #include "problem/problem.hpp"
 
 int main()
@@ -12,11 +13,15 @@ int main()
   auto pHeat = Problem::build(PROBLEM_TYPE::PROXPDE, EQN_TYPE::HEAT_BUOYANT);
   pHeat->setup({{"config_file", std::filesystem::path{"proxpde_buoyant_heat.yaml"}}});
 
-  auto couplingHeatToNS = CouplingManager::build(COUPLING_TYPE::MEDCOUPLING);
-  couplingHeatToNS->setup(pHeat.get(), pNS.get());
+  auto couplingHeatToNS =
+      CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
+  couplingHeatToNS->setup(
+      {pHeat.get(), markerNotSet, {"T"}}, {pNS.get(), markerNotSet, {"T"}});
 
-  auto couplingNSToHeat = CouplingManager::build(COUPLING_TYPE::MEDCOUPLING);
-  couplingNSToHeat->setup(pNS.get(), pHeat.get());
+  auto couplingNSToHeat =
+      CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
+  couplingNSToHeat->setup(
+      {pNS.get(), markerNotSet, {"vel"}}, {pHeat.get(), markerNotSet, {"vel"}});
 
   pNS->print();
   pHeat->print();
