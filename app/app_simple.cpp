@@ -17,11 +17,11 @@ int main()
   p2->setup({{"config_file", std::filesystem::path{"fd1d_hc.dat"}}});
 
   auto coupling12 =
-      CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
+      CouplingManager::build(COUPLING_TYPE::SIMPLE, COUPLING_SCOPE::VOLUME);
   coupling12->setup(
       {p1.get(), markerNotSet, {"T"}}, {p2.get(), markerNotSet, {"Tcfd"}});
   auto coupling21 =
-      CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
+      CouplingManager::build(COUPLING_TYPE::SIMPLE, COUPLING_SCOPE::VOLUME);
   coupling21->setup(
       {p2.get(), markerNotSet, p2->varNames()}, {p2.get(), markerNotSet, {}});
 

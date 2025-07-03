@@ -928,14 +928,23 @@ void ProblemFD2D::print()
     for (uint v = 0u; v < nVars_; v++)
     {
       auto const filename =
-          fmt::format("{}.{}.dat", (outputPrefix_ / varNames_[v]).string(), it);
+          fmt::format("{}.{}.csv", (outputPrefix_ / varNames_[v]).string(), it);
       std::FILE * out = std::fopen(filename.c_str(), "w");
-      for (uint i = 0; i < mesh_.n_[0]; i++)
-        for (uint j = 0; j < mesh_.n_[1]; j++)
+      fmt::println(
+          out, "# problemfd2d csv, mesh size: {} {}", mesh_.n_[0] - 1, mesh_.n_[1] - 1);
+      fmt::print(out, "{}, ", varNames_[v]);
+      for (auto const & [fieldName, _]: fields_)
+        fmt::print(out, "{}, ", fieldName);
+      fmt::println(out, "x, y, z");
+      for (uint j = 0; j < mesh_.n_[1]; j++)
+        for (uint i = 0; i < mesh_.n_[0]; i++)
         {
           auto const id = i + j * mesh_.n_[0];
           auto const pt = mesh_.pt({i, j});
-          fmt::println(out, "{:.6e} {:.6e} {:.6e}", pt[0], pt[1], u_[id]);
+          fmt::print(out, "{:.6e},", u_[id + v * mesh_.nPts()]);
+          for (auto const & [_, field]: fields_)
+            fmt::print(out, "{:.6e}, ", field[id]);
+          fmt::println(out, "{:.6e}, {:.6e}, 0.0", pt[0], pt[1]);
         }
       std::fclose(out);
     }

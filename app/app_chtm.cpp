@@ -74,8 +74,6 @@ auto setup(ProblemFD2D * p) -> void
   p->fields_.emplace("cx", cx);
   p->fields_.emplace("cy", cy);
 
-  p->printFields();
-
   // bcs
   p->bcs_.resize(p->nVars_);
   p->bcs_[0].left() = FDBC{FD_BC_SIDE::LEFT, FD_BC_TYPE::NEUMANN, 0.0, p->mesh_.n_[1]};

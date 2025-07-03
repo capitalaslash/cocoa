@@ -647,12 +647,20 @@ void ProblemFD1D::print()
     for (uint v = 0u; v < nVars_; v++)
     {
       auto const filename =
-          fmt::format("{}.{}.dat", (outputPrefix_ / varNames_[v]).string(), it);
+          fmt::format("{}.{}.csv", (outputPrefix_ / varNames_[v]).string(), it);
       std::FILE * out = std::fopen(filename.c_str(), "w");
+      fmt::println(out, "# problemfd1d csv, mesh size: {}", mesh_.n_[0] - 1);
+      fmt::print(out, "{}, ", varNames_[v]);
+      for (auto const & [fieldName, _]: fields_)
+        fmt::print(out, "{}, ", fieldName);
+      fmt::println(out, "x, y, z");
       for (uint k = 0u; k < mesh_.nPts(); k++)
       {
         uint const id = k + v * mesh_.nPts();
-        fmt::println(out, "{:.6e} {:.6e}", mesh_.pt({k})[0], u_[id]);
+        fmt::print(out, "{:.6e},", u_[id]);
+        for (auto const & [_, field]: fields_)
+          fmt::print(out, "{:.6e}, ", field[k]);
+        fmt::println(out, "{:.6e}, 0.0, 0.0", mesh_.pt({k})[0]);
       }
       std::fclose(out);
     }

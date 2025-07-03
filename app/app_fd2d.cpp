@@ -17,16 +17,11 @@ int main(int argc, char * argv[])
 
   p->print();
 
-  auto c = CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
-  c->setup({p.get(), markerNotSet, p->varNames()}, {p.get(), markerNotSet, {}});
-
   while (p->run())
   {
     p->advance();
     p->solve();
     p->print();
-    c->updateFields();
-    c->printVTK();
   }
 
   return 0;
