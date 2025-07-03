@@ -432,3 +432,16 @@ else()
     COMMAND echo "clang-format could not be found"
   )
 endif()
+
+
+# summary ==============================================================
+
+message(STATUS "#===================================================#")
+message(STATUS "cocoa has been configured with the following options:")
+message(STATUS "FEMuS:           ${COCOA_ENABLE_FEMUS}")
+message(STATUS "MEDCoupling:     ${COCOA_ENABLE_MEDCOUPLING}")
+message(STATUS "OpenFOAMorg:     ${COCOA_ENABLE_OFORG}")
+message(STATUS "OpenFOAMcom:     ${COCOA_ENABLE_OFCOM}")
+message(STATUS "ProXPDE:         ${COCOA_ENABLE_PROXPDE}")
+message(STATUS "python bindings: ${COCOA_ENABLE_PYTHON}")
+message(STATUS "#===================================================#")
