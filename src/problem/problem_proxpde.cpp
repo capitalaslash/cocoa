@@ -128,20 +128,7 @@ uint ProblemProXPDE::solve()
 
 Marker ProblemProXPDE::findRegion(std::string_view name)
 {
-  if (name == "left")
-    return 0u;
-  else if (name == "right")
-    return 1u;
-  else if (name == "bottom")
-    return 2u;
-  else if (name == "top")
-    return 3u;
-  else
-  {
-    fmt::println("region {} not recognized", name);
-    std::abort();
-  }
-  return markerNotSet;
+  return mesh_.physicalNames.at(std::string{name});
 }
 
 // =====================================================================
@@ -352,7 +339,8 @@ void ProblemProXPDEHeat::setup(Problem::ConfigList_T const & configs)
   // init bcs
   for (auto const & bc: config["bcs"])
   {
-    auto const label = bc["label"].as<proxpde::marker_T>();
+    auto const labelName = bc["label"].as<std::string>();
+    auto const label = mesh_.physicalNames.at(labelName);
     auto const value = bc["value"].as<double>();
     bcs_.emplace_back(
         feSpace_, label, [value](proxpde::Vec3 const &) { return value; });
@@ -716,10 +704,25 @@ void ProblemProXPDENS::setup(Problem::ConfigList_T const & configs)
   // init bcs
   for (auto const & bc: config["bcs"])
   {
-    auto const label = bc["label"].as<proxpde::marker_T>();
-    auto const value = bc["value"].as<proxpde::Vec2>();
-    bcsVel_.emplace_back(
-        feSpaceVel_, label, [value](proxpde::Vec3 const &) { return value; });
+    auto const labelName = bc["label"].as<std::string>();
+    auto const label = mesh_.physicalNames.at(labelName);
+    if (bc["component"])
+    {
+      auto const component = bc["component"].as<proxpde::short_T>();
+      auto const value = bc["value"].as<double>();
+      bcsVel_.emplace_back(
+          feSpaceVel_,
+          label,
+          [value, component](proxpde::Vec3 const &)
+          { return proxpde::Vec2{(1 - component) * value, component * value}; },
+          std::vector{component});
+    }
+    else
+    {
+      auto const value = bc["value"].as<proxpde::Vec2>();
+      bcsVel_.emplace_back(
+          feSpaceVel_, label, [value](proxpde::Vec3 const &) { return value; });
+    }
   }
 
   // init io

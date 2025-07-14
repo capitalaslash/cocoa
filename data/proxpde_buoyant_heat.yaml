@@ -19,9 +19,9 @@ q: 0.0
 vel: [0.0, 0.0]
 
 bcs:
-  - label: 2
+  - label: right
     value: 0.0
-  - label: 4
+  - label: left
     value: 1.0
 
 output: output_buoyant_heat

@@ -20,13 +20,13 @@ viscosity: 0.1
 additional_fields_p1: [T]
 
 bcs:
-  - label: 1
+  - label: bottom
     value: [0.0, 0.0]
-  - label: 2
+  - label: right
     value: [0.0, 0.0]
-  - label: 3
+  - label: top
     value: [0.0, 0.0]
-  - label: 4
+  - label: left
     value: [0.0, 0.0]
 
 output: output_buoyant_ns

@@ -21,7 +21,7 @@ vel: [0.0, 0.5]
 additional_fields_p1: [Tcfd]
 
 bcs:
-  - label: 1
+  - label: bottom
     value: 0.0
 
 output: output_proxpde_hc

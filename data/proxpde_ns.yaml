@@ -18,9 +18,9 @@ final_time: 1.0
 viscosity: 0.1
 
 bcs:
-  - label: 1
+  - label: bottom
     value: [0.0, 1.0]
-  - label: 2
+  - label: right
     value: [0.0, 0.0]
-  - label: 4
+  - label: left
     value: [0.0, 0.0]
