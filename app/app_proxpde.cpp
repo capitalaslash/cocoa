@@ -23,8 +23,7 @@ int main()
 
   auto coupling12 =
       CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
-  coupling12->setup(
-      {p1.get(), markerNotSet, {"T"}}, {p2.get(), markerNotSet, {"Tcfd"}});
+  coupling12->setup({p1.get(), {"T"}}, {p2.get(), {"Tcfd"}}, INTERPOLATION_METHOD::P1P1);
 
   while (p1->run() || p2->run())
   {

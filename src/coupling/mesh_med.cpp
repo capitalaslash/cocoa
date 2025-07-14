@@ -11,17 +11,24 @@ MeshMED::~MeshMED()
   if (inited_)
   {
     meshPtr_->decrRef();
+    inited_ = false;
   }
 }
 
 void MeshMED::init(
     std::string_view name,
+    COUPLING_SCOPE const scope,
+    Marker marker,
+    std::string_view bdName,
     uint const dim,
     uint const spaceDim,
     std::vector<double> const & coords,
-    std::vector<uint> conn,
-    std::vector<uint> offsets)
+    std::vector<uint> const & conn,
+    std::vector<uint> const & offsets)
 {
+  scope_ = scope;
+  marker_ = marker;
+  bdName_ = bdName;
   meshPtr_ = MEDCoupling::MEDCouplingUMesh::New(std::string{name}, dim);
   inited_ = true;
 

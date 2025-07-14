@@ -14,7 +14,9 @@ namespace cocoa
 {
 
 void CouplingSimple::setup(
-    CouplingInterface interfaceSrc, CouplingInterface interfaceTgt)
+    CouplingInterface interfaceSrc,
+    CouplingInterface interfaceTgt,
+    INTERPOLATION_METHOD method)
 {
   // CouplingSimple works only with ProblemFD1D for now
   auto derSrc = dynamic_cast<ProblemFD1D *>(interfaceSrc.ptr);
@@ -24,48 +26,59 @@ void CouplingSimple::setup(
   interfaces_[0] = interfaceSrc;
   interfaces_[1] = interfaceTgt;
 
-  meshes_[0] = interfaces_[0].ptr->initMeshCoupling(COUPLING_TYPE::SIMPLE);
-  meshes_[1] = interfaces_[1].ptr->initMeshCoupling(COUPLING_TYPE::SIMPLE);
+  meshes_[0] = interfaces_[0].ptr->initMeshCoupling(
+      COUPLING_TYPE::SIMPLE, scope_, interfaces_[0].marker, interfaces_[0].bdName);
+  meshes_[1] = interfaces_[1].ptr->initMeshCoupling(
+      COUPLING_TYPE::SIMPLE, scope_, interfaces_[1].marker, interfaces_[1].bdName);
   initFieldCoupling();
 
-  // P1P1
-  m_.init(derTgt->mesh_.nPts(), derSrc->mesh_.nPts());
-  for (uint row = 0u; row < derTgt->mesh_.nPts(); row++)
+  using enum INTERPOLATION_METHOD;
+  switch (method)
   {
-    auto const ptTgt = derTgt->mesh_.pt({row})[0];
-    for (uint clm = 0u; clm < derSrc->mesh_.nPts() - 1; clm++)
+  case P1P1:
+    m_.init(derTgt->mesh_.nPts(), derSrc->mesh_.nPts());
+    for (uint row = 0u; row < derTgt->mesh_.nPts(); row++)
     {
-      auto const startSrc = derSrc->mesh_.pt({clm})[0];
-      auto const endSrc = derSrc->mesh_.pt({clm + 1})[0];
-      if (ptTgt >= startSrc && ptTgt < endSrc)
+      auto const ptTgt = derTgt->mesh_.pt({row})[0];
+      for (uint clm = 0u; clm < derSrc->mesh_.nPts() - 1; clm++)
       {
-        m_(row, clm) = (endSrc - ptTgt) / (endSrc - startSrc);
-        m_(row, clm + 1) = 1. - m_(row, clm);
-        break;
+        auto const startSrc = derSrc->mesh_.pt({clm})[0];
+        auto const endSrc = derSrc->mesh_.pt({clm + 1})[0];
+        if (ptTgt >= startSrc && ptTgt < endSrc)
+        {
+          m_(row, clm) = (endSrc - ptTgt) / (endSrc - startSrc);
+          m_(row, clm + 1) = 1. - m_(row, clm);
+          break;
+        }
       }
     }
-  }
+    break;
 
-  // P0P0
-  // m_.init(derTgt->n_ - 1, derSrc->n_ - 1);
-  // for (uint row = 0; row < derTgt->n_ - 1; row++)
-  // {
-  //   auto const startTgt = derTgt->start_ + row * derTgt->h_;
-  //   auto const endTgt = startTgt + derTgt->h_;
-  //   for (uint clm = 0; clm < derSrc->n_ - 1; clm++)
-  //   {
-  //     auto const startSrc = derSrc->start_ + clm * derSrc->h_;
-  //     auto const endSrc = startSrc + derSrc->h_;
-  //     if (((startSrc >= startTgt - 1.e-12) && startSrc < (endTgt + 1.e-12)) ||
-  //         ((endSrc >= startTgt - 1.e-12) && (endSrc < endTgt + 1.e-12)))
-  //     {
-  //       double const start = std::max(startTgt, startSrc);
-  //       double const end = std::min(endTgt, endSrc);
-  //       double const frac = (end - start) / derSrc->h_;
-  //       m_(row, clm) = frac;
-  //     }
-  //   }
-  // }
+  case P0P0:
+    m_.init(derTgt->mesh_.nPts() - 1, derSrc->mesh_.nPts() - 1);
+    for (uint row = 0; row < derTgt->mesh_.nPts() - 1; row++)
+    {
+      auto const startTgt = derTgt->mesh_.pt({row})[0];
+      auto const endTgt = startTgt + derTgt->mesh_.h_[0];
+      for (uint clm = 0; clm < derSrc->mesh_.nPts() - 1; clm++)
+      {
+        auto const startSrc = derSrc->mesh_.pt({row})[0];
+        auto const endSrc = startSrc + derSrc->mesh_.h_[0];
+        if (((startSrc >= startTgt - 1.e-12) && startSrc < (endTgt + 1.e-12)) ||
+            ((endSrc >= startTgt - 1.e-12) && (endSrc < endTgt + 1.e-12)))
+        {
+          double const start = std::max(startTgt, startSrc);
+          double const end = std::min(endTgt, endSrc);
+          double const frac = (end - start) / derSrc->mesh_.h_[0];
+          m_(row, clm) = frac;
+        }
+      }
+    }
+    break;
+
+  default:
+    std::abort();
+  }
 
   // fmt::println("m: {} x {}\n{:::.2e}", m_.data.size(), m_.data[0].size(), m_.data);
 }

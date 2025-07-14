@@ -5,7 +5,6 @@
 
 // local
 #include "coupling/coupling_manager.hpp"
-#include "coupling/mesh_coupling.hpp"
 
 namespace cocoa
 {
@@ -35,7 +34,10 @@ struct CouplingSimple: public CouplingManager
   }
   ~CouplingSimple() = default;
 
-  void setup(CouplingInterface interfaceSrc, CouplingInterface interfaceTgt) override;
+  void setup(
+      CouplingInterface interfaceSrc,
+      CouplingInterface interfaceTgt,
+      INTERPOLATION_METHOD method) override;
   void initFieldCoupling() override;
 
   void project(std::string_view fieldNameSrc, std::string_view fieldNameTgt) override;

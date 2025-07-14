@@ -21,16 +21,19 @@ namespace cocoa
 
 struct MeshMED: public MeshCoupling
 {
-  MeshMED(): MeshCoupling(COUPLING_TYPE::MEDCOUPLING) {}
+  MeshMED(): MeshCoupling(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::NONE) {}
   ~MeshMED();
 
   void init(
       std::string_view name,
+      COUPLING_SCOPE const scope,
+      Marker marker,
+      std::string_view bdName,
       uint const dim,
       uint const spaceDim,
       std::vector<double> const & coords,
-      std::vector<uint> conn,
-      std::vector<uint> offsets) override;
+      std::vector<uint> const & conn,
+      std::vector<uint> const & offsets) override;
 
   void printVTK(std::filesystem::path const & path) override;
 

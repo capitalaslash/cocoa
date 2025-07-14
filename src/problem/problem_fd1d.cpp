@@ -270,38 +270,60 @@ void ProblemFD1D::setup(Problem::ConfigList_T const & configs)
   initOutput();
 }
 
-std::unique_ptr<MeshCoupling> ProblemFD1D::initMeshCoupling(COUPLING_TYPE type)
+std::unique_ptr<MeshCoupling> ProblemFD1D::initMeshCoupling(
+    COUPLING_TYPE type, COUPLING_SCOPE scope, Marker marker, std::string_view bdName)
 {
-  // coords format: x_0, y_0, z_0, x_1, ...
-  std::vector<double> coords(mesh_.nPts() * 3);
-  for (uint k = 0; k < mesh_.nPts(); k++)
+  if (scope == COUPLING_SCOPE::VOLUME)
   {
-    coords[3 * k] = mesh_.pt({k})[0];
-    coords[3 * k + 1] = 0.0;
-    coords[3 * k + 2] = 0.0;
-  }
+    // coords format: x_0, y_0, z_0, x_1, ...
+    std::vector<double> coords(mesh_.nPts() * 3);
+    for (uint k = 0; k < mesh_.nPts(); k++)
+    {
+      coords[3 * k] = mesh_.pt({k})[0];
+      coords[3 * k + 1] = 0.0;
+      coords[3 * k + 2] = 0.0;
+    }
 
-  // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
-  auto const nElems = mesh_.nElems();
-  std::vector<uint> conn(nElems * 3);
-  for (uint k = 0; k < nElems; k++)
+    // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
+    auto const nElems = mesh_.nElems();
+    std::vector<uint> conn(nElems * 3);
+    for (uint k = 0; k < nElems; k++)
+    {
+      conn[3 * k] = MEDCellTypeToIKCell(MED_CELL_TYPE::LINE2);
+      conn[3 * k + 1] = k;
+      conn[3 * k + 2] = k + 1;
+    }
+
+    // offsets format: sum_0^k elemk_numpts + 1,
+    std::vector<uint> offsets(nElems + 1);
+    offsets[0] = 0;
+    for (uint k = 0; k < nElems; k++)
+    {
+      offsets[k + 1] = offsets[k] + 3;
+    }
+
+    auto meshCoupling = MeshCoupling::build(type);
+    meshCoupling->init(
+        "mesh_fd1d",
+        COUPLING_SCOPE::VOLUME,
+        markerNotSet,
+        "",
+        1u,
+        1u,
+        coords,
+        conn,
+        offsets);
+    return meshCoupling;
+  }
+  else if (scope == COUPLING_SCOPE::BOUNDARY)
   {
-    conn[3 * k] = MEDCellTypeToIKCell(MED_CELL_TYPE::LINE2);
-    conn[3 * k + 1] = k;
-    conn[3 * k + 2] = k + 1;
+    fmt::println(stderr, "boundary coupling not yet implemented!");
+    std::abort();
   }
-
-  // offsets format: sum_0^k elemk_numpts + 1,
-  std::vector<uint> offsets(nElems + 1);
-  offsets[0] = 0;
-  for (uint k = 0; k < nElems; k++)
+  else
   {
-    offsets[k + 1] = offsets[k] + 3;
+    std::abort();
   }
-
-  auto meshCoupling = MeshCoupling::build(type);
-  meshCoupling->init("mesh_fd1d", 1u, 1u, coords, conn, offsets);
-  return meshCoupling;
 }
 
 std::unique_ptr<FieldCoupling> ProblemFD1D::initFieldCoupling(
@@ -312,7 +334,7 @@ std::unique_ptr<FieldCoupling> ProblemFD1D::initFieldCoupling(
   for (auto v = 0u; v < nVars_; v++)
     if (varNames_[v] == name)
     {
-      field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+      field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
       auto start = u_.data() + v * mesh_.nPts();
       field->setValues({start, start + mesh_.nPts()}, 1u);
       field->initIO(outputPrefix_);
@@ -322,7 +344,7 @@ std::unique_ptr<FieldCoupling> ProblemFD1D::initFieldCoupling(
   // check if the coupling field is an additional field
   if (fields_.contains(std::string{name}))
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     field->setValues(fields_.at(std::string{name}).data_, 1u);
     field->initIO(outputPrefix_);
     dataPtr_.emplace(name, fields_.at(std::string{name}).data());

@@ -23,14 +23,40 @@ enum struct SUPPORT_TYPE : uint8_t
   ON_CELLS,
 };
 
-static constexpr SUPPORT_TYPE str2SupportType(std::string_view type)
+static constexpr SUPPORT_TYPE str2SupportType(std::string_view support)
 {
   using enum SUPPORT_TYPE;
-  if (type == "on_nodes")
+  if (support == "on_nodes")
     return ON_NODES;
-  else if (type == "on_cells")
+  else if (support == "on_cells")
     return ON_CELLS;
-  fmt::println(stderr, "support type {} not recognized", std::string{type});
+  fmt::println(stderr, "support type {} not recognized", std::string{support});
+  std::abort();
+
+  return NONE;
+}
+
+enum struct NATURE_TYPE : uint8_t
+{
+  NONE = 0u,
+  INTENSIVE_MAXIMUM,
+  EXTENSIVE_MAXIMUM,
+  INTENSIVE_CONSERVATION,
+  EXTENSIVE_CONSERVATION,
+};
+
+static constexpr NATURE_TYPE str2NatureType(std::string_view nature)
+{
+  using enum NATURE_TYPE;
+  if (nature == "intensive_maximum")
+    return INTENSIVE_MAXIMUM;
+  else if (nature == "extensive_maximum")
+    return EXTENSIVE_MAXIMUM;
+  else if (nature == "intensive_conservation")
+    return INTENSIVE_CONSERVATION;
+  else if (nature == "extensive_conservation")
+    return EXTENSIVE_CONSERVATION;
+  fmt::println(stderr, "nature type {} not recognized", std::string{nature});
   std::abort();
 
   return NONE;
@@ -39,7 +65,7 @@ static constexpr SUPPORT_TYPE str2SupportType(std::string_view type)
 struct FieldCoupling
 {
   FieldCoupling() = default;
-  explicit FieldCoupling(COUPLING_TYPE type): type_{type} {}
+  FieldCoupling(COUPLING_TYPE type): type_{type} {}
   virtual ~FieldCoupling() = default;
 
   virtual size_t size() const noexcept = 0;
@@ -47,22 +73,26 @@ struct FieldCoupling
   virtual double operator[](size_t k) const = 0;
   virtual double at(size_t k) const = 0;
   // virtual std::vector<double> getData() = 0;
-  virtual void
-  init(std::string_view name, MeshCoupling const * mesh, SUPPORT_TYPE support) = 0;
+  virtual void init(
+      std::string_view name,
+      MeshCoupling const * mesh,
+      SUPPORT_TYPE support,
+      NATURE_TYPE nature) = 0;
   virtual void initIO(std::filesystem::path const & prefix)
   {
     prefix_ = prefix;
     std::filesystem::create_directories(prefix_);
   }
-  virtual void setValues(std::span<const double> data, uint const dim = 1U) = 0;
-  virtual void setValues(double value, uint size, uint const dim = 1U) = 0;
+  virtual void setValues(std::span<const double> data, uint const dim = 1u) = 0;
+  virtual void setValues(double value, uint size, uint const dim = 1u) = 0;
   virtual void printVTK(double time, uint iter) = 0;
 
   static std::unique_ptr<FieldCoupling> build(COUPLING_TYPE type);
   static std::unique_ptr<FieldCoupling> build(std::string_view type);
 
-  std::string name_ = "";
   COUPLING_TYPE type_ = COUPLING_TYPE::NONE;
+  std::string name_ = "";
+  MeshCoupling const * mesh_;
   std::filesystem::path prefix_ = "./tmp";
 };
 
@@ -87,19 +117,22 @@ struct FieldSimple: public FieldCoupling
 
   virtual void init(
       std::string_view name,
-      MeshCoupling const * /*mesh*/,
-      SUPPORT_TYPE supportType) override
+      MeshCoupling const * mesh,
+      SUPPORT_TYPE support,
+      NATURE_TYPE nature) override
   {
     name_ = name;
-    supportType_ = supportType;
+    mesh_ = mesh;
+    support_ = support;
+    nature_ = nature;
   }
   virtual void initIO(std::filesystem::path const & /*prefix*/) override {}
-  virtual void setValues(std::span<const double> data, uint const /*dim*/ = 1U) override
+  virtual void setValues(std::span<const double> data, uint const /*dim*/ = 1u) override
   {
     data_.resize(data.size());
     std::copy(data.begin(), data.end(), data_.begin());
   }
-  virtual void setValues(double value, uint size, uint const /*dim*/ = 1U) override
+  virtual void setValues(double value, uint size, uint const /*dim*/ = 1u) override
   {
     data_.resize(size, value);
   }
@@ -114,7 +147,8 @@ struct FieldSimple: public FieldCoupling
   }
 
   std::vector<double> data_;
-  SUPPORT_TYPE supportType_;
+  SUPPORT_TYPE support_;
+  NATURE_TYPE nature_;
   bool messageVTK_ = true;
 };
 

@@ -35,7 +35,15 @@ struct Problem
   virtual std::vector<std::string> varNames() = 0;
   virtual Marker findRegion(std::string_view name) = 0;
 
-  virtual std::unique_ptr<MeshCoupling> initMeshCoupling(COUPLING_TYPE type) = 0;
+  virtual std::unique_ptr<MeshCoupling> initMeshCoupling(
+      COUPLING_TYPE type,
+      COUPLING_SCOPE scope,
+      Marker marker,
+      std::string_view bdName) = 0;
+  std::unique_ptr<MeshCoupling> initMeshCouplingVolume(COUPLING_TYPE type)
+  {
+    return this->initMeshCoupling(type, COUPLING_SCOPE::VOLUME, -1, "");
+  }
   virtual std::unique_ptr<FieldCoupling> initFieldCoupling(
       COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh) = 0;
   virtual void setFieldData(FieldCoupling * field) = 0;

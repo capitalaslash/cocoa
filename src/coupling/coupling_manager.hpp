@@ -19,10 +19,45 @@ struct Problem;
 
 struct CouplingInterface
 {
+  CouplingInterface() = default;
+
+  CouplingInterface(Problem * p, std::vector<std::string> fn): ptr{p}, fieldNames{fn} {}
+
+  CouplingInterface(Problem * p, std::string_view bdn, std::vector<std::string> fn)
+      : ptr{p}
+      , marker{p->findRegion(bdn)}
+      , bdName(bdn)
+      , fieldNames{fn}
+  {}
+
+  ~CouplingInterface() = default;
+
   Problem * ptr = nullptr;
   Marker marker = markerNotSet;
+  std::string bdName = "";
   std::vector<std::string> fieldNames;
 };
+
+enum class INTERPOLATION_METHOD : uint8_t
+{
+  NONE = 0u,
+  P0P0,
+  P1P1,
+};
+
+inline constexpr std::string interpolationMethod2str(INTERPOLATION_METHOD method)
+{
+  using enum INTERPOLATION_METHOD;
+  switch (method)
+  {
+  case P0P0:
+    return "P0P0";
+  case P1P1:
+    return "P1P1";
+  default:
+    std::abort();
+  }
+}
 
 struct CouplingManager
 {
@@ -31,8 +66,10 @@ struct CouplingManager
   {}
   virtual ~CouplingManager() = default;
 
-  virtual void
-  setup(CouplingInterface interfaceSrc, CouplingInterface interfaceTgt) = 0;
+  virtual void setup(
+      CouplingInterface interfaceSrc,
+      CouplingInterface interfaceTgt,
+      INTERPOLATION_METHOD method) = 0;
   virtual void initFieldCoupling() = 0;
 
   void getField(std::string_view fieldName)

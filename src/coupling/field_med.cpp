@@ -26,15 +26,19 @@ FieldMED::~FieldMED()
 // std::vector<double> FieldMED::getData() override { return data_; }
 
 void FieldMED::init(
-    std::string_view name, MeshCoupling const * mesh, SUPPORT_TYPE support)
+    std::string_view name,
+    MeshCoupling const * mesh,
+    SUPPORT_TYPE support,
+    NATURE_TYPE nature)
 {
   name_ = name;
+  mesh_ = mesh;
   fieldPtr_ = MEDCoupling::MEDCouplingFieldDouble::New(
-      supportType2MEDtype(support), MEDCoupling::ONE_TIME);
+      supportType2MED(support), MEDCoupling::ONE_TIME);
   inited_ = true;
 
   // TODO: allow more field natures
-  fieldPtr_->setNature(MEDCoupling::IntensiveMaximum);
+  fieldPtr_->setNature(natureType2MED(nature));
   fieldPtr_->setName(std::string{name});
   fieldPtr_->setTimeUnit("s");
   fieldPtr_->setTime(0.0, 0, -1);
@@ -61,10 +65,16 @@ void FieldMED::setValues(double value, uint size, uint const dim)
 
 void FieldMED::printVTK(double time, uint iter)
 {
-  auto const filename = fmt::format("{}.{}", (prefix_ / name_).string(), iter);
+  std::string filename;
+  if (mesh_->scope_ == COUPLING_SCOPE::VOLUME)
+    filename = fmt::format("{}.{}", (prefix_ / name_).string(), iter);
+  else
+    filename =
+        fmt::format("{}.{}.{}", (prefix_ / name_).string(), mesh_->bdName_, iter);
+
   frames.push_back(Frame{iter, time});
   fieldPtr_->setTime(time, iter, -1);
-  fieldPtr_->writeVTK(filename, /*binary*/ false);
+  fieldPtr_->writeVTK(filename, /*binary=*/false);
   printPVD();
 }
 

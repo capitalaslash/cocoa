@@ -18,15 +18,11 @@ int main()
 
   auto coupling12 =
       CouplingManager::build(COUPLING_TYPE::SIMPLE, COUPLING_SCOPE::VOLUME);
-  coupling12->setup(
-      {p1.get(), markerNotSet, {"T"}}, {p2.get(), markerNotSet, {"Tcfd"}});
+  coupling12->setup({p1.get(), {"T"}}, {p2.get(), {"Tcfd"}}, INTERPOLATION_METHOD::P1P1);
   auto coupling21 =
       CouplingManager::build(COUPLING_TYPE::SIMPLE, COUPLING_SCOPE::VOLUME);
   coupling21->setup(
-      {p2.get(), markerNotSet, p2->varNames()}, {p2.get(), markerNotSet, {}});
-
-  // MEDManager coupling21;
-  // coupling21.setup(p2.get(), p1.get());
+      {p2.get(), p2->varNames()}, {p2.get(), {}}, INTERPOLATION_METHOD::P1P1);
 
   p1->print();
   p2->print();

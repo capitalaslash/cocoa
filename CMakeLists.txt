@@ -339,7 +339,8 @@ if (COCOA_ENABLE_PROXPDE)
 endif()
 
 if (COCOA_ENABLE_OFORG)
-  cocoa_add_app(oforg oforg1)
+  cocoa_add_app(oforg oforg1 oforg1.dat)
+  cocoa_add_app(oforg_bd oforg_channel1 oforg_channel1.dat oforg_channel2 oforg_channel2.dat)
 endif()
 
 if (COCOA_ENABLE_PROXPDE AND COCOA_ENABLE_MEDCOUPLING)

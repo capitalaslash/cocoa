@@ -42,6 +42,11 @@ PYBIND11_MODULE(cocoa, m)
       .value("volume", COUPLING_SCOPE::VOLUME)
       .value("boundary", COUPLING_SCOPE::BOUNDARY);
 
+  py::enum_<INTERPOLATION_METHOD>(m, "INTERPOLATION_METHOD")
+      .value("none", INTERPOLATION_METHOD::NONE)
+      .value("p0p0", INTERPOLATION_METHOD::P0P0)
+      .value("p1p1", INTERPOLATION_METHOD::P1P1);
+
   py::enum_<EQN_TYPE>(m, "EQN_TYPE")
       .value("none", EQN_TYPE::NONE)
       .value("heat", EQN_TYPE::HEAT)
@@ -69,6 +74,8 @@ PYBIND11_MODULE(cocoa, m)
       .def("advance", &Problem::advance)
       .def("solve", &Problem::solve)
       .def("print", &Problem::print)
+      .def("init_mesh_coupling", &Problem::initMeshCoupling)
+      .def("init_mesh_coupling_volume", &Problem::initMeshCouplingVolume)
       .def_readwrite("time", &Problem::time)
       .def_readwrite("it", &Problem::it)
       .def_readwrite("print_step", &Problem::printStep_)
@@ -77,7 +84,6 @@ PYBIND11_MODULE(cocoa, m)
   // ProblemFD1D =======================================================
   py::class_<ProblemFD1D, Problem>(m, "ProblemFD1D")
       .def(py::init<>())
-      .def("init_mesh_coupling", &ProblemFD1D::initMeshCoupling)
       .def(
           "create_output_dir",
           [](ProblemFD1D * p, std::string_view path)
@@ -132,7 +138,6 @@ PYBIND11_MODULE(cocoa, m)
   // ProblemFD2D =======================================================
   py::class_<ProblemFD2D, Problem>(m, "ProblemFD2D")
       .def(py::init<>())
-      .def("init_mesh_coupling", &ProblemFD2D::initMeshCoupling)
       .def(
           "create_output_dir",
           [](ProblemFD2D * p, std::string_view path)
@@ -197,10 +202,16 @@ PYBIND11_MODULE(cocoa, m)
 
   // coupling ==========================================================
   py::class_<CouplingInterface>(m, "CouplingInterface")
-      .def(py::init<Problem *, /*Marker*/ int, std::vector<std::string>>());
+      .def(py::init<Problem *, std::vector<std::string>>())
+      .def(py::init<Problem *, std::string, std::vector<std::string>>());
 
   py::class_<CouplingManager>(m, "CouplingManager")
-      .def("setup", &CouplingManager::setup, "interface_src"_a, "interface_tgt"_a)
+      .def(
+          "setup",
+          &CouplingManager::setup,
+          "interface_src"_a,
+          "interface_tgt"_a,
+          "method"_a)
       .def(
           "project",
           py::overload_cast<std::string_view, std::string_view>(
@@ -230,8 +241,9 @@ PYBIND11_MODULE(cocoa, m)
           [](FieldCoupling * f,
              std::string_view name,
              MeshCoupling const * mesh,
-             std::string_view support)
-          { f->init(name, mesh, str2SupportType(support)); })
+             std::string_view support,
+             std::string_view nature)
+          { f->init(name, mesh, str2SupportType(support), str2NatureType(nature)); })
       .def("at", &FieldCoupling::at, "pos"_a)
       .def(
           "set_values",
@@ -371,7 +383,7 @@ PYBIND11_MODULE(cocoa, m)
                 v.data(),
                 sizeof(double),
                 py::format_descriptor<double>::format(),
-                1U,
+                1u,
                 {v.size()},
                 {sizeof(double)});
           })

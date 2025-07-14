@@ -135,7 +135,7 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
     }
   }
 
-  meshExport_ = initMeshCoupling(COUPLING_TYPE::MEDCOUPLING);
+  meshExport_ = initMeshCouplingVolume(COUPLING_TYPE::MEDCOUPLING);
 
   for (auto const & [name, type]: namesExport)
   {
@@ -159,59 +159,131 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
 }
 
 // TODO: add enum
-static std::unordered_map<uint8_t, std::array<uint, 8U>> connOF2MED = {
-    {8U, {0U, 1U, 3U, 2U, 4U, 5U, 7U, 6U}}, // HEX8
+static std::unordered_map<uint8_t, std::vector<uint>> connOF2MED = {
+    {4u, {0u, 1u, 2u, 3u}},                 // QUAD4
+    {8u, {0u, 1u, 3u, 2u, 4u, 5u, 7u, 6u}}, // HEX8
 };
 
-std::unique_ptr<MeshCoupling> ProblemOForg::initMeshCoupling(COUPLING_TYPE type)
+std::unique_ptr<MeshCoupling> ProblemOForg::initMeshCoupling(
+    COUPLING_TYPE type, COUPLING_SCOPE scope, Marker marker, std::string_view bdName)
 {
+  // only MEDCOUPLING supported for now
   assert(type == COUPLING_TYPE::MEDCOUPLING);
 
-  // // boundary
-  //   Foam::label patchId = mesh_->boundaryMesh().findPatchID("name");
-  //   const Foam::polyPatch & namePolyPatch = mesh_->boundaryMesh()[patchId];
-  //   Foam::labelList test(namePolyPatch.boundaryPoints());
-  //   forAll(test, pos) { Foam::Info << test[pos] << Foam::endl; }
-
-  // coords format: x_0, y_0, z_0, x_1, ...
-  std::vector<double> coords(mesh_->nPoints() * 3);
-  forAll(mesh_->points(), pointId)
+  if (scope == COUPLING_SCOPE::VOLUME)
   {
-    auto const & pt = mesh_->points()[pointId];
-    coords[3 * pointId + 0] = pt[0];
-    coords[3 * pointId + 1] = pt[1];
-    coords[3 * pointId + 2] = pt[2];
-  }
-
-  // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
-  // TODO: extend for generic cells, not only hex8
-  std::vector<uint> conn(mesh_->nCells() * (8 + 1));
-  forAll(mesh_->cells(), cellId)
-  {
-    conn[(8 + 1) * cellId] = MEDCellTypeToIKCell(MED_CELL_TYPE::HEX8);
-    for (uint p = 0; p < 8; p++)
+    // coords format: x_0, y_0, z_0, x_1, ...
+    std::vector<double> coords(mesh_->nPoints() * 3);
+    for (Foam::label pointId = 0; pointId < mesh_->nPoints(); pointId++)
     {
-      conn[(8 + 1) * cellId + 1 + connOF2MED[8U][p]] = mesh_->cellPoints()[cellId][p];
+      auto const & pt = mesh_->points()[pointId];
+      coords[3 * pointId + 0] = pt[0];
+      coords[3 * pointId + 1] = pt[1];
+      coords[3 * pointId + 2] = pt[2];
     }
+
+    // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
+    // TODO: extend for generic cells, not only hex8
+    std::vector<uint> conn(mesh_->nCells() * (8 + 1));
+    for (Foam::label cellId = 0; cellId < mesh_->cells().size(); cellId++)
+    {
+      conn[(8 + 1) * cellId] = MEDCellTypeToIKCell(MED_CELL_TYPE::HEX8);
+      for (auto p = 0u; p < 8u; p++)
+        conn[(8 + 1) * cellId + 1 + connOF2MED.at(8u)[p]] =
+            mesh_->cellPoints()[cellId][p];
+    }
+
+    // offsets format: sum_0^k elemk_numpts + 1,
+    std::vector<uint> offsets(mesh_->nCells() + 1);
+    offsets[0] = 0;
+    for (Foam::label cellId = 0; cellId < mesh_->cells().size(); cellId++)
+      offsets[cellId + 1] = offsets[cellId] + 8 + 1;
+
+    auto mesh = MeshCoupling::build(type);
+    mesh->init(
+        "mesh_oforg",
+        COUPLING_SCOPE::VOLUME,
+        markerNotSet,
+        "",
+        3u,
+        3u,
+        coords,
+        conn,
+        offsets);
+    // mesh->printVTK(outputVTK_ / "mesh_oforg");
+
+    return mesh;
   }
+  else if (scope == COUPLING_SCOPE::BOUNDARY)
+  {
+    // when coupling on boundary, we need a marker that identifies the patch
+    assert(marker != markerNotSet);
 
-  // offsets format: sum_0^k elemk_numpts + 1,
-  std::vector<uint> offsets(mesh_->nCells() + 1);
-  offsets[0] = 0;
-  forAll(mesh_->cells(), cellId) { offsets[cellId + 1] = offsets[cellId] + 8 + 1; }
+    const Foam::polyPatch & patch = mesh_->boundaryMesh()[marker];
 
-  auto mesh = MeshCoupling::build(type);
-  mesh->init("mesh_oforg", 3u, 3u, coords, conn, offsets);
-  // mesh->printVTK(prefix_ / "mesh_oforg");
+    // // coords format: x_0, y_0, z_0, x_1, ...
+    std::vector<double> coords(patch.nPoints() * 3);
+    auto const & patchPtIds = patch.meshPoints();
+    std::unordered_map<Foam::label, Foam::label> globalToLocal;
+    for (Foam::label localId = 0; localId < patch.nPoints(); localId++)
+    {
+      auto const globalId = patchPtIds[localId];
+      auto const & pt = mesh_->points()[globalId];
+      coords[3 * localId + 0] = pt[0];
+      coords[3 * localId + 1] = pt[1];
+      coords[3 * localId + 2] = pt[2];
+      globalToLocal[globalId] = localId;
+    }
 
-  return mesh;
+    // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
+    // TODO: extend for generic cells, not only quad4
+    // using mesh->cellShapes()
+    std::vector<uint> conn(patch.size() * (4 + 1));
+    // auto const patchStart = patch.start();
+    for (Foam::label cellId = 0; cellId < patch.size(); cellId++)
+    {
+      conn[(4 + 1) * cellId] = MEDCellTypeToIKCell(MED_CELL_TYPE::QUAD4);
+      for (auto p = 0u; p < 4u; p++)
+      {
+        auto const globalId = patch[cellId][p];
+        conn[(4 + 1) * cellId + 1 + connOF2MED.at(4u)[p]] = globalToLocal.at(globalId);
+      }
+    }
+
+    // // offsets format: sum_0^k elemk_numpts + 1,
+    std::vector<uint> offsets(patch.size() + 1);
+    offsets[0] = 0;
+    for (Foam::label cellId = 0; cellId < patch.size(); cellId++)
+      offsets[cellId + 1] = offsets[cellId] + 4 + 1;
+
+    auto meshBd = MeshCoupling::build(type);
+    meshBd->init(
+        "meshbd_oforg",
+        COUPLING_SCOPE::BOUNDARY,
+        marker,
+        bdName,
+        2u,
+        3u,
+        coords,
+        conn,
+        offsets);
+    // meshBd->printVTK(outputVTK_ / "meshbd_oforg");
+
+    return meshBd;
+  }
+  else
+  {
+    // should never get here
+    std::abort();
+  }
+  return MeshCoupling::build(type);
 }
 
 std::unique_ptr<FieldCoupling> ProblemOForg::initFieldCoupling(
     COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh)
 {
   auto field = FieldCoupling::build(type);
-  field->init(name, mesh, SUPPORT_TYPE::ON_CELLS);
+  field->init(name, mesh, SUPPORT_TYPE::ON_CELLS, NATURE_TYPE::INTENSIVE_MAXIMUM);
   setFieldData(field.get());
   field->initIO(outputVTK_);
   return field;
@@ -219,30 +291,119 @@ std::unique_ptr<FieldCoupling> ProblemOForg::initFieldCoupling(
 
 void ProblemOForg::setFieldData(FieldCoupling * fieldTgt)
 {
-  if (fieldTgt->name_ == "U")
+  if (fieldTgt->mesh_->scope_ == COUPLING_SCOPE::VOLUME)
   {
-    Foam::volVectorField const & fieldSrc =
-        mesh_->lookupObject<Foam::volVectorField>(fieldTgt->name_);
-    std::vector<double> data(fieldSrc.size() * 3U);
-    forAll(mesh_->cells(), cellId)
+    if (fieldTgt->name_ == "U")
     {
-      data[3 * cellId + 0] = fieldSrc[cellId][0];
-      data[3 * cellId + 1] = fieldSrc[cellId][1];
-      data[3 * cellId + 2] = fieldSrc[cellId][2];
+      Foam::volVectorField const & fieldSrc =
+          mesh_->lookupObject<Foam::volVectorField>(fieldTgt->name_);
+      std::vector<double> data(fieldSrc.size() * 3u);
+      forAll(mesh_->cells(), cellId)
+      {
+        data[3 * cellId + 0] = fieldSrc[cellId][0];
+        data[3 * cellId + 1] = fieldSrc[cellId][1];
+        data[3 * cellId + 2] = fieldSrc[cellId][2];
+      }
+      fieldTgt->setValues(data, 3u);
     }
-    fieldTgt->setValues(data, 3u);
+    else
+    {
+      Foam::volScalarField const & fieldSrc =
+          mesh_->lookupObject<Foam::volScalarField>(fieldTgt->name_);
+      std::vector<double> data(fieldSrc.size());
+      forAll(mesh_->cells(), cellId) { data[cellId] = fieldSrc[cellId]; }
+      fieldTgt->setValues(data, 1u);
+    }
+  }
+  else if (fieldTgt->mesh_->scope_ == COUPLING_SCOPE::BOUNDARY)
+  {
+    if (fieldTgt->name_ == "U")
+    {
+      auto const & fieldSrc =
+          mesh_->lookupObject<Foam::volVectorField>(fieldTgt->name_);
+      auto const & fieldSrcBd = fieldSrc.boundaryField()[fieldTgt->mesh_->marker_];
+      std::vector<double> data(fieldSrcBd.size() * 3u);
+      auto count = 0u;
+      for (auto const & value: fieldSrcBd)
+      {
+        data[3 * count + 0] = value[0u];
+        data[3 * count + 1] = value[1u];
+        data[3 * count + 2] = value[2u];
+        count++;
+      }
+      fieldTgt->setValues(data, 3u);
+    }
+    else
+    {
+      auto const & fieldSrc =
+          mesh_->lookupObject<Foam::volScalarField>(fieldTgt->name_);
+      auto const & fieldSrcBd = fieldSrc.boundaryField()[fieldTgt->mesh_->marker_];
+      std::vector<double> data(fieldSrcBd.size());
+      auto count = 0u;
+      for (auto const & value: fieldSrcBd)
+      {
+        data[count] = value;
+        count++;
+      }
+      fieldTgt->setValues(data, 1u);
+    }
   }
   else
   {
-    Foam::volScalarField const & fieldSrc =
-        mesh_->lookupObject<Foam::volScalarField>(fieldTgt->name_);
-    std::vector<double> data(fieldSrc.size());
-    forAll(mesh_->cells(), cellId) { data[cellId] = fieldSrc[cellId]; }
-    fieldTgt->setValues(data, 1u);
+    fmt::println(stderr, "field scope not set");
+    std::abort();
   }
 }
 
-void ProblemOForg::getFieldData(FieldCoupling const & field) { std::abort(); }
+void ProblemOForg::getFieldData(FieldCoupling const & fieldSrc)
+{
+  if (fieldSrc.mesh_->scope_ == COUPLING_SCOPE::VOLUME)
+  {
+    if (fieldSrc.name_ == "U")
+    {
+      auto & fieldTgt = mesh_->lookupObjectRef<Foam::volVectorField>(fieldSrc.name_);
+      for (int i = 0; i < fieldTgt.size(); i++)
+      {
+        fieldTgt.primitiveFieldRef()[i][0] = fieldSrc[3 * i + 0];
+        fieldTgt.primitiveFieldRef()[i][1] = fieldSrc[3 * i + 1];
+        fieldTgt.primitiveFieldRef()[i][2] = fieldSrc[3 * i + 2];
+      }
+    }
+    else
+    {
+      auto & fieldTgt = mesh_->lookupObjectRef<Foam::volScalarField>(fieldSrc.name_);
+      for (int i = 0; i < fieldTgt.size(); i++)
+        fieldTgt.primitiveFieldRef()[i] = fieldSrc[i];
+    }
+  }
+  else if (fieldSrc.mesh_->scope_ == COUPLING_SCOPE::BOUNDARY)
+  {
+    if (fieldSrc.name_ == "U")
+    {
+      auto & fieldTgt = mesh_->lookupObjectRef<Foam::volVectorField>(fieldSrc.name_);
+      auto & fieldTgtBd = fieldTgt.boundaryFieldRef()[fieldSrc.mesh_->marker_];
+      for (int i = 0; i < fieldTgtBd.size(); i++)
+      {
+        fieldTgtBd[i][0] = fieldSrc[3 * i + 0];
+        fieldTgtBd[i][1] = fieldSrc[3 * i + 1];
+        fieldTgtBd[i][2] = fieldSrc[3 * i + 2];
+      }
+    }
+    else
+    {
+      Foam::volScalarField & fieldTgt =
+          mesh_->lookupObjectRef<Foam::volScalarField>(fieldSrc.name_);
+      auto & fieldTgtBd = fieldTgt.boundaryFieldRef()[fieldSrc.mesh_->marker_];
+      for (int i = 0; i < fieldTgtBd.size(); i++)
+        fieldTgtBd[i] = fieldSrc[i];
+    }
+  }
+  else
+  {
+    fmt::println(stderr, "field scope not set");
+    std::abort();
+  }
+}
 
 bool ProblemOForg::run() const { return pimple_->run(*runTime_); }
 
@@ -267,6 +428,7 @@ uint ProblemOForg::solve()
   while (pimple_->loop())
   {
     solverPtr_->moveMesh();
+    // version >12
     // solverPtr_->motionCorrector();
     solverPtr_->fvModels().correct();
     solverPtr_->prePredictor();
@@ -331,18 +493,27 @@ void ProblemOForg::printVTK()
 
 Marker ProblemOForg::findRegion(std::string_view name)
 {
-  const Foam::fvPatchList & patches = mesh_->boundary();
-  for (auto const & patch: patches)
+  auto const patchId = mesh_->boundaryMesh().findPatchID(std::string{name});
+  if (patchId < 0)
   {
-    if (patch.name() == name)
-    {
-      return patch.index();
-    }
+    fmt::println("region {} not found", name);
+    std::abort();
   }
 
-  fmt::println("region {} not recognized", name);
-  std::abort();
-  return markerNotSet;
+  return patchId;
+
+  // const Foam::fvPatchList & patches = mesh_->boundary();
+  // for (auto const & patch: patches)
+  // {
+  //   if (patch.name() == name)
+  //   {
+  //     return patch.index();
+  //   }
+  // }
+
+  // fmt::println("region {} not recognized", name);
+  // std::abort();
+  // return markerNotSet;
 }
 
 void setDeltaT(Foam::Time & runTime, const Foam::solver & solver)

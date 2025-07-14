@@ -51,7 +51,11 @@ struct ProblemProXPDE: public Problem
 
   virtual uint size() const = 0;
 
-  std::unique_ptr<MeshCoupling> initMeshCoupling(COUPLING_TYPE type) override;
+  std::unique_ptr<MeshCoupling> initMeshCoupling(
+      COUPLING_TYPE type,
+      COUPLING_SCOPE scope,
+      Marker marker,
+      std::string_view bdName) override;
   virtual std::unique_ptr<FieldCoupling> initFieldCoupling(
       COUPLING_TYPE type,
       std::string_view name,

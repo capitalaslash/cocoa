@@ -11,9 +11,9 @@ p2.print()
 
 # c = cocoa.CouplingSimple(cocoa.COUPLING_SCOPE.volume)
 c = cocoa.CouplingMED(cocoa.COUPLING_SCOPE.volume)
-interface_src = cocoa.CouplingInterface(p1, -1, ["T"])
-interface_tgt = cocoa.CouplingInterface(p2, -1, ["Tcfd"])
-c.setup(interface_src, interface_tgt)
+interface_src = cocoa.CouplingInterface(p1, ["T"])
+interface_tgt = cocoa.CouplingInterface(p2, ["Tcfd"])
+c.setup(interface_src, interface_tgt, cocoa.INTERPOLATION_METHOD.p1p1)
 
 while p1.run() or p2.run():
     p1.advance()

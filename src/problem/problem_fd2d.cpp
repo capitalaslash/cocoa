@@ -317,49 +317,70 @@ void ProblemFD2D::setup(Problem::ConfigList_T const & configs)
   initOutput();
 }
 
-std::unique_ptr<MeshCoupling> ProblemFD2D::initMeshCoupling(COUPLING_TYPE type)
+std::unique_ptr<MeshCoupling> ProblemFD2D::initMeshCoupling(
+    COUPLING_TYPE type, COUPLING_SCOPE scope, Marker marker, std::string_view bdName)
 {
-  // coords format: x_0, y_0, z_0, x_1, ...
-  std::vector<double> coords(mesh_.nPts() * 3);
-  for (uint j = 0; j < mesh_.n_[1]; j++)
-    for (uint i = 0; i < mesh_.n_[0]; i++)
-    {
-      uint const id = j * mesh_.n_[0] + i;
-      auto const pt = mesh_.pt({i, j});
-      coords[3 * id + 0U] = pt[0];
-      coords[3 * id + 1U] = pt[1];
-      coords[3 * id + 2U] = 0.0;
-    }
-
-  // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
-  auto const nElems = mesh_.nElems();
-  std::vector<uint> conn(nElems * (1 + 4));
-  auto elemCount = 0U;
-  for (uint j = 0; j < mesh_.n_[1] - 1; j++)
-    for (uint i = 0; i < mesh_.n_[0] - 1; i++)
-    {
-      uint const id = j * mesh_.n_[0] + i;
-      conn[(1 + 4) * elemCount] = 4; // MEDCellTypeToIKCell(MED_CELL_TYPE::QUAD4);
-      conn[(1 + 4) * elemCount + 1] = id;
-      conn[(1 + 4) * elemCount + 2] = id + 1;
-      conn[(1 + 4) * elemCount + 3] = id + mesh_.n_[0] + 1;
-      conn[(1 + 4) * elemCount + 4] = id + mesh_.n_[0];
-      elemCount++;
-    }
-
-  // offsets format: sum_0^k elemk_numpts + 1,
-  std::vector<uint> offsets(nElems + 1);
-  offsets[0] = 0;
-  for (uint k = 0; k < nElems; k++)
+  if (scope == COUPLING_SCOPE::VOLUME)
   {
-    offsets[k + 1] = offsets[k] + (1 + 4);
+    // coords format: x_0, y_0, z_0, x_1, ...
+    std::vector<double> coords(mesh_.nPts() * 3);
+    for (uint j = 0; j < mesh_.n_[1]; j++)
+      for (uint i = 0; i < mesh_.n_[0]; i++)
+      {
+        uint const id = j * mesh_.n_[0] + i;
+        auto const pt = mesh_.pt({i, j});
+        coords[3 * id + 0U] = pt[0];
+        coords[3 * id + 1u] = pt[1];
+        coords[3 * id + 2U] = 0.0;
+      }
+
+    // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
+    auto const nElems = mesh_.nElems();
+    std::vector<uint> conn(nElems * (1 + 4));
+    auto elemCount = 0U;
+    for (uint j = 0; j < mesh_.n_[1] - 1; j++)
+      for (uint i = 0; i < mesh_.n_[0] - 1; i++)
+      {
+        uint const id = j * mesh_.n_[0] + i;
+        conn[(1 + 4) * elemCount] = 4; // MEDCellTypeToIKCell(MED_CELL_TYPE::QUAD4);
+        conn[(1 + 4) * elemCount + 1] = id;
+        conn[(1 + 4) * elemCount + 2] = id + 1;
+        conn[(1 + 4) * elemCount + 3] = id + mesh_.n_[0] + 1;
+        conn[(1 + 4) * elemCount + 4] = id + mesh_.n_[0];
+        elemCount++;
+      }
+
+    // offsets format: sum_0^k elemk_numpts + 1,
+    std::vector<uint> offsets(nElems + 1);
+    offsets[0] = 0;
+    for (uint k = 0; k < nElems; k++)
+    {
+      offsets[k + 1] = offsets[k] + (1 + 4);
+    }
+
+    auto meshCoupling = MeshCoupling::build(type);
+    meshCoupling->init(
+        "mesh_fd2d",
+        COUPLING_SCOPE::VOLUME,
+        markerNotSet,
+        "",
+        2u,
+        2u,
+        coords,
+        conn,
+        offsets);
+    // meshCoupling->printVTK(outputPrefix_ / "mesh_fd2d");
+    return meshCoupling;
   }
-
-  auto mesh = MeshCoupling::build(type);
-  mesh->init("mesh_fd2d", 2u, 2u, coords, conn, offsets);
-  // mesh->printVTK(outputPrefix_ / "mesh_fd2d");
-
-  return mesh;
+  else if (scope == COUPLING_SCOPE::BOUNDARY)
+  {
+    fmt::println(stderr, "boundary coupling not yet implemented!");
+    std::abort();
+  }
+  else
+  {
+    std::abort();
+  }
 }
 
 std::unique_ptr<FieldCoupling> ProblemFD2D::initFieldCoupling(
@@ -370,7 +391,7 @@ std::unique_ptr<FieldCoupling> ProblemFD2D::initFieldCoupling(
   {
     if (varNames_[v] == name)
     {
-      field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+      field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
       field->setValues(
           {u_.data() + v * mesh_.nPts(), u_.data() + (v + 1) * mesh_.nPts()}, 1u);
       field->initIO(outputPrefix_);
@@ -380,7 +401,7 @@ std::unique_ptr<FieldCoupling> ProblemFD2D::initFieldCoupling(
   // check if the coupling field is an additional field
   if (fields_.contains(std::string{name}))
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     field->setValues(fields_.at(std::string{name}).data_, 1u);
     return field;
   }
@@ -510,7 +531,7 @@ const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, FD_BC_SIDE const
 //   {
 //   case 0U: // bottom-left
 //     return n[0] + 1;
-//   case 1U: // bottom-right
+//   case 1u: // bottom-right
 //     return n[0] - 1;
 //   case 2U: // top-right
 //     return -n[0] - 1;
@@ -529,7 +550,7 @@ const std::vector<uint> sideDOF(std::array<uint, 2U> const & n, FD_BC_SIDE const
 //   {
 //   case 0U:
 //     return {0, 0}; // bottom left
-//   case 1U:
+//   case 1u:
 //     return {0, n[0] - 1}; // bottom right
 //   case 2U:
 //     return {n[0] - 1, n[1] - 1}; // top left
@@ -902,7 +923,7 @@ void ProblemFD2D::assemblyHeatCoupled()
   // std::copy(dataPtr, dataPtr + n_, uExt.data());
 
   // double const kAmpli = 10.;
-  // for (uint k = 1U; k < n_ - 1; k++)
+  // for (uint k = 1u; k < n_ - 1; k++)
   // {
   //   // matrix
   //   m_.diag[k] = 1. / dt_                  // time
@@ -953,11 +974,12 @@ void ProblemFD2D::print()
 
 void ProblemFD2D::printFields()
 {
-  auto const mesh = initMeshCoupling(COUPLING_TYPE::MEDCOUPLING);
+  auto const mesh = initMeshCouplingVolume(COUPLING_TYPE::MEDCOUPLING);
   for (auto const & [name, field]: fields_)
   {
     auto fieldMED = FieldCoupling::build(COUPLING_TYPE::MEDCOUPLING);
-    fieldMED->init(name, mesh.get(), SUPPORT_TYPE::ON_NODES);
+    fieldMED->init(
+        name, mesh.get(), SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     fieldMED->setValues(field.data_);
     fieldMED->initIO(outputPrefix_);
     fieldMED->printVTK(0.0, 0);

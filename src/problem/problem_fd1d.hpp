@@ -32,7 +32,11 @@ struct ProblemFD1D: public Problem
   std::vector<std::string> varNames() override { return varNames_; }
   Marker findRegion(std::string_view name) override;
 
-  std::unique_ptr<MeshCoupling> initMeshCoupling(COUPLING_TYPE type) override;
+  std::unique_ptr<MeshCoupling> initMeshCoupling(
+      COUPLING_TYPE type,
+      COUPLING_SCOPE scope,
+      Marker marker,
+      std::string_view bdName) override;
   std::unique_ptr<FieldCoupling> initFieldCoupling(
       COUPLING_TYPE type, std::string_view name, MeshCoupling const * mesh) override;
   void setFieldData(FieldCoupling * field) override;

@@ -31,42 +31,63 @@ std::unique_ptr<Problem> ProblemProXPDE::build(EQN_TYPE const type)
 
 ProblemProXPDE::ProblemProXPDE(): Problem{PROBLEM_TYPE::PROXPDE} {}
 
-std::unique_ptr<MeshCoupling> ProblemProXPDE::initMeshCoupling(COUPLING_TYPE type)
+std::unique_ptr<MeshCoupling> ProblemProXPDE::initMeshCoupling(
+    COUPLING_TYPE type, COUPLING_SCOPE scope, Marker marker, std::string_view bdName)
 {
-  using Elem_T = Mesh_T::Elem_T;
-
-  // coords format: x_0, y_0, z_0, x_1, ...
-  std::vector<double> coords(mesh_.pointList.size() * 3);
-  for (auto const & p: mesh_.pointList)
+  if (scope == COUPLING_SCOPE::VOLUME)
   {
-    coords[3 * p.id] = p.coord[0];
-    coords[3 * p.id + 1] = p.coord[1];
-    coords[3 * p.id + 2] = p.coord[2];
-  }
+    using Elem_T = Mesh_T::Elem_T;
 
-  // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
-  std::vector<uint> conn(mesh_.elementList.size() * (Elem_T::numPts + 1));
-  for (auto const & elem: mesh_.elementList)
-  {
-    conn[(Elem_T::numPts + 1) * elem.id] = MEDCellTypeToIKCell(MED_CELL_TYPE::QUAD4);
-    for (uint p = 0; p < Elem_T::numPts; p++)
+    // coords format: x_0, y_0, z_0, x_1, ...
+    std::vector<double> coords(mesh_.pointList.size() * 3);
+    for (auto const & p: mesh_.pointList)
     {
-      conn[(Elem_T::numPts + 1) * elem.id + p + 1] = elem.pts[p]->id;
+      coords[3 * p.id] = p.coord[0];
+      coords[3 * p.id + 1] = p.coord[1];
+      coords[3 * p.id + 2] = p.coord[2];
     }
-  }
 
-  // offsets format: sum_0^k elemk_numpts + 1,
-  std::vector<uint> offsets(mesh_.elementList.size() + 1);
-  offsets[0] = 0;
-  for (uint e = 0; e < mesh_.elementList.size(); e++)
+    // conn format: elem0_numpts, id_0, id_1, ..., elem1_numpts, ...
+    std::vector<uint> conn(mesh_.elementList.size() * (Elem_T::numPts + 1));
+    for (auto const & elem: mesh_.elementList)
+    {
+      conn[(Elem_T::numPts + 1) * elem.id] = MEDCellTypeToIKCell(MED_CELL_TYPE::QUAD4);
+      for (uint p = 0; p < Elem_T::numPts; p++)
+      {
+        conn[(Elem_T::numPts + 1) * elem.id + p + 1] = elem.pts[p]->id;
+      }
+    }
+
+    // offsets format: sum_0^k elemk_numpts + 1,
+    std::vector<uint> offsets(mesh_.elementList.size() + 1);
+    offsets[0] = 0;
+    for (uint e = 0; e < mesh_.elementList.size(); e++)
+    {
+      offsets[e + 1] = offsets[e] + (Elem_T::numPts + 1);
+    }
+
+    auto meshCoupling = MeshCoupling::build(type);
+    meshCoupling->init(
+        "mesh_proxpde",
+        COUPLING_SCOPE::VOLUME,
+        markerNotSet,
+        "",
+        Elem_T::dim,
+        3u,
+        coords,
+        conn,
+        offsets);
+    return meshCoupling;
+  }
+  else if (scope == COUPLING_SCOPE::BOUNDARY)
   {
-    offsets[e + 1] = offsets[e] + (Elem_T::numPts + 1);
+    fmt::println(stderr, "boundary coupling not yet implemented!");
+    std::abort();
   }
-
-  auto mesh = MeshCoupling::build(type);
-  mesh->init("mesh_proxpde", Elem_T::dim, 3u, coords, conn, offsets);
-
-  return mesh;
+  else
+  {
+    std::abort();
+  }
 }
 
 void ProblemProXPDE::advance()
@@ -435,7 +456,7 @@ std::unique_ptr<FieldCoupling> ProblemProXPDEHeat::initFieldCoupling(
   // check if the coupling field is the variable, T
   if (name == "T")
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     auto const data = getData(T_.data, feSpace_);
     field->setValues({data.data(), data.data() + data.size()}, 1u);
     field->initIO(outputPrefix_);
@@ -444,7 +465,7 @@ std::unique_ptr<FieldCoupling> ProblemProXPDEHeat::initFieldCoupling(
   // check if we are coupling the velocity
   if (name == "vel")
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     auto const data = getData(vel_.data, feSpaceVel_);
     field->setValues({data.data(), data.data() + data.size()}, FESpaceVel_T::dim);
     field->initIO(outputPrefix_);
@@ -453,7 +474,7 @@ std::unique_ptr<FieldCoupling> ProblemProXPDEHeat::initFieldCoupling(
   // otherwise, it can be in fieldsP1_
   if (fieldsP1_.contains(std::string{name}))
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     auto const data = getData(fieldsP1_.at(std::string{name}).data, feSpace_);
     field->setValues({data.data(), data.data() + data.size()}, 1u);
     field->initIO(outputPrefix_);
@@ -462,7 +483,7 @@ std::unique_ptr<FieldCoupling> ProblemProXPDEHeat::initFieldCoupling(
   // otherwise, it can be in fieldsP0_
   if (fieldsP0_.contains(std::string{name}))
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_CELLS);
+    field->init(name, mesh, SUPPORT_TYPE::ON_CELLS, NATURE_TYPE::INTENSIVE_MAXIMUM);
     auto const data = getData(fieldsP0_.at(std::string{name}).data, feSpaceP0_);
     field->setValues({data.data(), data.data() + data.size()}, 1u);
     field->initIO(outputPrefix_);
@@ -600,7 +621,7 @@ struct AssemblyNSBuoyant: public ProblemProXPDE::Assembly
     proxpde::Vec bsq = beta * (T.array() - Tref);
     // auto tmp2 = tmp * g.transpose();
     proxpde::Vec bsqVec = proxpde::Vec::Zero(bsq.size() * 2U);
-    proxpde::setComponent(bsqVec, feSpaceBsq, bsq, p->feSpaceP_, 1U);
+    proxpde::setComponent(bsqVec, feSpaceBsq, bsq, p->feSpaceP_, 1u);
     auto const boussinesq =
         proxpde::AssemblyProjection{-1.0, bsqVec, feSpaceBsq, p->feSpaceVel_};
 
@@ -762,7 +783,7 @@ std::unique_ptr<FieldCoupling> ProblemProXPDENS::initFieldCoupling(
   // check if the coupling field is the variable p
   if (name == "p")
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     auto const data = getData(p_.data, feSpaceP_);
     field->setValues({data.data(), data.data() + data.size()}, 1u);
     field->initIO(outputPrefix_);
@@ -771,7 +792,7 @@ std::unique_ptr<FieldCoupling> ProblemProXPDENS::initFieldCoupling(
   // check if the coupling field is the velocity
   if (name == "vel")
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     auto const data = getData(velQ1_.data, feSpaceVelQ1_);
     field->setValues({data.data(), data.data() + data.size()}, FESpaceVel_T::dim);
     field->initIO(outputPrefix_);
@@ -780,7 +801,7 @@ std::unique_ptr<FieldCoupling> ProblemProXPDENS::initFieldCoupling(
   // otherwise, it can be in fieldsP1_
   if (fieldsP1_.contains(std::string{name}))
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_NODES);
+    field->init(name, mesh, SUPPORT_TYPE::ON_NODES, NATURE_TYPE::INTENSIVE_MAXIMUM);
     auto const data = getData(fieldsP1_.at(std::string{name}).data, feSpaceP_);
     field->setValues({data.data(), data.data() + data.size()}, 1u);
     field->initIO(outputPrefix_);
@@ -789,7 +810,7 @@ std::unique_ptr<FieldCoupling> ProblemProXPDENS::initFieldCoupling(
   // otherwise, it can be in fieldsP0_
   if (fieldsP0_.contains(std::string{name}))
   {
-    field->init(name, mesh, SUPPORT_TYPE::ON_CELLS);
+    field->init(name, mesh, SUPPORT_TYPE::ON_CELLS, NATURE_TYPE::INTENSIVE_MAXIMUM);
     auto const data = getData(fieldsP0_.at(std::string{name}).data, feSpaceP0_);
     field->setValues({data.data(), data.data() + data.size()}, 1u);
     field->initIO(outputPrefix_);

@@ -16,12 +16,12 @@ int main()
   auto couplingHeatToNS =
       CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
   couplingHeatToNS->setup(
-      {pHeat.get(), markerNotSet, {"T"}}, {pNS.get(), markerNotSet, {"T"}});
+      {pHeat.get(), {"T"}}, {pNS.get(), {"T"}}, INTERPOLATION_METHOD::P1P1);
 
   auto couplingNSToHeat =
       CouplingManager::build(COUPLING_TYPE::MEDCOUPLING, COUPLING_SCOPE::VOLUME);
   couplingNSToHeat->setup(
-      {pNS.get(), markerNotSet, {"vel"}}, {pHeat.get(), markerNotSet, {"vel"}});
+      {pNS.get(), {"vel"}}, {pHeat.get(), {"vel"}}, INTERPOLATION_METHOD::P1P1);
 
   pNS->print();
   pHeat->print();
