@@ -13,6 +13,7 @@
 #include <proxpde/bc.hpp>
 #include <proxpde/fe.hpp>
 #include <proxpde/fespace.hpp>
+#include <proxpde/feutils.hpp>
 #include <proxpde/geo.hpp>
 #include <proxpde/iomanager.hpp>
 #include <proxpde/mesh.hpp>
@@ -84,6 +85,8 @@ struct ProblemProXPDE: public Problem
   double dt_;
   double finalTime_;
   std::filesystem::path outputPrefix_ = "./tmp";
+  using GlobalToBd_T = std::unordered_map<proxpde::id_T, uint>;
+  std::unordered_map<proxpde::marker_T, GlobalToBd_T> globalToBd_;
 
   static std::unique_ptr<Problem> build(EQN_TYPE const type);
 };
@@ -172,9 +175,11 @@ struct ProblemProXPDENS: public ProblemProXPDE
   FESpaceVelQ1_T feSpaceVelQ1_;
   proxpde::FEVar<FESpaceVelQ1_T> velQ1_;
   proxpde::L2Projector<FESpaceVelQ1_T, FESpaceVel_T> projectorQ2Q1_;
+  proxpde::L2Projector<FESpaceVel_T, FESpaceVelQ1_T> projectorQ1Q2_;
   double viscosity_;
-  std::vector<proxpde::BCEss<FESpaceP_T>> bcsP_;
   std::vector<proxpde::BCEss<FESpaceVel_T>> bcsVel_;
+  proxpde::FEVar<FESpaceP_T> pNeumann_;
+  proxpde::AssemblyBCNormalFE<FESpaceVel_T, FESpaceP_T> bcP_;
   proxpde::IOManager<FESpaceVel_T> ioVel_;
   proxpde::IOManager<FESpaceP_T> ioP_;
 };

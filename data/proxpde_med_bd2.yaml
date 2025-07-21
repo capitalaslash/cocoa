@@ -1,0 +1,35 @@
+name: med_bd2
+
+mesh:
+  type: STRUCTURED
+  origin: [0.0, 5.0, 0.0]
+  length: [1.0, 5.0, 0.0]
+  n: [6, 8, 0]
+  flags: [NORMALS]
+
+equation_type: ns
+
+vel_init_value: [0.0, 1.0]
+p_init_value: 0.0
+
+dt: 0.2
+final_time: 4.0
+
+viscosity: 0.1
+
+bcs_vel:
+  - label: right
+    value: [0.0, 0.0]
+  - label: left
+    component: 0
+    value: 0.0
+  # set the botom inlet condition last to fix the corner properly
+  - label: bottom
+    value: [0.0, 1.0]
+
+bcs_p:
+  - label: top
+    value: 0.0
+
+
+output: output_med_bd2

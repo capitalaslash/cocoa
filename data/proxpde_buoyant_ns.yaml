@@ -19,7 +19,7 @@ viscosity: 0.1
 
 additional_fields_p1: [T]
 
-bcs:
+bcs_vel:
   - label: bottom
     value: [0.0, 0.0]
   - label: right
