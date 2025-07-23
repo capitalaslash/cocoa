@@ -10,7 +10,7 @@ p1.print()
 p2.print()
 
 # c = cocoa.CouplingSimple(cocoa.COUPLING_SCOPE.volume)
-c = cocoa.CouplingMED(cocoa.COUPLING_SCOPE.volume)
+c = cocoa.CouplingSimple(cocoa.COUPLING_SCOPE.volume)
 interface_src = cocoa.CouplingInterface(p1, ["T"])
 interface_tgt = cocoa.CouplingInterface(p2, ["Tcfd"])
 c.setup(interface_src, interface_tgt, cocoa.INTERPOLATION_METHOD.p1p1)
