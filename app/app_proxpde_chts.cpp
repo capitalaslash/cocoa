@@ -4,6 +4,9 @@
 // libfmt
 #include <fmt/ranges.h>
 
+// proxpde
+#include <proxpde/feutils.hpp>
+
 // local
 #include "problem/problem_proxpde.hpp"
 
