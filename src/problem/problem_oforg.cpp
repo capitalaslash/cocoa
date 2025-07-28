@@ -499,7 +499,7 @@ void ProblemOForg::printVTK()
 
 Marker ProblemOForg::findRegion(std::string_view name)
 {
-  auto const patchId = mesh_->boundaryMesh().findPatchID(std::string{name});
+  auto const patchId = mesh_->boundaryMesh().findIndex(Foam::wordRe{std::string{name}});
   if (patchId < 0)
   {
     fmt::println("region {} not found", name);
