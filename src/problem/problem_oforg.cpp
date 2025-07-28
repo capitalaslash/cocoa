@@ -28,6 +28,7 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
   prefix_ = std::holds_alternative<std::filesystem::path>(caseDirVariant)
                 ? std::get<std::filesystem::path>(caseDirVariant)
                 : std::filesystem::path{std::get<std::string>(caseDirVariant)};
+
   int argc = 3;
   char ** argv = new char *[3];
   argv[0] = (char *)"app_oforg";
@@ -35,65 +36,9 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
   argv[2] = new char[prefix_.string().size()];
   std::strncpy(argv[2], prefix_.string().data(), prefix_.string().size());
 
-  Foam::argList::addOption("solver", "name", "Solver name");
-
-  Foam::argList args(
-      argc, argv, /*checkArgs*/ true, /*checkOpts*/ true, /*initialize*/ argInit);
-  // default argList options should be initialized only once
-  argInit = false;
-
-  if (!args.checkRootCase())
-  {
-    Foam::FatalError.exit();
-  }
-
-  Foam::Info << "Create time\n" << Foam::endl;
-
-  runTime_.reset(new Foam::Time{Foam::Time::controlDictName, args});
-
-  // Read the solverName from the optional solver entry in controlDict
-  solverName_ = runTime_->controlDict().lookupOrDefault("solver", Foam::word::null);
-
-  // Optionally reset the solver name from the -solver command-line argument
-  args.optionReadIfPresent("solver", solverName_);
-
-  // Check the solverName has been set
-  if (solverName_ == Foam::word::null)
-  {
-    args.printUsage();
-
-    FatalErrorIn(args.executable())
-        << "solver not specified in the controlDict or on the command-line"
-        << exit(Foam::FatalError);
-  }
-  else
-  {
-    // Load the solver library
-    // TODO: add map with custom lib names
-    Foam::solver::load(solverName_);
-  }
-
-  // Create the default single region mesh
-  Foam::Info << "Create mesh for time = " << runTime_->name() << Foam::nl << Foam::endl;
-
-  mesh_.reset(new Foam::fvMesh{Foam::IOobject{
-      Foam::fvMesh::defaultRegion,
-      runTime_->name(),
-      *runTime_,
-      Foam::IOobject::MUST_READ}});
-
-  // Instantiate the selected solver
-  solverPtr_ = Foam::solver::New(solverName_, *mesh_);
-  // Foam::solver & solver = solverPtr();
-
-  // Create the outer PIMPLE loop and control structure
-  pimple_.reset(new Foam::pimpleSingleRegionControl{solverPtr_->pimple});
-
-  // Set the initial time-step
-  setDeltaT(*runTime_, *solverPtr_);
-
   std::vector<std::pair<std::string, OFFIELD_TYPE>> namesExport = {};
   outputVTK_ = "./output_oforg";
+  bool blockMesh = false;
   if (configs.contains("config_file"))
   {
     auto const & configFileVariant = configs.at("config_file");
@@ -126,6 +71,8 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
           }
         else if (token == "output_vtk:")
           bufferStream >> outputVTK_;
+        else if (token == "block_mesh:")
+          bufferStream >> blockMesh;
         else
         {
           fmt::println(stderr, "key {} invalid", token);
@@ -134,6 +81,65 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
       }
     }
   }
+
+  Foam::argList::addOption("solver", "name", "Solver name");
+
+  args_.reset(new Foam::argList(
+      argc, argv, /*checkArgs=*/true, /*checkOpts=*/true, /*initialize=*/argInit));
+  argInit = false;
+
+  if (blockMesh)
+    runBlockMesh(*args_);
+
+  if (!args_->checkRootCase())
+  {
+    Foam::FatalError.exit();
+  }
+
+  Foam::Info << "Create time\n" << Foam::endl;
+
+  runTime_.reset(new Foam::Time{Foam::Time::controlDictName, *args_});
+
+  // Read the solverName from the optional solver entry in controlDict
+  solverName_ = runTime_->controlDict().lookupOrDefault("solver", Foam::word::null);
+
+  // Optionally reset the solver name from the -solver command-line argument
+  args_->optionReadIfPresent("solver", solverName_);
+
+  // Check the solverName has been set
+  if (solverName_ == Foam::word::null)
+  {
+    args_->printUsage();
+
+    FatalErrorIn(args_->executable())
+        << "solver not specified in the controlDict or on the command-line"
+        << exit(Foam::FatalError);
+  }
+  else
+  {
+    // Load the solver library
+    // TODO: add map with custom lib names
+    Foam::solver::load(solverName_);
+  }
+
+  // Create the default single region mesh
+  Foam::Info << "Create mesh for time = " << runTime_->name() << Foam::nl << Foam::endl;
+
+  mesh_.reset(new Foam::fvMesh{Foam::IOobject{
+      Foam::fvMesh::defaultRegion,
+      runTime_->name(),
+      *runTime_,
+      Foam::IOobject::MUST_READ}});
+
+  // Instantiate the selected solver
+  solverPtr_ = Foam::solver::New(solverName_, *mesh_);
+  // Foam::solver & solver = solverPtr();
+
+  // Create the outer PIMPLE loop and control structure
+  pimple_.reset(new Foam::pimpleSingleRegionControl{solverPtr_->pimple});
+
+  // Set the initial time-step
+  setDeltaT(*runTime_, *solverPtr_);
 
   meshExport_ = initMeshCouplingVolume(COUPLING_TYPE::MEDCOUPLING);
 

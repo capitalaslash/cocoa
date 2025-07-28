@@ -60,6 +60,7 @@ struct ProblemOForg: public Problem
   void getFieldData(FieldCoupling const & field) override;
 
   std::filesystem::path prefix_;
+  std::unique_ptr<Foam::argList> args_;
   std::unique_ptr<Foam::Time> runTime_;
   Foam::word solverName_;
   std::unique_ptr<Foam::fvMesh> mesh_;
@@ -75,5 +76,7 @@ struct ProblemOForg: public Problem
 };
 
 } // namespace cocoa
+
+int runBlockMesh(Foam::argList & args);
 
 #endif

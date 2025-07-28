@@ -93,14 +93,20 @@ if (COCOA_ENABLE_OFORG)
   endif()
   find_package(OpenFOAMorg REQUIRED)
   list(APPEND LIB_SOURCES
+    src/block_mesh.cpp
     src/problem/problem_oforg.cpp
   )
   list(APPEND LIB_HEADERS
     src/problem/problem_oforg.hpp
   )
   list(APPEND LIB_DEPENDENCIES
-    OpenFOAMorg::ALL
-    $ENV{FOAM_LIBBIN}/dummy/libmetisDecomp.so
+    MPI::MPI_CXX
+    OpenFOAMorg::OpenFOAM
+    OpenFOAMorg::finiteVolume
+    OpenFOAMorg::dynamicMesh
+    OpenFOAMorg::mesh_blockMesh
+    # OpenFOAMorg::ALL
+    # $ENV{FOAM_LIBBIN}/dummy/libmetisDecomp.so
   )
 endif()
 

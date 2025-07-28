@@ -1,3 +1,4 @@
 scalar_vars: p
 vector_vars: U
 output_vtk: output_oforg_channel2
+block_mesh: 1
