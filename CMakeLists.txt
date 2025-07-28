@@ -6,11 +6,8 @@ endif()
 
 project(cocoa
   VERSION 0.1
-  LANGUAGES CXX C
+  LANGUAGES CXX
 )
-
-message(STATUS "Version: ${PROJECT_VERSION}")
-message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -77,7 +74,7 @@ include(FetchContent)
 if (COCOA_FETCH_FMT)
   FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG e3ddede6c4ee818825c4e5a6dfa1d384860c27d9 # 11.1.1
+    GIT_TAG 40626af88bd7df9a5fb80be7b25ac85b122d6c21 # 11.2.0
   )
   FetchContent_MakeAvailable(fmt)
 else()
@@ -146,11 +143,13 @@ if (COCOA_ENABLE_MEDCOUPLING)
       # medicoco
       medloader
   )
-  # target_include_directories(medcoupling SYSTEM
-  #   INTERFACE
-  #     ${MEDCOUPLING_INCLUDE_DIRS}
-  # )
+  foreach (path ${MEDCOUPLING_INCLUDE_DIRS})
+    target_include_directories(medcoupling SYSTEM
+      INTERFACE $<BUILD_INTERFACE:${path}>
+    )
+  endforeach()
   add_library(medcoupling::medcoupling ALIAS medcoupling)
+
   list(APPEND LIB_SOURCES
     src/coupling/coupling_med.cpp
     src/coupling/field_med.cpp
@@ -180,12 +179,12 @@ add_library(cocoa)
 target_sources(cocoa
   PRIVATE
     ${LIB_SOURCES}
-    ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
-)
-target_sources(cocoa PUBLIC
+  PUBLIC
   FILE_SET HEADERS
-  BASE_DIRS src
-  FILES ${LIB_HEADERS}
+  BASE_DIRS src ${CMAKE_CURRENT_BINARY_DIR}
+  FILES
+    ${LIB_HEADERS}
+    ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
 )
 target_link_libraries(cocoa
   PUBLIC
@@ -195,10 +194,6 @@ target_compile_features(cocoa PRIVATE cxx_std_20)
 add_library(cocoa::cocoa ALIAS cocoa)
 
 configure_file(src/plugins.hpp.in plugins.hpp @ONLY)
-target_include_directories(cocoa
-  PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}
-)
 
 feature_summary(WHAT ALL)
 
@@ -209,16 +204,15 @@ if (COCOA_ENABLE_PYTHON)
   pybind11_add_module(cocoa_python
     python/bindings.cpp
   )
-  set_target_properties(cocoa_python PROPERTIES OUTPUT_NAME cocoa)
+  set_target_properties(cocoa_python
+    PROPERTIES
+      OUTPUT_NAME cocoa
+  )
   add_library(cocoa::python ALIAS cocoa_python)
   target_link_libraries(cocoa_python
     PRIVATE
       cocoa::cocoa
       Eigen3::Eigen
-  )
-  target_include_directories(cocoa_python
-    PRIVATE
-      ${CMAKE_CURRENT_BINARY_DIR}
   )
 endif()
 
@@ -230,7 +224,7 @@ if (COCOA_ENABLE_TESTS)
 
   if (COCOA_ENABLE_PYTHON)
     macro(cocoa_add_test_python name)
-      message(STATUS "adding python app ${name}")
+      message(VERBOSE "adding python app ${name}")
 
       add_test(
         NAME cocoa::python::${name}
@@ -244,7 +238,7 @@ if (COCOA_ENABLE_TESTS)
       list(LENGTH extra_args extra_count)
       if (${extra_count} GREATER 0)
         foreach(datafile ${extra_args})
-          MESSAGE(STATUS "copying ${datafile} to binary dir")
+          message(VERBOSE "copying ${datafile} to binary dir")
           file(
             COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/${datafile}
             DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
@@ -286,7 +280,7 @@ endif()
 set(APP_FILES "")
 
 macro(cocoa_add_app name)
-  message(STATUS "adding app ${name}")
+  message(VERBOSE "adding app ${name}")
 
   add_executable(app_${name})
   list(APPEND APP_FILES app/app_${name}.cpp)
@@ -298,10 +292,6 @@ macro(cocoa_add_app name)
     PUBLIC
       cocoa::cocoa
   )
-  target_include_directories(app_${name}
-    PRIVATE
-      ${CMAKE_CURRENT_BINARY_DIR}
-  )
 
   if (COCOA_ENABLE_TESTS)
     add_test(NAME cocoa::app::${name} COMMAND ${CMAKE_CURRENT_BINARY_DIR}/app_${name})
@@ -311,7 +301,7 @@ macro(cocoa_add_app name)
   list(LENGTH extra_args extra_count)
   if (${extra_count} GREATER 0)
     foreach(datafile ${extra_args})
-      MESSAGE(STATUS "copying ${datafile} to binary dir")
+      message(VERBOSE "copying ${datafile} to binary dir")
       file(
         COPY ${CMAKE_CURRENT_SOURCE_DIR}/data/${datafile}
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
@@ -439,11 +429,19 @@ endif()
 # summary ==============================================================
 
 message(STATUS "#===================================================#")
+message(STATUS "cocoa version:    ${PROJECT_VERSION}")
+message(STATUS "build type:       ${CMAKE_BUILD_TYPE}")
+message(STATUS "install prefix:   ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "cocoa has been configured with the following options:")
-message(STATUS "FEMuS:           ${COCOA_ENABLE_FEMUS}")
-message(STATUS "MEDCoupling:     ${COCOA_ENABLE_MEDCOUPLING}")
-message(STATUS "OpenFOAMorg:     ${COCOA_ENABLE_OFORG}")
-message(STATUS "OpenFOAMcom:     ${COCOA_ENABLE_OFCOM}")
-message(STATUS "ProXPDE:         ${COCOA_ENABLE_PROXPDE}")
-message(STATUS "python bindings: ${COCOA_ENABLE_PYTHON}")
+message(STATUS "FEMuS:            ${COCOA_ENABLE_FEMUS}")
+message(STATUS "FEMuS_DIR:        ${FEMuS_DIR}")
+message(STATUS "MEDCoupling:      ${COCOA_ENABLE_MEDCOUPLING}")
+message(STATUS "MEDCoupling_DIR:  ${MEDCoupling_DIR}")
+message(STATUS "OpenFOAMorg:      ${COCOA_ENABLE_OFORG}")
+message(STATUS "OpenFOAMorg_DIR:  ${OpenFOAMorg_DIR}")
+message(STATUS "OpenFOAMcom:      ${COCOA_ENABLE_OFCOM}")
+message(STATUS "OpenFOAMcom_DIR:  ${OpenFOAMcom_DIR}")
+message(STATUS "ProXPDE:          ${COCOA_ENABLE_PROXPDE}")
+message(STATUS "ProXPDE_DIR:      ${ProXPDE_DIR}")
+message(STATUS "python bindings:  ${COCOA_ENABLE_PYTHON}")
 message(STATUS "#===================================================#")
