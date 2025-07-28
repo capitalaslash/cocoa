@@ -33,7 +33,7 @@ void ProblemOForg::setup(Problem::ConfigList_T const & configs)
   argv[0] = (char *)"app_oforg";
   argv[1] = (char *)"-case";
   argv[2] = new char[prefix_.string().size()];
-  std::strcpy(argv[2], prefix_.string().data());
+  std::strncpy(argv[2], prefix_.string().data(), prefix_.string().size());
 
   Foam::argList::addOption("solver", "name", "Solver name");
 
