@@ -100,7 +100,6 @@ if (COCOA_ENABLE_OFORG)
     src/problem/problem_oforg.hpp
   )
   list(APPEND LIB_DEPENDENCIES
-    MPI::MPI_CXX
     OpenFOAMorg::OpenFOAM
     OpenFOAMorg::finiteVolume
     OpenFOAMorg::dynamicMesh

@@ -139,6 +139,13 @@ target_compile_definitions(OpenFOAM{ver}::OpenFOAM
 
         f.write(
             f"""
+# OpenFOAM requires MPI
+find_package(MPI REQUIRED COMPONENTS CXX)
+target_link_libraries(OpenFOAM{ver}::OpenFOAM
+  INTERFACE
+    MPI::MPI_CXX
+)
+
 # module vars
 set(OpenFOAM{ver}_FOUND TRUE)
 include(FindPackageHandleStandardArgs)
