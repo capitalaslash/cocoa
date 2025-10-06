@@ -1,3 +1,4 @@
 scalar_vars: p nut k epsilon
 vector_vars: U
 output_vtk: output_oforg1
+block_mesh: 1
