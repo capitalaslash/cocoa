@@ -4,7 +4,9 @@
 #include <string_view>
 
 // proxpde
-#include <proxpde/assembly.hpp>
+#include <proxpde/assembly_bc.hpp>
+#include <proxpde/assembly_lhs.hpp>
+#include <proxpde/assembly_rhs.hpp>
 #include <proxpde/builder.hpp>
 
 // local

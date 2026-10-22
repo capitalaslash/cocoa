@@ -8,9 +8,9 @@
 #include <vector>
 
 // proxpde
-#include <proxpde/def.hpp>
-
+#include <proxpde/assembly_bc.hpp>
 #include <proxpde/bc.hpp>
+#include <proxpde/def.hpp>
 #include <proxpde/fe.hpp>
 #include <proxpde/fespace.hpp>
 #include <proxpde/feutils.hpp>
