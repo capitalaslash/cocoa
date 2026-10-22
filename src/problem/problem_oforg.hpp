@@ -2,7 +2,7 @@
 
 #include "coupling/field_coupling.hpp"
 #include "coupling/mesh_coupling.hpp"
-#include "plugins.hpp"
+#include <cocoa_plugins.hpp>
 
 #ifdef COCOA_ENABLE_OFORG
 

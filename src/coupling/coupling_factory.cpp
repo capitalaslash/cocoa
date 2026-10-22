@@ -5,7 +5,7 @@
 #include <fmt/core.h>
 
 // local
-#include "plugins.hpp"
+#include <cocoa_plugins.hpp>
 
 #include "coupling/coupling_manager.hpp"
 #include "coupling/coupling_med.hpp"

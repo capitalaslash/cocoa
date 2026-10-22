@@ -189,7 +189,7 @@ target_sources(cocoa
   BASE_DIRS src ${CMAKE_CURRENT_BINARY_DIR}
   FILES
     ${LIB_HEADERS}
-    ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
+    ${CMAKE_CURRENT_BINARY_DIR}/cocoa_plugins.hpp
 )
 target_link_libraries(cocoa
   PUBLIC
@@ -198,7 +198,7 @@ target_link_libraries(cocoa
 target_compile_features(cocoa PRIVATE cxx_std_20)
 add_library(cocoa::cocoa ALIAS cocoa)
 
-configure_file(src/plugins.hpp.in plugins.hpp @ONLY)
+configure_file(src/cocoa_plugins.hpp.in cocoa_plugins.hpp @ONLY)
 
 feature_summary(WHAT ALL)
 
@@ -373,7 +373,7 @@ if (COCOA_ENABLE_MEDCOUPLING)
 endif()
 
 install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/plugins.hpp
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/cocoa_plugins.hpp
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cocoa
 )
 

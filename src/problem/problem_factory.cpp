@@ -2,7 +2,7 @@
 #include <memory>
 
 // local
-#include "plugins.hpp"
+#include <cocoa_plugins.hpp>
 
 #include "problem/problem.hpp"
 #include "problem/problem_fd1d.hpp"

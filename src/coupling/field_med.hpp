@@ -1,6 +1,6 @@
 #pragma once
 
-#include "plugins.hpp"
+#include <cocoa_plugins.hpp>
 
 #ifdef COCOA_ENABLE_MEDCOUPLING
 

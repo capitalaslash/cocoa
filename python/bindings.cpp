@@ -1,5 +1,5 @@
 #include "coupling/coupling_manager.hpp"
-#include "plugins.hpp"
+#include "cocoa_plugins.hpp"
 
 // pybind11
 #include <pybind11/eigen.h>

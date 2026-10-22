@@ -2,7 +2,7 @@
 #include <memory>
 
 // local
-#include "plugins.hpp"
+#include <cocoa_plugins.hpp>
 
 #include "coupling/field_coupling.hpp"
 #include "coupling/field_med.hpp"
