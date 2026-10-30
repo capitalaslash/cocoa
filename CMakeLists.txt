@@ -178,14 +178,13 @@ endif()
 if (COCOA_ENABLE_PYTHON)
   find_package(Python 3.10 COMPONENTS Interpreter Development REQUIRED)
   find_package(pybind11 CONFIG REQUIRED)
-  find_package(Eigen3 3.4 REQUIRED)
+  find_package(Eigen3 3.4 CONFIG REQUIRED)
 endif()
 
 
 # library ==============================================================
 
 add_library(cocoa)
-
 target_sources(cocoa
   PRIVATE
     ${LIB_SOURCES}
