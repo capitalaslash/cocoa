@@ -87,9 +87,13 @@ if (COCOA_ENABLE_OFORG)
   if (NOT EXISTS "cmake/FindOpenFOAMorg.cmake")
     message(STATUS "generating OpenFOAMorg.cmake")
     execute_process(
-      COMMAND python generate_of_components.py org
+      COMMAND python3 generate_of_components.py org
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake
+      RESULT_VARIABLE OFORG_GEN
     )
+    if (NOT ${OFORG_GEN} STREQUAL "0")
+      message(FATAL_ERROR "the generation of OpenFOAMorg.cmake failed")
+    endif()
   endif()
   find_package(OpenFOAMorg REQUIRED)
   list(APPEND LIB_SOURCES
