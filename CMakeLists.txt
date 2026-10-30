@@ -199,6 +199,7 @@ target_link_libraries(cocoa
     ${LIB_DEPENDENCIES}
 )
 target_compile_features(cocoa PRIVATE cxx_std_20)
+set_target_properties(cocoa PROPERTIES VERIFY_INTERFACE_HEADER_SETS TRUE)
 add_library(cocoa::cocoa ALIAS cocoa)
 
 configure_file(
