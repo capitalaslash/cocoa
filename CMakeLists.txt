@@ -139,7 +139,7 @@ if (COCOA_ENABLE_MEDCOUPLING)
   endif()
   find_package(MEDCoupling REQUIRED
     PATHS
-      ${CMAKE_SOURCE_DIR}/contrib/medcoupling/cmake_files
+      ${MEDCoupling_DIR}/cmake_files
       $ENV{SPACK_ENV}/.spack-env/view/cmake_files
   )
   add_library(medcoupling INTERFACE)
@@ -149,8 +149,8 @@ if (COCOA_ENABLE_MEDCOUPLING)
       interpkernel
       medcouplingcpp
       medcouplingremapper
-      # medicoco
-      medloader
+      medicoco
+      # medloader
   )
   foreach (path ${MEDCOUPLING_INCLUDE_DIRS})
     target_include_directories(medcoupling SYSTEM
