@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cocoa_plugins.hpp>
+#include <cocoa/plugins.hpp>
 
 #ifdef COCOA_ENABLE_MEDCOUPLING
 
-// std
+// stl
 #include <string_view>
 #include <vector>
 
@@ -13,8 +13,8 @@
 #include <MEDCouplingUMesh.hxx>
 #include <NormalizedGeometricTypes> // missing extension!!!
 
-// local
-#include "coupling/mesh_coupling.hpp"
+// cocoa
+#include <cocoa/coupling/mesh_coupling.hpp>
 
 namespace cocoa
 {

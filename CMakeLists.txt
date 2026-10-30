@@ -28,17 +28,17 @@ set(LIB_SOURCES
   src/problem/problem_factory.cpp
 )
 set(LIB_HEADERS
-  src/enums.hpp
-  src/la.hpp
-  src/coupling/coupling_manager.hpp
-  src/coupling/coupling_simple.hpp
-  src/coupling/field_coupling.hpp
-  src/coupling/mesh_coupling.hpp
-  src/problem/problem.hpp
-  src/problem/fdutils.hpp
-  src/problem/problem_fd1d.hpp
-  src/problem/problem_fd2d.hpp
-  src/problem/problem_femus.hpp
+  include/cocoa/enums.hpp
+  include/cocoa/la.hpp
+  include/cocoa/coupling/coupling_manager.hpp
+  include/cocoa/coupling/coupling_simple.hpp
+  include/cocoa/coupling/field_coupling.hpp
+  include/cocoa/coupling/mesh_coupling.hpp
+  include/cocoa/problem/problem.hpp
+  include/cocoa/problem/fdutils.hpp
+  include/cocoa/problem/problem_fd1d.hpp
+  include/cocoa/problem/problem_fd2d.hpp
+  include/cocoa/problem/problem_femus.hpp
 )
 set(LIB_DEPENDENCIES
   fmt::fmt
@@ -97,7 +97,7 @@ if (COCOA_ENABLE_OFORG)
     src/problem/problem_oforg.cpp
   )
   list(APPEND LIB_HEADERS
-    src/problem/problem_oforg.hpp
+    include/cocoa/problem/problem_oforg.hpp
   )
   list(APPEND LIB_DEPENDENCIES
     OpenFOAMorg::OpenFOAM
@@ -116,7 +116,7 @@ if (COCOA_ENABLE_PROXPDE)
     src/problem/problem_proxpde.cpp
   )
   list(APPEND LIB_HEADERS
-    src/problem/problem_proxpde.hpp
+    include/cocoa/problem/problem_proxpde.hpp
   )
   list(APPEND LIB_DEPENDENCIES
     ProXPDE::proxpde
@@ -161,9 +161,9 @@ if (COCOA_ENABLE_MEDCOUPLING)
     src/coupling/mesh_med.cpp
   )
   list(APPEND LIB_HEADERS
-    src/coupling/coupling_med.hpp
-    src/coupling/field_med.hpp
-    src/coupling/mesh_med.hpp
+    include/cocoa/coupling/coupling_med.hpp
+    include/cocoa/coupling/field_med.hpp
+    include/cocoa/coupling/mesh_med.hpp
   )
   list(APPEND LIB_DEPENDENCIES
     medcoupling::medcoupling
@@ -181,15 +181,18 @@ endif()
 # library ==============================================================
 
 add_library(cocoa)
+
 target_sources(cocoa
   PRIVATE
     ${LIB_SOURCES}
   PUBLIC
-  FILE_SET HEADERS
-  BASE_DIRS src ${CMAKE_CURRENT_BINARY_DIR}
-  FILES
-    ${LIB_HEADERS}
-    ${CMAKE_CURRENT_BINARY_DIR}/cocoa_plugins.hpp
+    FILE_SET HEADERS
+    BASE_DIRS
+      include
+      ${CMAKE_CURRENT_BINARY_DIR}
+    FILES
+      ${LIB_HEADERS}
+      ${CMAKE_CURRENT_BINARY_DIR}/cocoa/plugins.hpp
 )
 target_link_libraries(cocoa
   PUBLIC
@@ -198,7 +201,11 @@ target_link_libraries(cocoa
 target_compile_features(cocoa PRIVATE cxx_std_20)
 add_library(cocoa::cocoa ALIAS cocoa)
 
-configure_file(src/cocoa_plugins.hpp.in cocoa_plugins.hpp @ONLY)
+configure_file(
+  include/cocoa/plugins.hpp.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cocoa/plugins.hpp
+  @ONLY
+)
 
 feature_summary(WHAT ALL)
 
@@ -348,21 +355,24 @@ endif()
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
+set(COCOA_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/cocoa)
+
 write_basic_package_version_file(
   ${CMAKE_CURRENT_BINARY_DIR}/cocoa-config-version.cmake
+  VERSION ${PROJECT_VERSION}
   COMPATIBILITY AnyNewerVersion
 )
 
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/cocoa-config-version.cmake
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+  DESTINATION ${COCOA_INSTALL_CMAKEDIR}
 )
 
 install(
   TARGETS cocoa
   EXPORT cocoaTargets
   FILE_SET HEADERS
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cocoa
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 if (COCOA_ENABLE_MEDCOUPLING)
@@ -373,7 +383,7 @@ if (COCOA_ENABLE_MEDCOUPLING)
 endif()
 
 install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/cocoa_plugins.hpp
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/cocoa/plugins.hpp
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cocoa
 )
 
@@ -388,22 +398,22 @@ endif()
 install(
   EXPORT cocoaTargets
   NAMESPACE cocoa::
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+  DESTINATION ${COCOA_INSTALL_CMAKEDIR}
 )
 
 configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/cocoa-config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/cocoa-config.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+    INSTALL_DESTINATION ${COCOA_INSTALL_CMAKEDIR}
 )
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/cocoa-config.cmake
-  DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+  DESTINATION ${COCOA_INSTALL_CMAKEDIR}
 )
 
 if (COCOA_ENABLE_OFORG)
   install(
     FILES ${CMAKE_CURRENT_LIST_DIR}/cmake/FindOpenFOAMorg.cmake
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/cocoa
+    DESTINATION ${COCOA_INSTALL_CMAKEDIR}
   )
 endif()
 

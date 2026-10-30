@@ -1,6 +1,6 @@
-#include "problem/problem_proxpde.hpp"
+#include "cocoa/problem/problem_proxpde.hpp"
 
-// std
+// stl
 #include <string_view>
 
 // proxpde
@@ -9,8 +9,8 @@
 #include <proxpde/assembly_rhs.hpp>
 #include <proxpde/builder.hpp>
 
-// local
-#include "enums.hpp"
+// cocoa
+#include <cocoa/enums.hpp>
 
 namespace cocoa
 {

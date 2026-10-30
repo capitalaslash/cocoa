@@ -1,14 +1,14 @@
-#include "coupling_simple.hpp"
+#include "cocoa/coupling/coupling_simple.hpp"
 
-// std
+// stl
 #include <cassert>
 
 // fmt
 #include <fmt/ranges.h>
 
-// local
-#include "enums.hpp"
-#include "problem/problem_fd1d.hpp"
+// cocoa
+#include <cocoa/enums.hpp>
+#include <cocoa/problem/problem_fd1d.hpp>
 
 namespace cocoa
 {

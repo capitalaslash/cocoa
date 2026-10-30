@@ -1,6 +1,6 @@
-// local
-#include "enums.hpp"
-#include "problem/problem_fd1d.hpp"
+// cocoa
+#include <cocoa/enums.hpp>
+#include <cocoa/problem/problem_fd1d.hpp>
 
 constexpr auto U_RIGHT = 0.0;
 

@@ -1,6 +1,6 @@
-#include "coupling/field_med.hpp"
+#include "cocoa/coupling/field_med.hpp"
 
-// std
+// stl
 #include <string_view>
 
 // fmt
@@ -9,8 +9,8 @@
 // medcoupling
 #include <MEDCouplingFieldDouble.hxx>
 
-// local
-#include "coupling/mesh_med.hpp"
+// cocoa
+#include <cocoa/coupling/mesh_med.hpp>
 
 namespace cocoa
 {

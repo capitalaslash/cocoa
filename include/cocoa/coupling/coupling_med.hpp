@@ -1,15 +1,15 @@
 #pragma once
 
-#include <cocoa_plugins.hpp>
+#include <cocoa/plugins.hpp>
 
 #ifdef COCOA_ENABLE_MEDCOUPLING
 
 // medcoupling
 #include <MEDCouplingRemapper.hxx>
 
-// local
-#include "coupling/coupling_manager.hpp"
-#include "coupling/field_med.hpp"
+// cocoa
+#include <cocoa/coupling/coupling_manager.hpp>
+#include <cocoa/coupling/field_med.hpp>
 
 namespace cocoa
 {

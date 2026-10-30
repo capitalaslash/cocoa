@@ -1,6 +1,3 @@
-#include "coupling/coupling_manager.hpp"
-#include "cocoa_plugins.hpp"
-
 // pybind11
 #include <pybind11/eigen.h>
 #include <pybind11/functional.h>
@@ -8,19 +5,21 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
 
-// local
-#include "coupling/coupling_med.hpp"
-#include "coupling/coupling_simple.hpp"
-#include "coupling/field_coupling.hpp"
-#include "coupling/field_med.hpp"
-#include "enums.hpp"
-#include "la.hpp"
-#include "problem/fdutils.hpp"
-#include "problem/problem.hpp"
-#include "problem/problem_fd1d.hpp"
-#include "problem/problem_fd2d.hpp"
-#include "problem/problem_oforg.hpp"
-#include "problem/problem_proxpde.hpp"
+// cocoa
+#include <cocoa/coupling/coupling_manager.hpp>
+#include <cocoa/coupling/coupling_med.hpp>
+#include <cocoa/coupling/coupling_simple.hpp>
+#include <cocoa/coupling/field_coupling.hpp>
+#include <cocoa/coupling/field_med.hpp>
+#include <cocoa/enums.hpp>
+#include <cocoa/la.hpp>
+#include <cocoa/plugins.hpp>
+#include <cocoa/problem/fdutils.hpp>
+#include <cocoa/problem/problem.hpp>
+#include <cocoa/problem/problem_fd1d.hpp>
+#include <cocoa/problem/problem_fd2d.hpp>
+#include <cocoa/problem/problem_oforg.hpp>
+#include <cocoa/problem/problem_proxpde.hpp>
 
 namespace py = pybind11;
 

@@ -1,7 +1,7 @@
-// local
-#include "enums.hpp"
-#include "problem/fdutils.hpp"
-#include "problem/problem_fd2d.hpp"
+// cocoa
+#include <cocoa/enums.hpp>
+#include <cocoa/problem/fdutils.hpp>
+#include <cocoa/problem/problem_fd2d.hpp>
 
 // // arithmetic
 // static constexpr auto mean(double const a, double const b) -> double { return 0.5 *

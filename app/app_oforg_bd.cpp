@@ -2,10 +2,10 @@
 #include <fmt/ranges.h>
 #include <fmt/std.h>
 
-// local
-#include "coupling/coupling_manager.hpp"
-#include "coupling/coupling_med.hpp"
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/coupling/coupling_manager.hpp>
+#include <cocoa/coupling/coupling_med.hpp>
+#include <cocoa/problem/problem.hpp>
 
 int main()
 {

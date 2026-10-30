@@ -1,18 +1,18 @@
 #pragma once
 
-#include <cocoa_plugins.hpp>
+#include <cocoa/plugins.hpp>
 
 #ifdef COCOA_ENABLE_MEDCOUPLING
 
-// std
+// stl
 #include <string_view>
 
 // medcoupling
 #include <MEDCouplingFieldDouble.hxx>
 
-// local
-#include "coupling/field_coupling.hpp"
-#include "enums.hpp"
+// cocoa
+#include <cocoa/coupling/field_coupling.hpp>
+#include <cocoa/enums.hpp>
 
 namespace cocoa
 {

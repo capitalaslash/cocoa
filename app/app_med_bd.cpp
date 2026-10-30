@@ -1,6 +1,6 @@
-// local
-#include "coupling/coupling_manager.hpp"
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/coupling/coupling_manager.hpp>
+#include <cocoa/problem/problem.hpp>
 
 int main()
 {

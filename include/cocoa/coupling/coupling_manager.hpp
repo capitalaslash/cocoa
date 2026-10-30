@@ -6,11 +6,11 @@
 #include <string_view>
 #include <unordered_map>
 
-// local
-#include "coupling/field_coupling.hpp"
-#include "coupling/mesh_coupling.hpp"
-#include "enums.hpp"
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/coupling/field_coupling.hpp>
+#include <cocoa/coupling/mesh_coupling.hpp>
+#include <cocoa/enums.hpp>
+#include <cocoa/problem/problem.hpp>
 
 namespace cocoa
 {

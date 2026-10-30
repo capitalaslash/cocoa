@@ -1,15 +1,15 @@
-#include "coupling_med.hpp"
+#include "cocoa/coupling/coupling_med.hpp"
 
-// std
+// stl
 #include <cassert>
 
 // fmt
 #include <fmt/ranges.h>
 
-// local
-#include "coupling/field_med.hpp"
-#include "coupling/mesh_med.hpp"
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/coupling/field_med.hpp>
+#include <cocoa/coupling/mesh_med.hpp>
+#include <cocoa/problem/problem.hpp>
 
 namespace cocoa
 {

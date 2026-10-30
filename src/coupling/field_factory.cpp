@@ -1,12 +1,11 @@
-// std
+// stl
 #include <memory>
 
-// local
-#include <cocoa_plugins.hpp>
-
-#include "coupling/field_coupling.hpp"
-#include "coupling/field_med.hpp"
-#include "enums.hpp"
+// cocoa
+#include <cocoa/coupling/field_coupling.hpp>
+#include <cocoa/coupling/field_med.hpp>
+#include <cocoa/enums.hpp>
+#include <cocoa/plugins.hpp>
 
 namespace cocoa
 {

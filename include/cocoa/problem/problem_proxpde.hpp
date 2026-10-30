@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cocoa_plugins.hpp>
+#include <cocoa/plugins.hpp>
 
 #ifdef COCOA_ENABLE_PROXPDE
 
-// std
+// stl
 #include <vector>
 
 // proxpde
@@ -19,9 +19,9 @@
 #include <proxpde/mesh.hpp>
 #include <proxpde/var.hpp>
 
-// local
-#include "enums.hpp"
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/enums.hpp>
+#include <cocoa/problem/problem.hpp>
 
 namespace cocoa
 {

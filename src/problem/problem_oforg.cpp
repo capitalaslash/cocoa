@@ -1,6 +1,6 @@
-#include "problem/problem_oforg.hpp"
+#include "cocoa/problem/problem_oforg.hpp"
 
-// std
+// stl
 #include <array>
 #include <cassert>
 #include <fstream>
@@ -11,8 +11,8 @@
 #include <volFieldsFwd.H>
 // #include <ConstantField.H>  // only in openfoam.com
 
-// local
-#include "enums.hpp"
+// cocoa
+#include <cocoa/enums.hpp>
 
 namespace cocoa
 {

@@ -1,5 +1,5 @@
-// local
-#include "problem/problem_proxpde.hpp"
+// cocoa
+#include <cocoa/problem/problem_proxpde.hpp>
 
 auto constexpr N = 20u;
 

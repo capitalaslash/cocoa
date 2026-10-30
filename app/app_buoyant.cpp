@@ -1,7 +1,7 @@
-// local
-#include "coupling/coupling_manager.hpp"
-#include "enums.hpp"
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/coupling/coupling_manager.hpp>
+#include <cocoa/enums.hpp>
+#include <cocoa/problem/problem.hpp>
 
 int main()
 {

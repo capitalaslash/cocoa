@@ -1,6 +1,6 @@
 #pragma once
 
-// std
+// stl
 #include <filesystem>
 #include <memory>
 #include <string_view>
@@ -9,8 +9,8 @@
 // fmt
 #include <fmt/core.h>
 
-// local
-#include "enums.hpp"
+// cocoa
+#include <cocoa/enums.hpp>
 
 namespace cocoa
 {

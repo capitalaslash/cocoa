@@ -8,10 +8,10 @@
 #include <unordered_map>
 #include <variant>
 
-// local
-#include "coupling/field_coupling.hpp"
-#include "coupling/mesh_coupling.hpp"
-#include "enums.hpp"
+// cocoa
+#include <cocoa/coupling/field_coupling.hpp>
+#include <cocoa/coupling/mesh_coupling.hpp>
+#include <cocoa/enums.hpp>
 
 namespace cocoa
 {

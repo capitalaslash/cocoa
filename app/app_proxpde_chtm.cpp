@@ -1,5 +1,5 @@
-// local
-#include "problem/problem_proxpde.hpp"
+// cocoa
+#include <cocoa/problem/problem_proxpde.hpp>
 
 static proxpde::marker_T constexpr LEFT_BOTTOM = 101u;
 static proxpde::marker_T constexpr LEFT_TOP = 102u;

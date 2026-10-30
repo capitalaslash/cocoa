@@ -1,15 +1,15 @@
 #pragma once
 
-#include <cocoa_plugins.hpp>
+#include <cocoa/plugins.hpp>
 
 #ifdef COCOA_ENABLE_FEMUS
 
 // fmt
 #include <fmt/core.h>
 
-// local
-#include "field_coupling.hpp"
-#include "problem.hpp"
+// cocoa
+#include <cocoa/field_coupling.hpp>
+#include <cocoa/problem.hpp>
 
 namespace cocoa
 {

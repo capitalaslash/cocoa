@@ -1,6 +1,6 @@
 #pragma once
 
-// std
+// stl
 #include <array>
 #include <cstdint>
 #include <string_view>
@@ -13,8 +13,8 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 
-// local
-#include "la.hpp"
+// cocoa
+#include <cocoa/la.hpp>
 
 namespace cocoa
 {

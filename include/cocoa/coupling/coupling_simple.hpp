@@ -1,10 +1,10 @@
 #pragma once
 
-// std
+// stl
 #include <vector>
 
-// local
-#include "coupling/coupling_manager.hpp"
+// cocoa
+#include <cocoa/coupling/coupling_manager.hpp>
 
 namespace cocoa
 {

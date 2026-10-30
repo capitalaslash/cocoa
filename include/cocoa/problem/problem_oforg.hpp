@@ -1,8 +1,6 @@
 #pragma once
 
-#include "coupling/field_coupling.hpp"
-#include "coupling/mesh_coupling.hpp"
-#include <cocoa_plugins.hpp>
+#include <cocoa/plugins.hpp>
 
 #ifdef COCOA_ENABLE_OFORG
 
@@ -14,8 +12,10 @@
 #include <pimpleSingleRegionControl.H>
 #include <solver.H>
 
-// local
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/coupling/field_coupling.hpp>
+#include <cocoa/coupling/mesh_coupling.hpp>
+#include <cocoa/problem/problem.hpp>
 
 namespace cocoa
 {

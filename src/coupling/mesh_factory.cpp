@@ -1,15 +1,14 @@
-// std
+// stl
 #include <memory>
 
 // fmt
 #include <fmt/core.h>
 
-// local
-#include <cocoa_plugins.hpp>
-
-#include "coupling/mesh_coupling.hpp"
-#include "coupling/mesh_med.hpp"
-#include "enums.hpp"
+// cocoa
+#include <cocoa/coupling/mesh_coupling.hpp>
+#include <cocoa/coupling/mesh_med.hpp>
+#include <cocoa/enums.hpp>
+#include <cocoa/plugins.hpp>
 
 namespace cocoa
 {

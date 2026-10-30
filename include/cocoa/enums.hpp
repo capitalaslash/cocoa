@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cocoa_plugins.hpp>
+#include <cocoa/plugins.hpp>
 
 // stl
 #include <cstdlib>

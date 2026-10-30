@@ -1,6 +1,6 @@
-#include "problem/problem_fd2d.hpp"
+#include "cocoa/problem/problem_fd2d.hpp"
 
-// std
+// stl
 #include <cassert>
 #include <filesystem>
 #include <fstream>
@@ -11,11 +11,11 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 
-// local
-#include "coupling/field_coupling.hpp"
-#include "coupling/mesh_coupling.hpp"
-#include "enums.hpp"
-#include "problem/fdutils.hpp"
+// cocoa
+#include <cocoa/coupling/field_coupling.hpp>
+#include <cocoa/coupling/mesh_coupling.hpp>
+#include <cocoa/enums.hpp>
+#include <cocoa/problem/fdutils.hpp>
 
 namespace cocoa
 {

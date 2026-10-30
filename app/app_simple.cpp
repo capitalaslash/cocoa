@@ -1,10 +1,10 @@
-// std
+// stl
 #include <cassert>
 
-// local
-#include "coupling/coupling_manager.hpp"
-#include "enums.hpp"
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/coupling/coupling_manager.hpp>
+#include <cocoa/enums.hpp>
+#include <cocoa/problem/problem.hpp>
 
 int main()
 {
@@ -18,7 +18,8 @@ int main()
 
   auto coupling12 =
       CouplingManager::build(COUPLING_TYPE::SIMPLE, COUPLING_SCOPE::VOLUME);
-  coupling12->setup({p1.get(), {"T"}}, {p2.get(), {"Tcfd"}}, INTERPOLATION_METHOD::P1P1);
+  coupling12->setup(
+      {p1.get(), {"T"}}, {p2.get(), {"Tcfd"}}, INTERPOLATION_METHOD::P1P1);
   auto coupling21 =
       CouplingManager::build(COUPLING_TYPE::SIMPLE, COUPLING_SCOPE::VOLUME);
   coupling21->setup(

@@ -1,8 +1,7 @@
-#include "la.hpp"
+#include "cocoa/la.hpp"
 
 // stl
 #include <algorithm>
-#include <tuple>
 
 namespace cocoa
 {

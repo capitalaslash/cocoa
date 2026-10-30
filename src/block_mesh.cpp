@@ -1,5 +1,3 @@
-#include "problem/problem_oforg.hpp"
-
 // stl
 #include <memory>
 
@@ -10,6 +8,9 @@
 #include <polyTopoChange.H>
 #include <slidingInterface.H>
 #include <systemDict.H>
+
+// cocoa
+#include <cocoa/problem/problem_oforg.hpp>
 
 int runBlockMesh(Foam::argList & args)
 {

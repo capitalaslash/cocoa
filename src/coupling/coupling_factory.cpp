@@ -1,16 +1,15 @@
-// std
+// stl
 #include <memory>
 
 // fmtlib
 #include <fmt/core.h>
 
-// local
-#include <cocoa_plugins.hpp>
-
-#include "coupling/coupling_manager.hpp"
-#include "coupling/coupling_med.hpp"
-#include "coupling/coupling_simple.hpp"
-#include "enums.hpp"
+// cocoa
+#include <cocoa/coupling/coupling_manager.hpp>
+#include <cocoa/coupling/coupling_med.hpp>
+#include <cocoa/coupling/coupling_simple.hpp>
+#include <cocoa/enums.hpp>
+#include <cocoa/plugins.hpp>
 
 namespace cocoa
 {

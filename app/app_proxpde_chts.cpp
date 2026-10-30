@@ -7,8 +7,8 @@
 // proxpde
 #include <proxpde/feutils.hpp>
 
-// local
-#include "problem/problem_proxpde.hpp"
+// cocoa
+#include <cocoa/problem/problem_proxpde.hpp>
 
 using namespace cocoa;
 

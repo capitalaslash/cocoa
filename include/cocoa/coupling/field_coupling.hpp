@@ -1,6 +1,6 @@
 #pragma once
 
-// std
+// stl
 #include <filesystem>
 #include <memory>
 #include <span>
@@ -9,9 +9,9 @@
 // fmt
 #include <fmt/core.h>
 
-// local
-#include "coupling/mesh_coupling.hpp"
-#include "enums.hpp"
+// cocoa
+#include <cocoa/coupling/mesh_coupling.hpp>
+#include <cocoa/enums.hpp>
 
 namespace cocoa
 {
@@ -113,7 +113,7 @@ struct FieldSimple: public FieldCoupling
   double const * dataPtr() const override { return data_.data(); }
   double at(size_t k) const override { return data_[k]; }
   double operator[](size_t k) const override { return data_[k]; }
-  // std::span<double> getData() override { return data_; }
+  // stl::span<double> getData() override { return data_; }
 
   virtual void init(
       std::string_view name,

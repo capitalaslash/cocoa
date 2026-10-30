@@ -1,14 +1,12 @@
-// std
+// stl
 #include <numeric>
 
 // fmt
 #include <fmt/ranges.h>
 
-// local
-#include "problem/problem.hpp"
-
-// tmp
-#include "problem/problem_fd2d.hpp"
+// cocoa
+#include <cocoa/problem/problem.hpp>
+#include <cocoa/problem/problem_fd2d.hpp>
 
 int main(int argc, char * argv[])
 {

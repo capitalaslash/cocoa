@@ -1,15 +1,14 @@
-// std
+// stl
 #include <memory>
 
-// local
-#include <cocoa_plugins.hpp>
-
-#include "problem/problem.hpp"
-#include "problem/problem_fd1d.hpp"
-#include "problem/problem_fd2d.hpp"
-#include "problem/problem_femus.hpp"
-#include "problem/problem_oforg.hpp"
-#include "problem/problem_proxpde.hpp"
+// cocoa
+#include <cocoa/plugins.hpp>
+#include <cocoa/problem/problem.hpp>
+#include <cocoa/problem/problem_fd1d.hpp>
+#include <cocoa/problem/problem_fd2d.hpp>
+#include <cocoa/problem/problem_femus.hpp>
+#include <cocoa/problem/problem_oforg.hpp>
+#include <cocoa/problem/problem_proxpde.hpp>
 
 namespace cocoa
 {

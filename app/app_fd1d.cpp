@@ -1,6 +1,6 @@
-// local
-#include "problem/problem.hpp"
-#include "problem/problem_fd1d.hpp"
+// cocoa
+#include <cocoa/problem/problem.hpp>
+#include <cocoa/problem/problem_fd1d.hpp>
 
 int main()
 {

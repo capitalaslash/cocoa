@@ -1,5 +1,5 @@
-// local
-#include "problem/problem.hpp"
+// cocoa
+#include <cocoa/problem/problem.hpp>
 
 int main()
 {

@@ -1,11 +1,11 @@
 // stl
 #include <algorithm>
 
-// local
-#include "enums.hpp"
-#include "la.hpp"
-#include "problem/fdutils.hpp"
-#include "problem/problem_fd2d.hpp"
+// cocoa
+#include <cocoa/enums.hpp>
+#include <cocoa/la.hpp>
+#include <cocoa/problem/fdutils.hpp>
+#include <cocoa/problem/problem_fd2d.hpp>
 
 auto constexpr N = 80u;
 auto constexpr DT = 1e+1;
